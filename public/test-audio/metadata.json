@@ -1,0 +1,54 @@
+[
+  {
+    "id": "XC915894",
+    "species_scientific": "Turdus fuscater",
+    "species_common": "Great Thrush",
+    "recordist": "MasBiomas",
+    "license": "CC BY-NC-SA 4.0",
+    "source_url": "https://xeno-canto.org/915894",
+    "filename": "XC915894-turdus-fuscater.wav",
+    "sample_rate": 48000,
+    "format": "wav",
+    "channels": 1,
+    "best_window_offset_sec": 26.0
+  },
+  {
+    "id": "XC1086722",
+    "species_scientific": "Zonotrichia capensis",
+    "species_common": "Rufous-collared Sparrow",
+    "recordist": "Brian Cox",
+    "license": "CC BY-NC-SA 4.0",
+    "source_url": "https://xeno-canto.org/1086722",
+    "filename": "XC1086722-zonotrichia-capensis.wav",
+    "sample_rate": 48000,
+    "format": "wav",
+    "channels": 1,
+    "best_window_offset_sec": 0.0
+  },
+  {
+    "id": "XC963260",
+    "species_scientific": "Troglodytes aedon",
+    "species_common": "House Wren",
+    "recordist": "Scott Crabtree",
+    "license": "CC BY-NC-SA 4.0",
+    "source_url": "https://xeno-canto.org/963260",
+    "filename": "XC963260-troglodytes-aedon.wav",
+    "sample_rate": 48000,
+    "format": "wav",
+    "channels": 1,
+    "best_window_offset_sec": 10.0
+  },
+  {
+    "id": "XC534023",
+    "species_scientific": "Tyrannus melancholicus",
+    "species_common": "Tropical Kingbird",
+    "recordist": "Jerome Fischer",
+    "license": "CC BY-NC-SA 4.0",
+    "source_url": "https://xeno-canto.org/534023",
+    "filename": "XC534023-tyrannus-melancholicus.wav",
+    "sample_rate": 48000,
+    "format": "wav",
+    "channels": 1,
+    "best_window_offset_sec": 0.0
+  }
+]
