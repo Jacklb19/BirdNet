@@ -74,7 +74,7 @@ export class AudioCaptureService {
 
       this.mediaStream = stream;
 
-      const audioCtx = new AudioContext();
+      const audioCtx = new AudioContext({ sampleRate: 48000 });
       this.audioContext = audioCtx;
 
       // Iniciar el pipeline de cómputo del mel-espectrograma

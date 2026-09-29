@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resampleAudio } from './resample';
+import { resampleAudio, StreamingResampler } from './resample';
 
 describe('resampleAudio', () => {
   it('devuelve una copia idéntica si las frecuencias de muestreo son iguales', () => {
@@ -45,3 +45,40 @@ describe('resampleAudio', () => {
     expect(result.length).toBe(0);
   });
 });
+
+describe('StreamingResampler', () => {
+  it('conserva continuidad de señal lineal a través de múltiples chunks sucesivos', () => {
+    const resampler = new StreamingResampler(10, 20);
+    // Señal rampa continua de 0 a 30 en 4 chunks de 2 muestras cada uno
+    const chunk1 = new Float32Array([0, 10]);
+    const chunk2 = new Float32Array([20, 30]);
+
+    const out1 = resampler.processChunk(chunk1);
+    const out2 = resampler.processChunk(chunk2);
+
+    const merged = new Float32Array(out1.length + out2.length);
+    merged.set(out1, 0);
+    merged.set(out2, out1.length);
+
+    // Con rampa lineal y factor 2x, los pasos deben ser exactamente 5
+    for (let i = 1; i < merged.length; i++) {
+      const curr = merged[i] ?? 0;
+      const prev = merged[i - 1] ?? 0;
+      const step = curr - prev;
+      expect(step).toBeCloseTo(5.0, 3);
+    }
+  });
+
+  it('devuelve una copia idéntica cuando source y target son iguales', () => {
+    const resampler = new StreamingResampler(48000, 48000);
+    const chunk = new Float32Array([1, 2, 3]);
+    const out = resampler.processChunk(chunk);
+    expect(Array.from(out)).toEqual([1, 2, 3]);
+  });
+
+  it('lanza error si las frecuencias son no positivas', () => {
+    expect(() => new StreamingResampler(-1, 48000)).toThrow();
+    expect(() => new StreamingResampler(48000, 0)).toThrow();
+  });
+});
+

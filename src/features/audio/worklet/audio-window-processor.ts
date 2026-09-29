@@ -1,6 +1,6 @@
 import { AUDIO_CONSTANTS } from '../dsp/audio.constants';
 import { normalizeAudio } from '../dsp/normalize';
-import { resampleAudio } from '../dsp/resample';
+import { StreamingResampler } from '../dsp/resample';
 
 export interface AudioWindowMessage {
   type: 'WINDOW_READY';
@@ -28,6 +28,7 @@ export class AudioWindowAccumulator {
   private readonly windowSamples: number;
   private readonly hopSamples: number;
   private readonly sourceSampleRate: number;
+  private readonly resampler: StreamingResampler | null = null;
 
   private ringBuffer: Float32Array;
   private samplesAccumulatedTotal: number = 0;
@@ -52,6 +53,10 @@ export class AudioWindowAccumulator {
     this.hopSamples = hopSamples;
     this.ringBuffer = new Float32Array(this.windowSamples);
 
+    if (this.sourceSampleRate !== this.targetSampleRate) {
+      this.resampler = new StreamingResampler(this.sourceSampleRate, this.targetSampleRate);
+    }
+
     // Reportar nivel aproximadamente cada 100 ms
     this.levelReportIntervalSamples = Math.floor(sourceSampleRate * 0.1);
   }
@@ -67,7 +72,7 @@ export class AudioWindowAccumulator {
       return null;
     }
 
-    // Actualizar métricas de nivel
+    // Actualizar métricas de nivel (sobre el audio crudo de entrada)
     for (let i = 0; i < chunk.length; i++) {
       const sample = chunk[i] ?? 0;
       const abs = Math.abs(sample);
@@ -78,13 +83,12 @@ export class AudioWindowAccumulator {
     }
     this.levelSampleCount += chunk.length;
 
-    // Remuestrear si la frecuencia de entrada no coincide con la objetivo
-    const processedChunk =
-      this.sourceSampleRate === this.targetSampleRate
-        ? chunk
-        : resampleAudio(chunk, this.sourceSampleRate, this.targetSampleRate);
-
+    // Remuestrear en streaming si la frecuencia de entrada no coincide con la objetivo (RF-03)
+    const processedChunk = this.resampler ? this.resampler.processChunk(chunk) : chunk;
     const chunkLen = processedChunk.length;
+    if (chunkLen === 0) {
+      return null;
+    }
 
     // Desplazar muestras en el ring buffer hacia la izquierda si se supera el tamaño
     if (chunkLen >= this.windowSamples) {
@@ -148,6 +152,7 @@ export class AudioWindowAccumulator {
     this.levelSampleCount = 0;
     this.levelSumSquares = 0;
     this.levelPeak = 0;
+    this.resampler?.reset();
   }
 }
 
@@ -156,6 +161,58 @@ export class AudioWindowAccumulator {
  * Esto asegura funcionamiento sin dependencias complejas de empaquetado Vite en tiempo de ejecución.
  */
 export const AUDIO_WORKLET_PROCESSOR_CODE = `
+class StreamingResampler {
+  constructor(sourceSampleRate, targetSampleRate) {
+    this.sourceSampleRate = sourceSampleRate;
+    this.targetSampleRate = targetSampleRate;
+    this.ratio = sourceSampleRate / targetSampleRate;
+    this.phase = 0;
+    this.lastSample = 0;
+  }
+
+  processChunk(input) {
+    const inputLen = input.length;
+    if (inputLen === 0) return new Float32Array(0);
+    if (this.sourceSampleRate === this.targetSampleRate) {
+      return input;
+    }
+
+    const ratio = this.ratio;
+    const maxSamples = Math.max(0, Math.ceil((inputLen - this.phase) / ratio) + 2);
+    const output = new Float32Array(maxSamples);
+    let outIdx = 0;
+    let pos = this.phase;
+
+    while (pos <= inputLen - 1) {
+      let sample;
+      if (pos < 0) {
+        const frac = pos + 1;
+        sample = this.lastSample + frac * (input[0] - this.lastSample);
+      } else {
+        const indexLow = Math.floor(pos);
+        const frac = pos - indexLow;
+        if (frac === 0 || indexLow >= inputLen - 1) {
+          sample = input[indexLow];
+        } else {
+          sample = input[indexLow] + frac * (input[indexLow + 1] - input[indexLow]);
+        }
+      }
+      output[outIdx++] = sample;
+      pos += ratio;
+    }
+
+    this.lastSample = input[inputLen - 1];
+    this.phase = pos - inputLen;
+
+    return outIdx === output.length ? output : output.subarray(0, outIdx);
+  }
+
+  reset() {
+    this.phase = 0;
+    this.lastSample = 0;
+  }
+}
+
 class AudioWindowProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
@@ -163,6 +220,10 @@ class AudioWindowProcessor extends AudioWorkletProcessor {
     this.windowSamples = ${String(AUDIO_CONSTANTS.WINDOW_SAMPLES)};
     this.hopSamples = ${String(AUDIO_CONSTANTS.HOP_SAMPLES)};
     this.sourceSampleRate = sampleRate; // Global AudioWorklet sampleRate
+    this.needsResample = this.sourceSampleRate !== this.targetSampleRate;
+    if (this.needsResample) {
+      this.resampler = new StreamingResampler(this.sourceSampleRate, this.targetSampleRate);
+    }
 
     this.ringBuffer = new Float32Array(this.windowSamples);
     this.samplesAccumulatedTotal = 0;
@@ -205,12 +266,21 @@ class AudioWindowProcessor extends AudioWorkletProcessor {
       this.levelPeak = 0;
     }
 
-    // Actualizar ring buffer
-    this.ringBuffer.copyWithin(0, chunkLen);
-    this.ringBuffer.set(chunk, this.windowSamples - chunkLen);
+    // Remuestreo si la frecuencia del contexto no es 48 kHz
+    const processedChunk = this.needsResample ? this.resampler.processChunk(chunk) : chunk;
+    const processedLen = processedChunk.length;
+    if (processedLen === 0) return true;
 
-    this.samplesAccumulatedTotal += chunkLen;
-    this.samplesSinceLastWindow += chunkLen;
+    // Actualizar ring buffer con muestras a 48 kHz
+    if (processedLen >= this.windowSamples) {
+      this.ringBuffer.set(processedChunk.subarray(processedLen - this.windowSamples));
+    } else {
+      this.ringBuffer.copyWithin(0, processedLen);
+      this.ringBuffer.set(processedChunk, this.windowSamples - processedLen);
+    }
+
+    this.samplesAccumulatedTotal += processedLen;
+    this.samplesSinceLastWindow += processedLen;
 
     const canEmitFirst = this.windowIndex === 0 && this.samplesAccumulatedTotal >= this.windowSamples;
     const canEmitNext = this.windowIndex > 0 && this.samplesSinceLastWindow >= this.hopSamples;
