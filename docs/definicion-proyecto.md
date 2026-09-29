@@ -46,7 +46,7 @@ Diseñar y construir una aplicación web progresiva que identifique especies de 
 
 - Optimizar el consumo energético y de memoria hasta permitir sesiones de al menos una hora de escucha continua en un dispositivo de gama media.
 
-- Desplegar la solución sobre infraestructura sin servidor en AWS y verificar el cumplimiento de los requisitos no funcionales mediante pruebas automatizadas.
+- Desplegar la solución sobre plataformas con plan gratuito (Vercel y Supabase), manteniéndola portable a AWS, y verificar el cumplimiento de los requisitos no funcionales mediante pruebas automatizadas.
 
 # **Alcance y delimitación**
 
@@ -147,7 +147,7 @@ Dos exclusiones merecen justificación. La primera es el entrenamiento del model
 | RNF-09 | Precisión declarada         | Toda detección se acompaña de su confianza; ninguna se presenta como certeza.                         |
 | RNF-10 | Accesibilidad               | Nivel AA de las WCAG 2.1, con interfaz utilizable a plena luz solar y con una sola mano.              |
 | RNF-11 | Compatibilidad              | Chrome y Edge en Android y escritorio; Safari en iOS con las limitaciones documentadas.               |
-| RNF-12 | Costo                       | Menos de cinco dólares mensuales en condiciones académicas.                                           |
+| RNF-12 | Costo                       | Cero dólares, usando solo planes gratuitos que no exigen tarjeta de crédito.                          |
 
 # **Arquitectura de la solución**
 
@@ -183,16 +183,16 @@ La ventaja de este esquema es doble. Por un lado, el volumen de datos transmitid
 
 *Responsabilidad de cada contenedor*
 
-| **Contenedor**             | **Responsabilidad**                                                | **Tecnología**                              |
-|----------------------------|--------------------------------------------------------------------|---------------------------------------------|
-| Aplicación de página única | Interfaz, mapa y coordinación de la sesión de escucha.             | React 19, TypeScript, Vite, MapLibre        |
-| Captura de audio           | Segmentar la señal en ventanas y entregarlas sin pérdidas.         | AudioWorklet, Web Audio API                 |
-| Hilo de inferencia         | Calcular el mel-espectrograma y ejecutar el modelo.                | Web Worker, ONNX Runtime Web, WebGPU o WASM |
-| Trabajador de servicio     | Funcionamiento sin conexión, cola y sincronización diferida.       | Workbox, IndexedDB, Background Sync         |
-| Interfaz de programación   | Recibir detecciones, servir consultas y coordinar la verificación. | FastAPI sobre AWS Lambda                    |
-| Servicio de verificación   | Ejecutar el modelo mayor sobre el audio dudoso.                    | AWS Lambda con contenedor y SQS             |
-| Almacén de detecciones     | Persistir las detecciones y su estado de verificación.             | Amazon DynamoDB                             |
-| Almacén de audio           | Conservar temporalmente los fragmentos pendientes de verificar.    | Amazon S3 con expiración automática         |
+| **Contenedor**             | **Responsabilidad**                                                | **Tecnología**                                         |
+|----------------------------|--------------------------------------------------------------------|--------------------------------------------------------|
+| Aplicación de página única | Interfaz, mapa y coordinación de la sesión de escucha.             | React 19, TypeScript, Vite, MapLibre                   |
+| Captura de audio           | Segmentar la señal en ventanas y entregarlas sin pérdidas.         | AudioWorklet, Web Audio API                            |
+| Hilo de inferencia         | Calcular el mel-espectrograma y ejecutar el modelo.                | Web Worker, ONNX Runtime Web, WebGPU o WASM            |
+| Trabajador de servicio     | Funcionamiento sin conexión, cola y sincronización diferida.       | Workbox, IndexedDB, Background Sync                    |
+| Interfaz de programación   | Recibir detecciones, servir consultas y coordinar la verificación. | FastAPI en funciones Python de Vercel                  |
+| Servicio de verificación   | Ejecutar el modelo mayor sobre el audio dudoso.                    | Función Python de Vercel, cola en PostgreSQL y pg_cron |
+| Almacén de detecciones     | Persistir las detecciones y su estado de verificación.             | Supabase PostgreSQL con PostGIS                        |
+| Almacén de audio           | Conservar temporalmente los fragmentos pendientes de verificar.    | Supabase Storage con limpieza programada               |
 
 ## **Cadena de procesamiento y política de decisión**
 
@@ -277,13 +277,24 @@ Conviene subrayar una consecuencia de esta política que no es evidente a primer
 | Alternativas  | Empaquetar el modelo dentro del paquete de la aplicación.                                                                                                                             |
 | Consecuencias | El modelo se actualiza sin redesplegar el cliente y la primera carga es más ligera. Se debe gestionar, en contrapartida, la compatibilidad entre versiones de modelo y de aplicación. |
 
+**Tabla 13**
+
+*ADR-06. Desplegar sobre plataformas gratuitas con portabilidad a AWS*
+
+| **Campo**     | **Contenido**                                                                                                                                                                                                                                                               |
+|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Contexto      | El proyecto es académico, con tráfico intermitente y sin presupuesto; no es posible registrar un medio de pago.                                                                                                                                                             |
+| Decisión      | Aplicación y API en Vercel; identidad, base de datos PostgreSQL y archivos en Supabase. El diseño se mantiene portable a AWS.                                                                                                                                               |
+| Alternativas  | Arquitectura sin servidor en AWS; servidor propio con contenedores.                                                                                                                                                                                                         |
+| Consecuencias | Costo cero y sin servidores que administrar. A cambio se aceptan los límites de los planes gratuitos —pausa por inactividad, tamaño de base de datos, cuerpo máximo de 4,5 MB— y el riesgo de que sus condiciones cambien, mitigado con la equivalencia documentada en AWS. |
+
 # **Modelo de concurrencia y rendimiento**
 
 El reto de concurrencia de este proyecto es distinto al de los anteriores: aquí no se trata de una única tarea pesada ocasional, sino de un **flujo sostenido de trabajo periódico** que debe mantenerse durante una hora sin perder una sola ventana de audio y sin agotar la batería.
 
 ## **Distribución del trabajo entre contextos de ejecución**
 
-**Tabla 13**
+**Tabla 14**
 
 *Asignación de cada tarea a su contexto de ejecución*
 
@@ -323,7 +334,9 @@ La restricción regional del catálogo merece un comentario, pues no es un simpl
 
 ## **Modelo de verificación en la nube**
 
-Las detecciones de confianza intermedia se procesan con la versión del modelo en precisión completa, ejecutada en una función Lambda empaquetada como contenedor y alimentada por una cola de mensajes. El procesamiento por lotes resulta aquí apropiado, dado que la verificación es diferida por naturaleza y no requiere respuesta inmediata.
+Las detecciones de confianza intermedia se procesan con la versión del modelo en precisión completa, ejecutada con ONNX Runtime sobre procesador en una función Python de Vercel. El plan gratuito ofrece hasta 2 GB de memoria y cinco minutos por invocación, suficientes para un modelo de este tamaño si los trabajos se procesan en lotes pequeños. El procesamiento diferido resulta apropiado, dado que la verificación no requiere respuesta inmediata.
+
+Se consideró alojar este modelo en un espacio de Hugging Face, pero entre julio y agosto de 2026 esa plataforma dejó de ofrecer gratuitamente los espacios con contenedores a cuentas nuevas, por lo que se descartó.
 
 ## **Modelo de lenguaje**
 
@@ -333,82 +346,130 @@ Rigen dos restricciones. El modelo **no identifica especies**: jamás recibe aud
 
 # **Modelo de datos y diseño de la interfaz de programación**
 
-**Tabla 14**
-
-*Diseño de claves de la tabla única*
-
-| **Entidad**           | **Clave de partición** | **Clave de ordenación** | **Atributos principales**                               |
-|-----------------------|------------------------|-------------------------|---------------------------------------------------------|
-| Usuario               | USER#\<id\>            | PROFILE                 | alias, preferencias, región                             |
-| Detección             | GEO#\<celda\>          | TS#\<marca\>#\<ulid\>   | especie, confianza, estado, versión del modelo, usuario |
-| Detección por usuario | USER#\<id\>            | DET#\<marca\>           | referencia a la detección                               |
-| Sitio                 | USER#\<id\>            | SITE#\<id\>             | nombre, celda geográfica, fecha de creación             |
-| Resumen de sitio      | SITE#\<id\>            | STAT#\<mes\>            | especies distintas, conteos, índice de variación        |
-| Versión de modelo     | MODEL                  | VER#\<n\>               | ruta, tamaño, umbrales, métricas                        |
-
-*Nota.* La celda geográfica como clave de partición permite consultar de forma eficiente todas las detecciones de una zona, que es el patrón de acceso dominante del mapa.
+Los datos se guardan en PostgreSQL, provisto por Supabase, con la extensión PostGIS para datos geográficos. PostGIS permite guardar la ubicación como un punto y consultar con un índice espacial todas las detecciones dentro del área visible del mapa, que es el patrón de acceso dominante del sistema.
 
 **Tabla 15**
 
-*Puntos de acceso principales de la interfaz*
+*Tablas principales de la base de datos*
 
-| **Método y ruta**              | **Propósito**                                          | **Autenticación** |
-|--------------------------------|--------------------------------------------------------|-------------------|
-| POST /v1/detections/batch      | Enviar un lote de detecciones desde la cola local      | Requerida         |
-| POST /v1/detections/{id}/audio | Subir el fragmento de audio para verificación          | Requerida         |
-| GET /v1/detections             | Consultar detecciones por zona, especie y periodo      | Requerida         |
-| PATCH /v1/detections/{id}      | Confirmar, corregir o descartar una detección          | Requerida         |
-| GET /v1/sites/{id}/stats       | Obtener las estadísticas de un sitio                   | Requerida         |
-| POST /v1/species/{id}/card     | Generar la ficha divulgativa de una especie            | Requerida         |
-| GET /v1/model/latest           | Consultar la versión vigente del modelo y sus umbrales | Pública           |
-| GET /v1/export                 | Exportar detecciones en CSV                            | Requerida         |
-| GET /v1/health                 | Verificar el estado del servicio                       | Pública           |
+| **Tabla**          | **Clave y relaciones**                        | **Columnas principales**                                                                              |
+|--------------------|-----------------------------------------------|-------------------------------------------------------------------------------------------------------|
+| profiles           | id (= usuario de Supabase Auth)               | alias, preferencias, región                                                                           |
+| sites              | id; owner_id → profiles                       | nombre, centro (punto geográfico), fecha de creación                                                  |
+| detections         | id generado en el cliente; user_id → profiles | especie, confianza, estado, momento, ubicación redondeada (punto), versión del modelo, ruta del audio |
+| verification_jobs  | detection_id → detections                     | estado del trabajo, intentos, último error, fecha de creación                                         |
+| site_stats_monthly | vista materializada por sitio y mes           | especies distintas, conteos, variación respecto del mes anterior                                      |
+| model_versions     | versión                                       | ruta en Storage, tamaño, umbrales, métricas                                                           |
 
-El punto de envío por lotes merece detalle por ser el más delicado del sistema. Recibe un conjunto de detecciones, cada una con el identificador único generado en el cliente, y responde indicando cuáles fueron aceptadas y cuáles ya existían. Esta respuesta permite al cliente vaciar su cola con seguridad: un envío repetido por un corte de red no genera duplicados, porque el servidor reconoce los identificadores ya registrados. Esta propiedad, la idempotencia, es la que hace posible reintentar sin miedo, y constituye el fundamento de toda sincronización fiable.
+*Nota.* La tabla detections tiene un índice espacial sobre la ubicación y un índice por especie y fecha. La vista materializada se recalcula cada noche con pg_cron.
 
-# **Infraestructura, despliegue y operación**
+El estado de una detección toma uno de cinco valores: confirmada por el modelo local, provisional, verificada en la nube, corregida por el usuario o descartada. La seguridad a nivel de fila permite a cualquier usuario autenticado leer las detecciones —el mapa es colectivo— pero solo modificar las propias.
 
 **Tabla 16**
 
-*Servicios de AWS empleados y su función*
+*Puntos de acceso principales de la interfaz*
 
-| **Servicio**          | **Función en el sistema**                                                        | **Consideración de costo**                                   |
-|-----------------------|----------------------------------------------------------------------------------|--------------------------------------------------------------|
-| S3                    | Alojar la aplicación, las versiones del modelo y el audio pendiente de verificar | Capa gratuita; expiración automática del audio a los 30 días |
-| CloudFront            | Distribuir la aplicación y el modelo desde el borde de la red                    | Capa gratuita de 1 TB                                        |
-| API Gateway           | Exponer la interfaz y limitar la tasa de peticiones                              | Por millón de peticiones                                     |
-| Lambda                | Ejecutar la interfaz FastAPI                                                     | Un millón de invocaciones sin costo                          |
-| Lambda con contenedor | Ejecutar el modelo de verificación por lotes                                     | Invocación solo ante detecciones dudosas                     |
-| SQS                   | Encolar las verificaciones pendientes y amortiguar los picos                     | Capa gratuita de 1 millón                                    |
-| DynamoDB              | Persistir detecciones, sitios y estadísticas                                     | Modo bajo demanda                                            |
-| Cognito               | Autenticar usuarios                                                              | Gratuito en el rango previsto                                |
-| CloudWatch            | Trazas, métricas y alarmas                                                       | Capa gratuita                                                |
+| **Método y ruta**                  | **Propósito**                                                      | **Autenticación** |
+|------------------------------------|--------------------------------------------------------------------|-------------------|
+| POST /v1/detections/batch          | Enviar un lote de detecciones desde la cola local                  | Requerida         |
+| POST /v1/detections/{id}/audio-url | Obtener una URL firmada para subir el audio directamente a Storage | Requerida         |
+| GET /v1/detections                 | Consultar detecciones por zona, especie y periodo                  | Requerida         |
+| PATCH /v1/detections/{id}          | Confirmar, corregir o descartar una detección                      | Requerida         |
+| GET /v1/sites/{id}/stats           | Obtener las estadísticas de un sitio                               | Requerida         |
+| POST /v1/species/{id}/card         | Generar la ficha divulgativa de una especie                        | Requerida         |
+| GET /v1/model/latest               | Consultar la versión vigente del modelo y sus umbrales             | Pública           |
+| GET /v1/export                     | Exportar detecciones en CSV                                        | Requerida         |
+| GET /v1/health                     | Verificar el estado del servicio                                   | Pública           |
 
-El uso de una cola entre la interfaz y el servicio de verificación no responde a un afán de sofisticación. Cumple una función concreta: cuando varios usuarios sincronizan a la vez tras una jornada de campo, la cola absorbe el pico y permite que la verificación se procese a su propio ritmo, sin que la interfaz de programación tenga que esperar ni el usuario perciba demora alguna. Es, además, el punto donde resulta natural aplicar reintentos y una cola de mensajes fallidos.
+El punto de envío por lotes merece detalle por ser el más delicado del sistema. Recibe un conjunto de detecciones, cada una con el identificador único generado en el cliente, y responde indicando cuáles fueron aceptadas y cuáles ya existían. Esta respuesta permite al cliente vaciar su cola con seguridad: un envío repetido por un corte de red no genera duplicados, porque la inserción usa la cláusula ON CONFLICT DO NOTHING de PostgreSQL sobre el identificador generado en el cliente. Esta propiedad, la idempotencia, es la que hace posible reintentar sin miedo, y constituye el fundamento de toda sincronización fiable.
+
+# **Infraestructura, despliegue y operación**
+
+## **Plataforma de despliegue**
+
+El sistema se despliega sobre plataformas con **plan gratuito que no exigen tarjeta de crédito**: Vercel para la aplicación y la API, y Supabase para identidad, base de datos y archivos. La elección es viable precisamente por la arquitectura adoptada: como el cómputo intensivo ocurre en el navegador, al servidor solo le quedan tareas ligeras —autenticar, guardar datos y llamar al modelo de lenguaje— que caben holgadamente en los límites de esos planes.
+
+**Tabla 17**
+
+*Servicios empleados en la opción gratuita*
+
+| **Servicio**                   | **Función en el sistema**                                                                                                                 | **Límite del plan gratuito**                                                |
+|--------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
+| Vercel (plan Hobby)            | Alojar la aplicación, distribuirla desde su red de entrega y aplicar las cabeceras de seguridad y de aislamiento definidas en vercel.json | Gratuito para uso no comercial                                              |
+| Funciones Python de Vercel     | Ejecutar la API FastAPI como funciones sin servidor                                                                                       | Incluidas en el plan gratuito; hasta 2 GB de memoria y 300 s por invocación |
+| Supabase Auth                  | Registro, inicio de sesión y emisión de credenciales JWT                                                                                  | Hasta 50.000 usuarios activos mensuales                                     |
+| Supabase PostgreSQL            | Persistir los datos con seguridad a nivel de fila                                                                                         | Hasta 500 MB de base de datos                                               |
+| Supabase Storage               | Guardar archivos: informes y demás objetos binarios                                                                                       | Hasta 1 GB de almacenamiento                                                |
+| Variables de entorno de Vercel | Custodiar la clave de Gemini y la clave de servicio de Supabase, cifradas y solo accesibles desde el servidor                             | Sin costo                                                                   |
+| GitHub Actions                 | Integración continua y tareas programadas de mantenimiento                                                                                | Gratuito en repositorios públicos; 2.000 minutos mensuales en privados      |
+| Registros de Vercel y Sentry   | Trazas, errores y alertas                                                                                                                 | Planes gratuitos                                                            |
+| Supabase Storage (audio)       | Guardar los fragmentos de audio dudosos hasta su verificación y las versiones del modelo                                                  | Incluido en 1 GB                                                            |
+| pg_cron y pg_net (Supabase)    | Invocar la verificación cada cinco minutos, recalcular estadísticas y borrar audio vencido                                                | Incluidos en el plan gratuito                                               |
+| PostGIS (Supabase)             | Guardar ubicaciones y consultarlas por área                                                                                               | Incluido                                                                    |
+
+*Nota.* Límites vigentes a septiembre de 2026. Los planes gratuitos cambian con frecuencia, por lo que deben revisarse al iniciar la construcción.
+
+Tres restricciones de estos planes condicionan el diseño y conviene tenerlas presentes desde ahora. La primera es que el plan Hobby de Vercel admite solo uso no comercial, condición que un proyecto académico cumple. La segunda es que una función de Vercel no acepta cuerpos de petición mayores de 4,5 MB, de modo que los archivos voluminosos no pasan por la API: el cliente los sube directamente a Supabase Storage mediante una URL firmada que la API emite. La tercera es que Supabase **pausa los proyectos gratuitos tras una semana sin actividad**; para evitar que el sistema amanezca detenido el día de la sustentación, un flujo programado de GitHub Actions realiza una consulta ligera cada tres días.
+
+## **Estrategia de despliegue**
+
+Vercel se integra directamente con el repositorio de GitHub. Cada propuesta de cambio genera automáticamente un **despliegue de vista previa** con su propia dirección, que cumple la función de entorno de preproducción, y cada integración a la rama principal se publica en producción. El esquema de la base de datos se versiona en el mismo repositorio como migraciones SQL gestionadas con la interfaz de línea de comandos de Supabase, y las cabeceras de seguridad se declaran en vercel.json. De este modo toda la configuración queda descrita en archivos versionados, que es el propósito de la infraestructura como código.
+
+El proceso de integración continua, implementado con GitHub Actions, ejecuta en cada propuesta de cambio la verificación de tipos, el análisis estático, las pruebas unitarias del cliente y del servidor, la construcción de la aplicación, las pruebas de extremo a extremo sobre el despliegue de vista previa y la auditoría de rendimiento y accesibilidad. Una propuesta que no supere todas las etapas no puede integrarse.
+
+La cola de verificación merece detalle porque sustituye a un servicio de colas dedicado sin perder sus propiedades. Al sincronizar, la API inserta un trabajo pendiente por cada detección dudosa. Cada cinco minutos, pg_cron invoca mediante pg_net la función de verificación, que toma hasta diez trabajos con la cláusula FOR UPDATE SKIP LOCKED: si dos invocaciones coinciden, cada una bloquea filas distintas y ningún trabajo se procesa dos veces. Un trabajo que falla incrementa su contador de intentos y, tras tres fallos, queda marcado para revisión en lugar de reintentarse indefinidamente. Se trata del mismo problema de concurrencia que resuelven los Workers en el navegador, ahora del lado del servidor.
+
+El audio se sube directamente desde el cliente a Supabase Storage mediante una URL firmada, lo que evita el límite de 4,5 MB de las funciones de Vercel. Una tarea nocturna de pg_cron borra los fragmentos verificados hace más de treinta días, manteniendo el almacenamiento dentro del gigabyte del plan gratuito.
+
+## **Alternativa de despliegue en AWS**
+
+El diseño se mantiene **portable a Amazon Web Services** sin reescribir la aplicación, gracias a tres decisiones. La API es una aplicación ASGI estándar, que se ejecuta igual en una función de Vercel que en AWS Lambda mediante un adaptador. La API valida las credenciales JWT contra el conjunto de claves públicas del proveedor de identidad, de modo que Supabase Auth y Cognito resultan intercambiables cambiando una variable de configuración. Y los datos viven en PostgreSQL en ambos casos, por lo que el esquema y las migraciones no cambian.
+
+**Tabla 18**
+
+*Equivalencia entre la opción gratuita y AWS*
+
+| **Función**                 | **Opción gratuita (principal)**       | **Equivalente en AWS**                           |
+|-----------------------------|---------------------------------------|--------------------------------------------------|
+| Aplicación y red de entrega | Vercel                                | S3 + CloudFront                                  |
+| API FastAPI                 | Funciones Python de Vercel            | Lambda + API Gateway, con el adaptador Mangum    |
+| Identidad                   | Supabase Auth                         | Amazon Cognito                                   |
+| Base de datos               | Supabase PostgreSQL                   | Amazon RDS for PostgreSQL (mismo esquema)        |
+| Archivos                    | Supabase Storage                      | Amazon S3                                        |
+| Secretos                    | Variables de entorno de Vercel        | AWS Secrets Manager                              |
+| Cabeceras de seguridad      | vercel.json                           | Política de cabeceras de respuesta de CloudFront |
+| Observabilidad              | Registros de Vercel y Sentry          | Amazon CloudWatch                                |
+| Cola de verificación        | Tabla verification_jobs en PostgreSQL | Amazon SQS                                       |
+| Tareas programadas          | pg_cron                               | Amazon EventBridge Scheduler                     |
+| Función de verificación     | Función Python de Vercel              | Lambda con imagen de contenedor                  |
+
+La única pieza que requiere adaptación son las políticas de seguridad a nivel de fila, que en Supabase leen el usuario desde la credencial de la petición: en RDS se reescriben para leerlo de una variable de sesión que la API fija al abrir cada transacción. Cabe advertir, por último, que una cuenta de AWS exige registrar una tarjeta aunque se use su plan gratuito con créditos iniciales; por ello la opción de Vercel y Supabase se mantiene como la principal.
 
 # **Seguridad, privacidad y consideraciones éticas**
 
 Un sistema que mantiene un micrófono abierto y registra ubicaciones plantea riesgos de privacidad que exigen un tratamiento explícito.
 
-**Tabla 17**
+**Tabla 19**
 
 *Medidas de seguridad y privacidad*
 
-| **Amenaza o riesgo**                                 | **Medida adoptada**                                                                                                                                                   |
-|------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Captura involuntaria de conversaciones               | El audio se procesa en el dispositivo y se descarta tras el análisis; solo persiste el de las detecciones dudosas, con aviso explícito y posibilidad de desactivarlo. |
-| Revelación del domicilio del usuario                 | Las coordenadas se redondean a una cuadrícula de unos cien metros antes de almacenarse.                                                                               |
-| Exposición de especies sensibles a la captura ilegal | La misma imprecisión geográfica protege la localización; las especies catalogadas como amenazadas pueden ocultarse del mapa público.                                  |
-| Envío de detecciones falsas o manipuladas            | Toda detección se asocia al usuario autenticado y conserva la versión del modelo que la produjo, lo que permite auditarla.                                            |
-| Duplicación o pérdida en la sincronización           | Identificadores generados en el cliente y operaciones idempotentes en el servidor.                                                                                    |
-| Acumulación indefinida de audio en la nube           | Expiración automática a los treinta días una vez verificado el fragmento.                                                                                             |
-| Interpretación de las detecciones como certezas      | La interfaz muestra siempre la confianza y el estado de verificación, y evita el lenguaje asertivo.                                                                   |
+| **Amenaza o riesgo**                                   | **Medida adoptada**                                                                                                                                                                    |
+|--------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Captura involuntaria de conversaciones                 | El audio se procesa en el dispositivo y se descarta tras el análisis; solo persiste el de las detecciones dudosas, con aviso explícito y posibilidad de desactivarlo.                  |
+| Revelación del domicilio del usuario                   | Las coordenadas se redondean a una cuadrícula de unos cien metros antes de almacenarse.                                                                                                |
+| Exposición de especies sensibles a la captura ilegal   | La misma imprecisión geográfica protege la localización; las especies catalogadas como amenazadas pueden ocultarse del mapa público.                                                   |
+| Envío de detecciones falsas o manipuladas              | Toda detección se asocia al usuario autenticado y conserva la versión del modelo que la produjo; la seguridad a nivel de fila impide modificar detecciones ajenas.                     |
+| Uso indebido de la clave pública de Supabase           | La clave anónima solo es segura con seguridad a nivel de fila activa en todas las tablas, lo que se verifica con una prueba automatizada; la clave de servicio nunca llega al cliente. |
+| Invocación no autorizada de la función de verificación | Solo acepta llamadas que presenten un secreto compartido con pg_cron, guardado como variable de entorno.                                                                               |
+| Duplicación o pérdida en la sincronización             | Identificadores generados en el cliente y operaciones idempotentes en el servidor.                                                                                                     |
+| Acumulación indefinida de audio en la nube             | Borrado programado a los treinta días de verificado el fragmento.                                                                                                                      |
+| Interpretación de las detecciones como certezas        | La interfaz muestra siempre la confianza y el estado de verificación, y evita el lenguaje asertivo.                                                                                    |
 
 Hay además una consideración ética propia de este dominio. Un conjunto de datos de biodiversidad construido por voluntarios tiene un sesgo inevitable: refleja dónde hay personas con teléfonos, no dónde hay aves. La interfaz destinada a investigadores advierte de forma explícita de esta limitación, y los informes generados evitan presentar la ausencia de detecciones como ausencia de especies. Confundir ambas cosas sería el error interpretativo más probable y el de peores consecuencias.
 
 # **Estrategia de pruebas y calidad**
 
-**Tabla 18**
+**Tabla 20**
 
 *Niveles de prueba previstos*
 
@@ -427,23 +488,25 @@ La prueba de campo no puede automatizarse y, sin embargo, es la más informativa
 
 # **Riesgos y plan de mitigación**
 
-**Tabla 19**
+**Tabla 21**
 
 *Registro de riesgos del proyecto*
 
-| **Id** | **Riesgo**                                                             | **Prob.** | **Impacto** | **Mitigación**                                                                                                     |
-|--------|------------------------------------------------------------------------|-----------|-------------|--------------------------------------------------------------------------------------------------------------------|
-| R-01   | La inferencia resulta demasiado lenta en dispositivos de gama media    | Media     | Alto        | Medir en un dispositivo real desde la semana 3; cuantizar más y aumentar el intervalo entre ventanas si es preciso |
-| R-02   | La exportación del modelo a ONNX presenta incompatibilidades           | Media     | Alto        | Validar la exportación en la semana 2, antes de construir nada sobre ella                                          |
-| R-03   | El consumo de batería excede lo aceptable                              | Media     | Medio       | Ajustar el intervalo de análisis y suspender en segundo plano                                                      |
-| R-04   | El ruido ambiental degrada la precisión en entornos urbanos            | Alta      | Medio       | Filtrado previo, umbral de energía mínima y comunicación honesta de la confianza                                   |
-| R-05   | Limitaciones de Safari en iOS para audio y funcionamiento sin conexión | Media     | Medio       | Documentar el soporte por navegador y degradar con elegancia                                                       |
-| R-06   | El tamaño de descarga inicial desalienta el uso                        | Baja      | Medio       | Cuantización, compresión y descarga del modelo diferida al primer uso                                              |
-| R-07   | El alcance de tres proyectos simultáneos supera el tiempo disponible   | Alta      | Alto        | Plantilla común y funcionalidades de prioridad media y baja declaradas prescindibles                               |
+| **Id** | **Riesgo**                                                                                     | **Prob.** | **Impacto** | **Mitigación**                                                                                                     |
+|--------|------------------------------------------------------------------------------------------------|-----------|-------------|--------------------------------------------------------------------------------------------------------------------|
+| R-01   | La inferencia resulta demasiado lenta en dispositivos de gama media                            | Media     | Alto        | Medir en un dispositivo real desde la semana 3; cuantizar más y aumentar el intervalo entre ventanas si es preciso |
+| R-02   | La exportación del modelo a ONNX presenta incompatibilidades                                   | Media     | Alto        | Validar la exportación en la semana 2, antes de construir nada sobre ella                                          |
+| R-03   | El consumo de batería excede lo aceptable                                                      | Media     | Medio       | Ajustar el intervalo de análisis y suspender en segundo plano                                                      |
+| R-04   | El ruido ambiental degrada la precisión en entornos urbanos                                    | Alta      | Medio       | Filtrado previo, umbral de energía mínima y comunicación honesta de la confianza                                   |
+| R-05   | Limitaciones de Safari en iOS para audio y funcionamiento sin conexión                         | Media     | Medio       | Documentar el soporte por navegador y degradar con elegancia                                                       |
+| R-06   | El tamaño de descarga inicial desalienta el uso                                                | Baja      | Medio       | Cuantización, compresión y descarga del modelo diferida al primer uso                                              |
+| R-07   | El alcance de tres proyectos simultáneos supera el tiempo disponible                           | Alta      | Alto        | Plantilla común y funcionalidades de prioridad media y baja declaradas prescindibles                               |
+| R-08   | La función de verificación excede la memoria o el tiempo del plan gratuito                     | Baja      | Medio       | Lotes de diez trabajos, modelo cuantizado a 16 bits y medición en la semana 6                                      |
+| R-09   | Cambian las condiciones de un plan gratuito o el proyecto de Supabase se pausa por inactividad | Media     | Medio       | Consulta programada cada tres días, respaldos del esquema en el repositorio y equivalencia en AWS documentada      |
 
 # **Plan de trabajo**
 
-**Tabla 20**
+**Tabla 22**
 
 *Cronograma por sprints*
 
@@ -497,3 +560,9 @@ ONNX Runtime. (2026). *ONNX Runtime Web: Deploy models in the browser*. Microsof
 Richards, M., y Ford, N. (2020). *Fundamentals of software architecture: An engineering approach*. O'Reilly Media.
 
 Stowell, D. (2022). Computational bioacoustics with deep learning: A review and roadmap. *PeerJ*, 10, e13152. https://doi.org/10.7717/peerj.13152
+
+Supabase. (2026). *Row Level Security*. Supabase Docs. https://supabase.com/docs/guides/database/postgres/row-level-security
+
+Vercel. (2026). *Deploy a FastAPI app on Vercel*. Vercel Docs. https://vercel.com/docs/frameworks/backend/fastapi
+
+Vercel. (2026). *Vercel Functions limits*. Vercel Docs. https://vercel.com/docs/functions/limitations

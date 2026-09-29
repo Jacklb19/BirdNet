@@ -10,10 +10,9 @@ coverage/
 target/
 pkg/
 
-# AWS SAM / CDK
-.aws-sam/
-cdk.out/
-samconfig.toml.bak
+# Vercel & Supabase
+.vercel/
+supabase/.temp/
 
 # Python (entrenamiento / scripts)
 __pycache__/
@@ -29,7 +28,6 @@ venv/
 *.pem
 *.key
 credentials*
-.aws/
 
 # Datos y modelos pesados (ver documento antes de versionar alguno)
 *.onnx
