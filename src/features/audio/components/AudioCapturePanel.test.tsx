@@ -32,7 +32,7 @@ describe('AudioCapturePanel', () => {
   it('muestra las métricas de sesión con valores iniciales', () => {
     render(<AudioCapturePanel />);
 
-    expect(screen.getByTestId('sample-rate')).toHaveTextContent('48.0 kHz');
+    expect(screen.getByTestId('sample-rate')).toHaveTextContent(/48[,.]0 kHz/);
     expect(screen.getByTestId('window-count')).toHaveTextContent('0');
     expect(screen.getByTestId('latency')).toHaveTextContent('0 ms');
   });

@@ -1,19 +1,19 @@
 import { useAudioCapture } from '../hooks/useAudioCapture';
 import { SpectrogramCanvas } from './SpectrogramCanvas';
-
-const ESTADO_LABELS: Record<string, string> = {
-  idle: 'Inactivo',
-  solicitando_permiso: 'Solicitando permiso…',
-  escuchando: 'Escuchando',
-  pausado: 'Pausado',
-  error: 'Error',
-};
+import {
+  useI18n,
+  formatPercent,
+  formatDecimal,
+  formatNumber,
+  formatMilliseconds,
+} from '../../../i18n';
 
 /**
- * Panel principal de captura acústica con control de un solo toque,
- * vúmetro de nivel, métricas en vivo y visualización del mel-espectrograma.
+ * Main acoustic capture panel with one-touch toggle control,
+ * real-time VU meter, session metrics, and live mel-spectrogram canvas.
  */
 export function AudioCapturePanel(): React.JSX.Element {
+  const { locale, dict } = useI18n();
   const {
     estado,
     error,
@@ -27,6 +27,17 @@ export function AudioCapturePanel(): React.JSX.Element {
     detenerEscucha,
   } = useAudioCapture();
 
+  const c = dict.capture;
+  const p = dict.privacy;
+
+  const statusLabels: Record<string, string> = {
+    idle: c.statusIdle,
+    solicitando_permiso: c.statusRequesting,
+    escuchando: c.statusListening,
+    pausado: c.statusPaused,
+    error: c.statusError,
+  };
+
   const escuchando = estado === 'escuchando';
   const procesando = estado === 'solicitando_permiso';
 
@@ -39,8 +50,8 @@ export function AudioCapturePanel(): React.JSX.Element {
   };
 
   return (
-    <section aria-label="Panel de captura acústica" style={{ padding: 'var(--spacing-4)' }}>
-      {/* Banner de privacidad (RNF-08) */}
+    <section aria-label={c.panelAria} style={{ padding: 'var(--spacing-4)' }}>
+      {/* Privacy banner (RNF-08) */}
       <div
         role="note"
         style={{
@@ -53,13 +64,10 @@ export function AudioCapturePanel(): React.JSX.Element {
           color: 'var(--color-success-text)',
         }}
       >
-        <strong>Privacidad:</strong> El audio se procesa íntegramente en tu
-        dispositivo y no se transmite a ningún servidor. Solo los fragmentos de
-        confianza intermedia pueden ser enviados a verificación, con tu
-        autorización explícita.
+        <strong>{p.title}</strong> {p.description}
       </div>
 
-      {/* Botón principal de un solo toque (HU-01, RNF-10: área >= 48x48px) */}
+      {/* Main one-touch toggle button (HU-01, RNF-10: area >= 48x48px, target 80x80px) */}
       <div
         style={{
           display: 'flex',
@@ -73,7 +81,7 @@ export function AudioCapturePanel(): React.JSX.Element {
           type="button"
           onClick={handleToggle}
           disabled={procesando}
-          aria-label={escuchando ? 'Detener escucha' : 'Iniciar escucha'}
+          aria-label={escuchando ? c.stopListening : c.startListening}
           style={{
             width: 'var(--touch-target-size)',
             height: 'var(--touch-target-size)',
@@ -100,11 +108,11 @@ export function AudioCapturePanel(): React.JSX.Element {
             color: escuchando ? 'var(--color-danger)' : 'var(--color-text-secondary)',
           }}
         >
-          {ESTADO_LABELS[estado] ?? estado}
+          {statusLabels[estado] ?? estado}
         </span>
       </div>
 
-      {/* Error */}
+      {/* Error display */}
       {error && (
         <div
           role="alert"
@@ -122,7 +130,7 @@ export function AudioCapturePanel(): React.JSX.Element {
         </div>
       )}
 
-      {/* Vúmetro de nivel */}
+      {/* Input level meter */}
       <div
         style={{
           marginBottom: 'var(--spacing-6)',
@@ -138,7 +146,7 @@ export function AudioCapturePanel(): React.JSX.Element {
             color: 'var(--color-text-secondary)',
           }}
         >
-          Nivel de entrada
+          {c.inputLevel}
         </h2>
 
         <div style={{ marginBottom: 'var(--spacing-2)' }}>
@@ -152,7 +160,7 @@ export function AudioCapturePanel(): React.JSX.Element {
           >
             <div
               role="meter"
-              aria-label="Nivel RMS del micrófono"
+              aria-label={c.rmsAria}
               aria-valuenow={Math.round(nivelRms * 100)}
               aria-valuemin={0}
               aria-valuemax={100}
@@ -179,13 +187,13 @@ export function AudioCapturePanel(): React.JSX.Element {
               marginTop: 'var(--spacing-1)',
             }}
           >
-            <span>RMS: {(nivelRms * 100).toFixed(1)}%</span>
-            <span>Pico: {(nivelPico * 100).toFixed(1)}%</span>
+            <span>{c.rmsLabel} {formatPercent(nivelRms, locale, 1)}</span>
+            <span>{c.peakLabel} {formatPercent(nivelPico, locale, 1)}</span>
           </div>
         </div>
       </div>
 
-      {/* Visualización del mel-espectrograma */}
+      {/* Mel-spectrogram live canvas */}
       <div
         style={{
           marginBottom: 'var(--spacing-6)',
@@ -201,12 +209,12 @@ export function AudioCapturePanel(): React.JSX.Element {
             color: 'var(--color-text-secondary)',
           }}
         >
-          Mel-espectrograma
+          {c.melSpectrogram}
         </h2>
         <SpectrogramCanvas espectrograma={ultimoEspectrograma} />
       </div>
 
-      {/* Métricas técnicas en vivo */}
+      {/* Session metrics */}
       <div
         style={{
           padding: 'var(--spacing-4)',
@@ -223,17 +231,17 @@ export function AudioCapturePanel(): React.JSX.Element {
             color: 'var(--color-text-secondary)',
           }}
         >
-          Métricas de sesión
+          {c.sessionMetrics}
         </h2>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-2)' }}>
-          <span>Frecuencia de muestreo:</span>
-          <span data-testid="sample-rate">{(sampleRate / 1000).toFixed(1)} kHz</span>
+          <span>{c.sampleRate}</span>
+          <span data-testid="sample-rate">{formatDecimal(sampleRate / 1000, locale, 1)} kHz</span>
 
-          <span>Ventanas procesadas:</span>
-          <span data-testid="window-count">{conteoVentanas}</span>
+          <span>{c.windowsCount}</span>
+          <span data-testid="window-count">{formatNumber(conteoVentanas, locale)}</span>
 
-          <span>Latencia del espectrograma:</span>
-          <span data-testid="latency">{latenciaUltimoEspectrogramaMs} ms</span>
+          <span>{c.spectrogramLatency}</span>
+          <span data-testid="latency">{formatMilliseconds(latenciaUltimoEspectrogramaMs, locale, 0)}</span>
         </div>
       </div>
     </section>

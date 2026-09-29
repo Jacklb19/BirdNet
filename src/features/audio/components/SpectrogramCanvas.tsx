@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { MelSpectrogramResponse } from '../worker/mel-spectrogram.worker';
+import { useTheme } from '../../../theme';
+import { useI18n, formatDecimal } from '../../../i18n';
 
 export interface SpectrogramCanvasProps {
   espectrograma: MelSpectrogramResponse | null;
@@ -8,13 +10,12 @@ export interface SpectrogramCanvasProps {
 }
 
 /**
- * Mapea un valor en dB a un color RGB de alto contraste (escala Inferno / Solar).
- * Optimizado para visibilidad bajo luz solar directa (RNF-10).
+ * Maps a dB value to an RGB color using the high-contrast Inferno / Solar colormap.
+ * Optimized for maximum visibility under direct field sunlight (RNF-10).
  */
 function dbToColor(db: number, minDb: number = -60, maxDb: number = 20): [number, number, number] {
   const normalized = Math.min(Math.max((db - minDb) / (maxDb - minDb), 0), 1);
 
-  // Paleta de alto contraste: Negro -> Púrpura -> Naranja -> Amarillo -> Blanco
   if (normalized < 0.25) {
     const t = normalized / 0.25;
     return [Math.round(40 * t), 0, Math.round(80 * t)];
@@ -36,6 +37,8 @@ export function SpectrogramCanvas({
   alto = 240,
 }: SpectrogramCanvasProps): React.JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const { resolved: themeResolved } = useTheme();
+  const { locale, dict } = useI18n();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -48,35 +51,41 @@ export function SpectrogramCanvas({
       return;
     }
 
-    // Si no hay datos, renderizar pantalla de espera limpia
+    // Read colors from CSS custom properties at render time
+    const computedStyles = getComputedStyle(canvas);
+    const canvasBg =
+      computedStyles.getPropertyValue('--color-canvas-bg').trim() ||
+      (themeResolved === 'dark' ? '#020617' : '#111827');
+    const canvasText =
+      computedStyles.getPropertyValue('--color-canvas-text').trim() || '#f9fafb';
+    const canvasTextMuted =
+      computedStyles.getPropertyValue('--color-canvas-text-muted').trim() || '#9ca3af';
+    const canvasOverlay =
+      computedStyles.getPropertyValue('--color-canvas-overlay').trim() || 'rgba(0, 0, 0, 0.4)';
+
+    // Empty state when no audio stream has started
     if (!espectrograma || espectrograma.numFrames === 0) {
-      ctx.fillStyle = '#111827';
+      ctx.fillStyle = canvasBg;
       ctx.fillRect(0, 0, ancho, alto);
 
-      ctx.fillStyle = '#9ca3af';
-      ctx.font = '14px sans-serif';
+      ctx.fillStyle = canvasTextMuted;
+      ctx.font = '14px system-ui, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(
-        'Inicia la escucha para observar el mel-espectrograma en tiempo real',
-        ancho / 2,
-        alto / 2,
-      );
+      ctx.fillText(dict.capture.spectrogramEmpty, ancho / 2, alto / 2);
       return;
     }
 
     const { data, numFrames, numMelBands } = espectrograma;
 
-    // Crear ImageData para renderizado eficiente por píxeles
+    // Create ImageData for pixel-level buffer rendering
     const imgData = ctx.createImageData(numFrames, numMelBands);
     const pixelBuffer = imgData.data;
 
-    // En el espectrograma, el eje Y va de baja frecuencia (abajo) a alta (arriba)
     for (let f = 0; f < numFrames; f++) {
       for (let m = 0; m < numMelBands; m++) {
         const db = data[f * numMelBands + m] ?? -100;
         const [r, g, b] = dbToColor(db);
 
-        // Invertir Y para que las frecuencias bajas queden abajo
         const y = numMelBands - 1 - m;
         const x = f;
         const pixelIndex = (y * numFrames + x) * 4;
@@ -88,33 +97,41 @@ export function SpectrogramCanvas({
       }
     }
 
-    // Dibujar en canvas escalando suavemente al tamaño del canvas
-    createImageBitmap(imgData)
-      .then((bitmap) => {
-        ctx.drawImage(bitmap, 0, 0, ancho, alto);
-        bitmap.close();
+    // Render bitmap scaled smoothly to canvas viewport
+    if (typeof createImageBitmap !== 'undefined') {
+      createImageBitmap(imgData)
+        .then((bitmap) => {
+          ctx.drawImage(bitmap, 0, 0, ancho, alto);
+          bitmap.close();
 
-        // Superponer guías de escala de frecuencia y tiempo
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-        ctx.fillRect(0, 0, ancho, 24);
-        ctx.fillRect(0, alto - 20, ancho, 20);
+          // Overlay frequency and time scale markers
+          ctx.fillStyle = canvasOverlay;
+          ctx.fillRect(0, 0, ancho, 24);
+          ctx.fillRect(0, alto - 20, ancho, 20);
 
-        ctx.fillStyle = '#f9fafb';
-        ctx.font = '11px monospace';
-        ctx.textAlign = 'left';
-        ctx.fillText('15 kHz (Mel sup.)', 8, 16);
-        ctx.fillText('0.0 s', 8, alto - 6);
+          ctx.fillStyle = canvasText;
+          ctx.font = '11px ui-monospace, monospace';
+          ctx.textAlign = 'left';
+          ctx.fillText(dict.capture.spectrogramMelUpper, 8, 16);
+          ctx.fillText(`${formatDecimal(0, locale, 1)} s`, 8, alto - 6);
 
-        ctx.textAlign = 'right';
-        ctx.fillText(`Ventana #${String(espectrograma.windowIndex)}`, ancho - 8, 16);
-        ctx.fillText('3.0 s', ancho - 8, alto - 6);
-      })
-      .catch(() => {
-        // Fallback básico si createImageBitmap no está en este entorno
-        ctx.fillStyle = '#111827';
-        ctx.fillRect(0, 0, ancho, alto);
-      });
-  }, [espectrograma, ancho, alto]);
+          ctx.textAlign = 'right';
+          ctx.fillText(
+            `${dict.capture.spectrogramWindowPrefix}${String(espectrograma.windowIndex)}`,
+            ancho - 8,
+            16,
+          );
+          ctx.fillText(`${formatDecimal(3, locale, 1)} s`, ancho - 8, alto - 6);
+        })
+        .catch(() => {
+          ctx.fillStyle = canvasBg;
+          ctx.fillRect(0, 0, ancho, alto);
+        });
+    } else {
+      ctx.fillStyle = canvasBg;
+      ctx.fillRect(0, 0, ancho, alto);
+    }
+  }, [espectrograma, ancho, alto, themeResolved, locale, dict]);
 
   return (
     <div
