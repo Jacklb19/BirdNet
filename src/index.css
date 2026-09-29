@@ -1,10 +1,114 @@
-/* Estilos mínimos base (accesibles y legibles, sin paleta elaborada) */
+/* ==========================================================================
+   BirdNet Local — Design Tokens & Base Styles
+   Centralización de variables CSS de diseño (colores, tipografía, espaciado)
+   ========================================================================== */
+
 :root {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color: #111827;
-  background-color: #ffffff;
+  /* -------------------------------------------------------------------------
+     Tipografía
+     ------------------------------------------------------------------------- */
+  --font-family-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --font-size-xs: 0.75rem;     /* 12px */
+  --font-size-sm: 0.8125rem;   /* 13px */
+  --font-size-base: 0.875rem;  /* 14px */
+  --font-size-md: 1rem;        /* 16px */
+  --font-size-lg: 1.25rem;     /* 20px */
+  --font-size-xl: 1.5rem;      /* 24px */
+  --font-size-2xl: 1.75rem;    /* 28px */
+  --font-size-hero: 2rem;      /* 32px */
+
+  --font-weight-regular: 400;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-base: 1.5;
+
+  /* -------------------------------------------------------------------------
+     Espaciado
+     ------------------------------------------------------------------------- */
+  --spacing-1: 0.25rem;  /* 4px */
+  --spacing-2: 0.5rem;   /* 8px */
+  --spacing-3: 0.75rem;  /* 12px */
+  --spacing-4: 1rem;     /* 16px */
+  --spacing-6: 1.5rem;   /* 24px */
+  --spacing-8: 2rem;     /* 32px */
+
+  /* -------------------------------------------------------------------------
+     Radios de borde
+     ------------------------------------------------------------------------- */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-full: 50%;
+  --radius-pill: 9999px;
+
+  /* -------------------------------------------------------------------------
+     Colores Neutros y Estructura
+     ------------------------------------------------------------------------- */
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;
+  --color-text-primary: #111827;
+  --color-text-secondary: #374151;
+  --color-text-muted: #4b5563;
+  --color-text-subtle: #6b7280;
+  --color-border: #d1d5db;
+  --color-border-subtle: #e5e7eb;
+
+  /* -------------------------------------------------------------------------
+     Colores de Marca y Acción
+     ------------------------------------------------------------------------- */
+  --color-primary: #059669;
+  --color-primary-text: #ffffff;
+  --color-primary-ring: rgba(5, 150, 105, 0.3);
+
+  --color-danger: #dc2626;
+  --color-danger-text: #ffffff;
+  --color-danger-ring: rgba(220, 38, 38, 0.3);
+
+  --color-warning: #f59e0b;
+
+  --color-dark: #111827;
+  --color-dark-surface: #1f2937;
+  --color-dark-text: #ffffff;
+
+  --color-focus: #2563eb;
+
+  /* -------------------------------------------------------------------------
+     Colores Semánticos (Avisos, Privacidad, Estados)
+     ------------------------------------------------------------------------- */
+  --color-success-bg: #ecfdf5;
+  --color-success-border: #a7f3d0;
+  --color-success-text: #065f46;
+
+  --color-badge-active-bg: #dcfce7;
+  --color-badge-active-text: #166534;
+
+  --color-error-bg: #fef2f2;
+  --color-error-border: #fecaca;
+  --color-error-text: #991b1b;
+
+  --color-badge-inactive-bg: #fee2e2;
+  --color-badge-inactive-text: #991b1b;
+
+  /* -------------------------------------------------------------------------
+     Canvas y Espectrograma
+     ------------------------------------------------------------------------- */
+  --color-canvas-bg: #111827;
+  --color-canvas-border: #374151;
+  --color-canvas-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+
+  /* -------------------------------------------------------------------------
+     Layout y Accesibilidad
+     ------------------------------------------------------------------------- */
+  --container-max-width: 1000px;
+  --touch-target-size: 80px;
+
+  /* Base */
+  font-family: var(--font-family-sans);
+  line-height: var(--line-height-base);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg);
 }
 
 * {
@@ -23,12 +127,12 @@ body {
   width: 100%;
   max-width: 960px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: var(--spacing-8) var(--spacing-4);
 }
 
 /* Enfoque accesible visible */
 a:focus-visible,
 button:focus-visible {
-  outline: 3px solid #2563eb;
+  outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }

@@ -134,10 +134,10 @@ export function SpectrogramCanvas({
         style={{
           width: '100%',
           height: 'auto',
-          borderRadius: '6px',
-          border: '1px solid #374151',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-          backgroundColor: '#111827',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--color-canvas-border)',
+          boxShadow: 'var(--color-canvas-shadow)',
+          backgroundColor: 'var(--color-canvas-bg)',
         }}
       />
     </div>

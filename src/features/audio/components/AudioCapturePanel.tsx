@@ -39,18 +39,18 @@ export function AudioCapturePanel(): React.JSX.Element {
   };
 
   return (
-    <section aria-label="Panel de captura acústica" style={{ padding: '1rem' }}>
+    <section aria-label="Panel de captura acústica" style={{ padding: 'var(--spacing-4)' }}>
       {/* Banner de privacidad (RNF-08) */}
       <div
         role="note"
         style={{
-          backgroundColor: '#ecfdf5',
-          border: '1px solid #a7f3d0',
-          borderRadius: '6px',
-          padding: '0.75rem 1rem',
-          marginBottom: '1.5rem',
-          fontSize: '0.875rem',
-          color: '#065f46',
+          backgroundColor: 'var(--color-success-bg)',
+          border: '1px solid var(--color-success-border)',
+          borderRadius: 'var(--radius-md)',
+          padding: 'var(--spacing-3) var(--spacing-4)',
+          marginBottom: 'var(--spacing-6)',
+          fontSize: 'var(--font-size-base)',
+          color: 'var(--color-success-text)',
         }}
       >
         <strong>Privacidad:</strong> El audio se procesa íntegramente en tu
@@ -65,8 +65,8 @@ export function AudioCapturePanel(): React.JSX.Element {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '1rem',
-          marginBottom: '1.5rem',
+          gap: 'var(--spacing-4)',
+          marginBottom: 'var(--spacing-6)',
         }}
       >
         <button
@@ -75,17 +75,17 @@ export function AudioCapturePanel(): React.JSX.Element {
           disabled={procesando}
           aria-label={escuchando ? 'Detener escucha' : 'Iniciar escucha'}
           style={{
-            width: '80px',
-            height: '80px',
-            borderRadius: '50%',
+            width: 'var(--touch-target-size)',
+            height: 'var(--touch-target-size)',
+            borderRadius: 'var(--radius-full)',
             border: 'none',
             cursor: procesando ? 'wait' : 'pointer',
-            fontSize: '2rem',
-            backgroundColor: escuchando ? '#dc2626' : '#059669',
-            color: '#ffffff',
+            fontSize: 'var(--font-size-hero)',
+            backgroundColor: escuchando ? 'var(--color-danger)' : 'var(--color-primary)',
+            color: 'var(--color-primary-text)',
             boxShadow: escuchando
-              ? '0 0 0 4px rgba(220, 38, 38, 0.3)'
-              : '0 0 0 4px rgba(5, 150, 105, 0.3)',
+              ? '0 0 0 4px var(--color-danger-ring)'
+              : '0 0 0 4px var(--color-primary-ring)',
             transition: 'all 0.2s ease',
           }}
         >
@@ -95,9 +95,9 @@ export function AudioCapturePanel(): React.JSX.Element {
         <span
           aria-live="polite"
           style={{
-            fontSize: '0.875rem',
-            fontWeight: 600,
-            color: escuchando ? '#dc2626' : '#374151',
+            fontSize: 'var(--font-size-base)',
+            fontWeight: 'var(--font-weight-semibold)',
+            color: escuchando ? 'var(--color-danger)' : 'var(--color-text-secondary)',
           }}
         >
           {ESTADO_LABELS[estado] ?? estado}
@@ -109,13 +109,13 @@ export function AudioCapturePanel(): React.JSX.Element {
         <div
           role="alert"
           style={{
-            backgroundColor: '#fef2f2',
-            border: '1px solid #fecaca',
-            borderRadius: '6px',
-            padding: '0.75rem',
-            marginBottom: '1rem',
-            color: '#991b1b',
-            fontSize: '0.875rem',
+            backgroundColor: 'var(--color-error-bg)',
+            border: '1px solid var(--color-error-border)',
+            borderRadius: 'var(--radius-md)',
+            padding: 'var(--spacing-3)',
+            marginBottom: 'var(--spacing-4)',
+            color: 'var(--color-error-text)',
+            fontSize: 'var(--font-size-base)',
           }}
         >
           {error}
@@ -125,22 +125,28 @@ export function AudioCapturePanel(): React.JSX.Element {
       {/* Vúmetro de nivel */}
       <div
         style={{
-          marginBottom: '1.5rem',
-          padding: '1rem',
-          border: '1px solid #d1d5db',
-          borderRadius: '6px',
+          marginBottom: 'var(--spacing-6)',
+          padding: 'var(--spacing-4)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius-md)',
         }}
       >
-        <h2 style={{ fontSize: '1rem', marginBottom: '0.75rem', color: '#374151' }}>
+        <h2
+          style={{
+            fontSize: 'var(--font-size-md)',
+            marginBottom: 'var(--spacing-3)',
+            color: 'var(--color-text-secondary)',
+          }}
+        >
           Nivel de entrada
         </h2>
 
-        <div style={{ marginBottom: '0.5rem' }}>
+        <div style={{ marginBottom: 'var(--spacing-2)' }}>
           <div
             style={{
               height: '12px',
-              backgroundColor: '#e5e7eb',
-              borderRadius: '6px',
+              backgroundColor: 'var(--color-border-subtle)',
+              borderRadius: 'var(--radius-md)',
               overflow: 'hidden',
             }}
           >
@@ -154,8 +160,12 @@ export function AudioCapturePanel(): React.JSX.Element {
                 height: '100%',
                 width: `${String(Math.min(nivelRms * 100, 100))}%`,
                 backgroundColor:
-                  nivelRms > 0.8 ? '#dc2626' : nivelRms > 0.4 ? '#f59e0b' : '#059669',
-                borderRadius: '6px',
+                  nivelRms > 0.8
+                    ? 'var(--color-danger)'
+                    : nivelRms > 0.4
+                      ? 'var(--color-warning)'
+                      : 'var(--color-primary)',
+                borderRadius: 'var(--radius-md)',
                 transition: 'width 0.1s ease',
               }}
             />
@@ -164,9 +174,9 @@ export function AudioCapturePanel(): React.JSX.Element {
             style={{
               display: 'flex',
               justifyContent: 'space-between',
-              fontSize: '0.75rem',
-              color: '#6b7280',
-              marginTop: '0.25rem',
+              fontSize: 'var(--font-size-xs)',
+              color: 'var(--color-text-subtle)',
+              marginTop: 'var(--spacing-1)',
             }}
           >
             <span>RMS: {(nivelRms * 100).toFixed(1)}%</span>
@@ -178,13 +188,19 @@ export function AudioCapturePanel(): React.JSX.Element {
       {/* Visualización del mel-espectrograma */}
       <div
         style={{
-          marginBottom: '1.5rem',
-          padding: '1rem',
-          border: '1px solid #d1d5db',
-          borderRadius: '6px',
+          marginBottom: 'var(--spacing-6)',
+          padding: 'var(--spacing-4)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius-md)',
         }}
       >
-        <h2 style={{ fontSize: '1rem', marginBottom: '0.75rem', color: '#374151' }}>
+        <h2
+          style={{
+            fontSize: 'var(--font-size-md)',
+            marginBottom: 'var(--spacing-3)',
+            color: 'var(--color-text-secondary)',
+          }}
+        >
           Mel-espectrograma
         </h2>
         <SpectrogramCanvas espectrograma={ultimoEspectrograma} />
@@ -193,17 +209,23 @@ export function AudioCapturePanel(): React.JSX.Element {
       {/* Métricas técnicas en vivo */}
       <div
         style={{
-          padding: '1rem',
-          border: '1px solid #d1d5db',
-          borderRadius: '6px',
-          fontSize: '0.8125rem',
-          color: '#4b5563',
+          padding: 'var(--spacing-4)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius-md)',
+          fontSize: 'var(--font-size-sm)',
+          color: 'var(--color-text-muted)',
         }}
       >
-        <h2 style={{ fontSize: '1rem', marginBottom: '0.75rem', color: '#374151' }}>
+        <h2
+          style={{
+            fontSize: 'var(--font-size-md)',
+            marginBottom: 'var(--spacing-3)',
+            color: 'var(--color-text-secondary)',
+          }}
+        >
           Métricas de sesión
         </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-2)' }}>
           <span>Frecuencia de muestreo:</span>
           <span data-testid="sample-rate">{(sampleRate / 1000).toFixed(1)} kHz</span>
 
