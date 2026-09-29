@@ -65,12 +65,13 @@ describe('SpectrogramCanvas', () => {
     ]);
 
     const mockEspectrograma: MelSpectrogramResponse = {
+      type: 'MEL_SPECTROGRAM_READY',
       windowIndex: 1,
       timestamp: 1234,
       numFrames,
       numMelBands,
       data: testData,
-      processingTimeMs: 15,
+      durationMs: 15,
     };
 
     render(<SpectrogramCanvas espectrograma={mockEspectrograma} ancho={400} alto={200} />);

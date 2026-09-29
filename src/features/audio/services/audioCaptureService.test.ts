@@ -143,8 +143,9 @@ describe('AudioCaptureService', () => {
     const onError = vi.fn();
     service.setCallbacks({ onError });
 
-    const mediaMock = navigator.mediaDevices.getUserMedia as ReturnType<typeof vi.fn>;
-    mediaMock.mockRejectedValueOnce(new Error('Permiso denegado'));
+    vi.spyOn(navigator.mediaDevices, 'getUserMedia').mockRejectedValueOnce(
+      new Error('Permiso denegado'),
+    );
 
     await expect(service.start()).rejects.toThrow('Permiso denegado');
     expect(service.getState()).toBe('error');
