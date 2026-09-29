@@ -1,0 +1,49 @@
+# Dependencias y builds
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+*.tsbuildinfo
+
+# Rust / WebAssembly
+target/
+pkg/
+
+# Vercel & Supabase
+.vercel/
+supabase/.temp/
+
+# Python (entrenamiento / scripts)
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Secretos y entorno (NUNCA versionar)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*
+
+# Datos y modelos pesados (ver documento antes de versionar alguno)
+*.onnx
+data/raw/
+*.wav
+*.mp3
+*.pdb
+
+# Logs y temporales
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+tmp/
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
