@@ -27,7 +27,7 @@ export interface ResetRequest {
 }
 
 export type MelWorkerInboundMessage = ComputeMelRequest | ResetRequest;
-export type MelWorkerOutboundMessage = MelSpectrogramResponse;
+export type MelWorkerOutboundMessage = MelSpectrogramResponse | { type: 'MEL_ERROR'; error: string };
 
 /**
  * Pipeline determinista reutilizable para el cómputo de mel-espectrograma.
@@ -87,22 +87,22 @@ export class MelSpectrogramPipeline {
   }
 }
 
-// Configuración del entorno de ejecución Web Worker si estamos en worker context
+// Importing the pipeline in tests must not install a main-thread message handler.
 if (typeof self !== 'undefined' && typeof window === 'undefined') {
   const pipeline = new MelSpectrogramPipeline();
 
   self.onmessage = (event: MessageEvent<MelWorkerInboundMessage>): void => {
     const { data } = event;
     if (data.type === 'COMPUTE_MEL') {
-      const response = pipeline.processWindow(
-        data.buffer,
-        data.windowIndex,
-        data.timestamp,
-      );
       const workerScope = self as unknown as {
         postMessage: (msg: unknown, transfer?: Transferable[]) => void;
       };
-      workerScope.postMessage(response, [response.data.buffer]);
+      try {
+        const response = pipeline.processWindow(data.buffer, data.windowIndex, data.timestamp);
+        workerScope.postMessage(response, [response.data.buffer]);
+      } catch (error) {
+        workerScope.postMessage({ type: 'MEL_ERROR', error: error instanceof Error ? error.message : String(error) });
+      }
     }
   };
 }

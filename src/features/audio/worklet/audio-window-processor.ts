@@ -8,6 +8,7 @@ export interface AudioWindowMessage {
   windowIndex: number;
   timestamp: number;
   sampleRate: number;
+  droppedWindows?: number;
 }
 
 export interface AudioLevelMessage {
@@ -230,6 +231,19 @@ class AudioWindowProcessor extends AudioWorkletProcessor {
     this.samplesSinceLastWindow = 0;
     this.windowIndex = 0;
 
+    this.windowInFlight = false;
+    this.windowPending = null;
+    this.droppedWindows = 0;
+    this.port.onmessage = (event) => {
+      if (event.data.type !== 'WINDOW_ACK') return;
+      this.windowInFlight = false;
+      if (this.windowPending) {
+        const next = this.windowPending;
+        this.windowPending = null;
+        this.sendWindow(next);
+      }
+    };
+
     this.levelSampleCount = 0;
     this.levelSumSquares = 0;
     this.levelPeak = 0;
@@ -302,22 +316,32 @@ class AudioWindowProcessor extends AudioWorkletProcessor {
         }
       }
 
-      this.port.postMessage(
-        {
+      const message = {
           type: 'WINDOW_READY',
           buffer: windowBuf,
           windowIndex: this.windowIndex,
           timestamp: currentTime,
           sampleRate: this.targetSampleRate
-        },
-        [windowBuf.buffer]
-      );
+      };
+      if (this.windowInFlight) {
+        if (this.windowPending) this.droppedWindows++;
+        this.windowPending = message;
+      } else {
+        this.sendWindow(message);
+      }
 
       this.windowIndex++;
       this.samplesSinceLastWindow = 0;
     }
 
     return true;
+  }
+
+  sendWindow(message) {
+    this.windowInFlight = true;
+    message.droppedWindows = this.droppedWindows;
+    this.droppedWindows = 0;
+    this.port.postMessage(message, [message.buffer.buffer]);
   }
 }
 

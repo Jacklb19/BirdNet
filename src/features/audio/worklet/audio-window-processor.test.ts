@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { runInNewContext } from 'node:vm';
+import type { AudioWindowMessage, WorkletOutboundMessage } from './audio-window-processor';
 import {
   AudioWindowAccumulator,
   AUDIO_WORKLET_PROCESSOR_CODE,
@@ -133,5 +135,40 @@ describe('AudioWindowAccumulator', () => {
     // Margen de tolerancia de +-4 cruces por cero en 144.000 muestras
     expect(zeroCrossings).toBeGreaterThanOrEqual(5996);
     expect(zeroCrossings).toBeLessThanOrEqual(6004);
+  });
+});
+
+describe('AudioWindowProcessor runtime', () => {
+  it('acknowledges delivery and replaces the pending window instead of flooding the port', () => {
+    interface Processor {
+      process(inputs: Float32Array[][]): boolean;
+      port: { onmessage: (event: { data: { type: string } }) => void };
+    }
+    let ProcessorClass: (new () => Processor) | undefined;
+    const messages: AudioWindowMessage[] = [];
+    runInNewContext(AUDIO_WORKLET_PROCESSOR_CODE, {
+      sampleRate: 48000,
+      currentTime: 3,
+      Float32Array,
+      AudioWorkletProcessor: class {
+        port = { onmessage: () => undefined, postMessage: (message: WorkletOutboundMessage) => {
+          if (message.type === 'WINDOW_READY') messages.push(message);
+        } };
+      },
+      registerProcessor: (_name: string, constructor: new () => Processor) => { ProcessorClass = constructor; },
+    });
+    if (!ProcessorClass) throw new Error('Worklet did not register.');
+    const processor = new ProcessorClass();
+    processor.process([[new Float32Array(144000).fill(0.2)]]);
+    for (let index = 0; index < 3; index++) processor.process([[new Float32Array(72000).fill(0.3)]]);
+    expect(messages.map((message) => message.windowIndex)).toEqual([0]);
+    processor.port.onmessage({ data: { type: 'WINDOW_ACK' } });
+    expect(messages.map((message) => message.windowIndex)).toEqual([0, 3]);
+    expect(messages[1]?.droppedWindows).toBe(2);
+    expect(messages[1]?.buffer.length).toBe(144000);
+    processor.port.onmessage({ data: { type: 'WINDOW_ACK' } });
+    processor.process([[new Float32Array(72000).fill(0.4)]]);
+    expect(messages[2]?.windowIndex).toBe(4);
+    expect(messages[2]?.droppedWindows).toBe(0);
   });
 });

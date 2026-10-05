@@ -23,9 +23,16 @@ describe('AudioCaptureService', () => {
     connect: vi.fn(),
     disconnect: vi.fn(),
   };
+  const mockMelWorker = {
+    onmessage: null as ((event: MessageEvent) => void) | null,
+    onerror: null as (() => void) | null,
+    postMessage: vi.fn(),
+    terminate: vi.fn(),
+  };
 
   let mockAudioContextInstance: {
     state: string;
+    currentTime: number;
     audioWorklet: { addModule: ReturnType<typeof vi.fn> };
     createMediaStreamSource: ReturnType<typeof vi.fn>;
     resume: ReturnType<typeof vi.fn>;
@@ -34,9 +41,12 @@ describe('AudioCaptureService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockMelWorker.onmessage = null;
+    vi.stubGlobal('Worker', vi.fn(function () { return mockMelWorker; }));
 
     mockAudioContextInstance = {
       state: 'suspended',
+      currentTime: 1000,
       audioWorklet: {
         addModule: vi.fn().mockResolvedValue(undefined),
       },
@@ -67,6 +77,7 @@ describe('AudioCaptureService', () => {
 
   afterEach(async () => {
     await service.stop();
+    vi.unstubAllGlobals();
   });
 
   it('inicia en estado idle', () => {
@@ -124,7 +135,14 @@ describe('AudioCaptureService', () => {
       },
     } as MessageEvent);
 
-    expect(onWindowReady).toHaveBeenCalledWith(testBuffer, 1, 1000);
+    expect(onWindowReady).toHaveBeenCalledWith(testBuffer, 1, expect.any(Number));
+    expect(onMelSpectrogramReady).not.toHaveBeenCalled();
+    expect(mockMelWorker.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'COMPUTE_MEL', windowIndex: 1 }),
+      [expect.any(ArrayBuffer)],
+    );
+    expect(mockPort.postMessage).toHaveBeenCalledWith({ type: 'WINDOW_ACK' });
+    mockMelWorker.onmessage?.({ data: { type: 'MEL_SPECTROGRAM_READY', data: new Float32Array(1) } } as MessageEvent);
     expect(onMelSpectrogramReady).toHaveBeenCalled();
   });
 
@@ -150,5 +168,46 @@ describe('AudioCaptureService', () => {
     await expect(service.start()).rejects.toThrow('Permiso denegado');
     expect(service.getState()).toBe('error');
     expect(onError).toHaveBeenCalledWith(expect.any(Error));
+  });
+
+  it('bounds spectrogram work and preserves pending buffers transferred to inference', async () => {
+    const onWindowReady = vi.fn((buffer: Float32Array) => {
+      structuredClone(buffer, { transfer: [buffer.buffer] });
+    });
+    service.setCallbacks({ onWindowReady });
+    await service.start();
+    for (let windowIndex = 0; windowIndex < 4; windowIndex++) {
+      mockPort.onmessage?.({ data: {
+        type: 'WINDOW_READY', buffer: new Float32Array(144000).fill(windowIndex), windowIndex, timestamp: 1000,
+      } } as MessageEvent);
+    }
+    expect(mockMelWorker.postMessage).toHaveBeenCalledTimes(1);
+    mockMelWorker.onmessage?.({ data: { type: 'MEL_SPECTROGRAM_READY' } } as MessageEvent);
+    const sent = mockMelWorker.postMessage.mock.calls[1]?.[0] as { buffer: Float32Array; windowIndex: number };
+    expect(sent.windowIndex).toBe(3);
+    expect(sent.buffer.length).toBe(144000);
+    expect(sent.buffer[0]).toBe(3);
+  });
+
+  it('releases a late microphone permission after stop', async () => {
+    let grant: ((stream: MediaStream) => void) | undefined;
+    vi.spyOn(navigator.mediaDevices, 'getUserMedia').mockReturnValueOnce(new Promise((resolve) => { grant = resolve; }));
+    const starting = service.start();
+    await service.stop();
+    grant?.(mockStream as unknown as MediaStream);
+    await starting;
+    expect(mockTrack.stop).toHaveBeenCalled();
+    expect(service.getState()).toBe('idle');
+    expect(mockMelWorker.postMessage).not.toHaveBeenCalled();
+  });
+
+  it('reports worker failures without executing DSP on the main thread', async () => {
+    const onError = vi.fn();
+    service.setCallbacks({ onError });
+    await service.start();
+    mockMelWorker.onmessage?.({ data: { type: 'MEL_ERROR', error: 'Invalid audio' } } as MessageEvent);
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: 'Invalid audio' }));
+    mockMelWorker.onerror?.();
+    await vi.waitFor(() => { expect(mockMelWorker.terminate).toHaveBeenCalled(); });
   });
 });
