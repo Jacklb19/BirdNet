@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="es">
+  <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>BirdNet — prueba local de S3</title></head>
+  <body>
+    <aside style="padding: 1rem">
+      <label for="reference-audio">Audio de referencia</label>
+      <select id="reference-audio">
+        <option value="0">Turdus fuscater</option>
+        <option value="1">Zonotrichia capensis</option>
+        <option value="2">Troglodytes aedon</option>
+        <option value="3">Tyrannus melancholicus</option>
+      </select>
+      <p>Prueba con audio grabado: no solicita ni usa el micrófono real.</p>
+      <output id="reference-status">Audio de referencia preparado</output>
+      <p><output id="main-thread-tasks">Tareas largas durante la escucha: 0</output></p>
+    </aside>
+    <div id="root"></div>
+    <script type="module" src="./listening.ts"></script>
+  </body>
+</html>
