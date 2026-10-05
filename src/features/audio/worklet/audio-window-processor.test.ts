@@ -7,6 +7,15 @@ import {
 } from './audio-window-processor';
 
 describe('AudioWindowAccumulator', () => {
+  it('preserves the hop remainder across 128-sample audio blocks', () => {
+    const accumulator = new AudioWindowAccumulator();
+    let windows = 0;
+    const chunk = new Float32Array(128).fill(0.1);
+    for (let sample = 0; sample < 48000 * 12; sample += 128) {
+      if (accumulator.processChunk(chunk)) windows++;
+    }
+    expect(windows).toBe(7);
+  });
   it('no emite ventana hasta acumular el tamaño completo de ventana (3 s)', () => {
     const accumulator = new AudioWindowAccumulator(1000, 1000, 100, 50);
     const chunk = new Float32Array(30).fill(0.1);

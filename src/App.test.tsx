@@ -4,16 +4,21 @@ import App from './App';
 
 vi.mock('./features/audio/hooks/useAudioCapture', () => ({
   useAudioCapture: vi.fn(() => ({
-    estado: 'idle',
-    error: null,
-    nivelRms: 0,
-    nivelPico: 0,
-    conteoVentanas: 0,
-    ultimoEspectrograma: null,
-    latenciaUltimoEspectrogramaMs: 0,
+    state: 'idle',
+    rmsLevel: 0,
+    peakLevel: 0,
+    windowCount: 0,
+    latestSpectrogram: null,
+    spectrogramLatencyMs: 0,
     sampleRate: 48000,
-    iniciarEscucha: vi.fn(),
-    detenerEscucha: vi.fn(),
+      modelStatus: 'idle',
+      detections: [],
+      inferenceLatencyMs: 0,
+      endToEndLatencyMs: 0,
+      droppedWindows: 0,
+      sessionError: null,
+    startListening: vi.fn(),
+    stopListening: vi.fn(),
   })),
 }));
 

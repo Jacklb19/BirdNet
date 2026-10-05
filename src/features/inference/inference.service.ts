@@ -13,12 +13,15 @@ import type {
   ModelStatus,
   InferenceWorkerOutbound,
   Detection,
+  InferRequest,
 } from './inference.types';
+import { LatestWindowQueue } from '../audio/services/latestWindowQueue';
 
 export interface InferenceCallbacks {
   onStatusChange?: (status: ModelStatus) => void;
   onModelLoaded?: (numClasses: number) => void;
-  onInferenceResult?: (detections: readonly Detection[], windowIndex: number, timestamp: number, latencyMs: number) => void;
+  onInferenceResult?: (detections: readonly Detection[], windowIndex: number, timestamp: number, latencyMs: number, endToEndLatencyMs: number) => void;
+  onWindowDropped?: () => void;
   onError?: (error: string) => void;
 }
 
@@ -27,6 +30,15 @@ export class InferenceService {
   private status: ModelStatus = 'idle';
   private callbacks: InferenceCallbacks = {};
   private manifest: ModelManifest | null = null;
+  private generation = 0;
+  private activeWindowIndex: number | null = null;
+  private readonly queue = new LatestWindowQueue<InferRequest>(
+    (request) => {
+      this.activeWindowIndex = request.windowIndex;
+      this.worker?.postMessage(request, [request.audioBuffer.buffer]);
+    },
+    () => { this.callbacks.onWindowDropped?.(); },
+  );
 
   constructor(callbacks: InferenceCallbacks = {}) {
     this.callbacks = callbacks;
@@ -61,6 +73,11 @@ export class InferenceService {
     }
 
     this.setStatus('loading');
+    const generation = ++this.generation;
+    this.worker?.terminate();
+    this.worker = null;
+    this.activeWindowIndex = null;
+    this.queue.clear();
 
     try {
       // Descargar manifiesto
@@ -68,7 +85,14 @@ export class InferenceService {
       if (!response.ok) {
         throw new Error(`Error descargando manifiesto: ${String(response.status)}`);
       }
-      this.manifest = (await response.json()) as ModelManifest;
+      const manifest = (await response.json()) as ModelManifest;
+      if (generation !== this.generation) return;
+      this.manifest = manifest;
+      if (this.manifest.sample_rate !== 48000 || this.manifest.window_samples !== 144000 ||
+          this.manifest.num_classes <= 0 || typeof this.manifest.model_file !== 'string' ||
+          typeof this.manifest.labels_file !== 'string') {
+        throw new Error('Incompatible model manifest.');
+      }
 
       // Construir URLs absolutas para el modelo y labels
       const baseUrl = manifestUrl.substring(0, manifestUrl.lastIndexOf('/') + 1);
@@ -82,10 +106,13 @@ export class InferenceService {
       );
 
       this.worker.onmessage = (event: MessageEvent<InferenceWorkerOutbound>) => {
+        if (generation !== this.generation) return;
         this.handleWorkerMessage(event.data);
       };
 
       this.worker.onerror = (event: ErrorEvent) => {
+        if (generation !== this.generation) return;
+        this.queue.clear();
         this.setStatus('error');
         this.callbacks.onError?.(`Error en Worker de inferencia: ${event.message}`);
       };
@@ -97,6 +124,7 @@ export class InferenceService {
         labelsUrl,
       });
     } catch (err) {
+      if (generation !== this.generation) return;
       const message = err instanceof Error ? err.message : String(err);
       this.setStatus('error');
       this.callbacks.onError?.(message);
@@ -118,23 +146,27 @@ export class InferenceService {
       return;
     }
 
-    this.worker.postMessage(
-      {
+    if (audioBuffer.length !== this.manifest?.window_samples || !Number.isFinite(timestamp)) {
+      this.callbacks.onError?.('Invalid audio window.');
+      return;
+    }
+    this.queue.enqueue({
         type: 'INFER',
         audioBuffer,
         windowIndex,
         timestamp,
         topK,
         minConfidence,
-      },
-      [audioBuffer.buffer],
-    );
+    });
   }
 
   /**
    * Libera el Worker y la sesión ONNX.
    */
   public dispose(): void {
+    this.generation++;
+    this.queue.clear();
+    this.activeWindowIndex = null;
     if (this.worker) {
       this.worker.postMessage({ type: 'DISPOSE' });
       this.worker.terminate();
@@ -147,23 +179,36 @@ export class InferenceService {
   private handleWorkerMessage(msg: InferenceWorkerOutbound): void {
     switch (msg.type) {
       case 'MODEL_LOADED':
+        if (msg.numClasses !== this.manifest?.num_classes) {
+          this.setStatus('error');
+          this.callbacks.onError?.('Model label count does not match the manifest.');
+          return;
+        }
         this.setStatus('ready');
         this.callbacks.onModelLoaded?.(msg.numClasses);
         break;
       case 'MODEL_ERROR':
+        this.queue.clear();
         this.setStatus('error');
         this.callbacks.onError?.(msg.error);
         break;
       case 'INFERENCE_RESULT':
+        if (msg.windowIndex !== this.activeWindowIndex) return;
         this.callbacks.onInferenceResult?.(
           msg.detections,
           msg.windowIndex,
           msg.timestamp,
           msg.latencyMs,
+          Math.max(0, performance.now() - msg.timestamp),
         );
+        this.activeWindowIndex = null;
+        this.queue.complete();
         break;
       case 'INFERENCE_ERROR':
+        if (msg.windowIndex !== this.activeWindowIndex) return;
         this.callbacks.onError?.(msg.error);
+        this.activeWindowIndex = null;
+        this.queue.complete();
         break;
     }
   }

@@ -80,26 +80,26 @@ describe('AudioCaptureService', () => {
     vi.unstubAllGlobals();
   });
 
-  it('inicia en estado idle', () => {
+  it('inicia en state idle', () => {
     expect(service.getState()).toBe('idle');
   });
 
-  it('inicia captura y actualiza estado a escuchando', async () => {
+  it('inicia captura y actualiza state a listening', async () => {
     const onStateChange = vi.fn();
     service.setCallbacks({ onStateChange });
 
     await service.start();
 
-    expect(service.getState()).toBe('escuchando');
-    expect(onStateChange).toHaveBeenCalledWith('solicitando_permiso');
-    expect(onStateChange).toHaveBeenCalledWith('escuchando');
+    expect(service.getState()).toBe('listening');
+    expect(onStateChange).toHaveBeenCalledWith('requesting_permission');
+    expect(onStateChange).toHaveBeenCalledWith('listening');
     expect(mockAudioContextInstance.resume).toHaveBeenCalled();
   });
 
-  it('no vuelve a iniciar si ya está escuchando', async () => {
+  it('no vuelve a iniciar si ya está listening', async () => {
     await service.start();
     await service.start();
-    expect(service.getState()).toBe('escuchando');
+    expect(service.getState()).toBe('listening');
   });
 
   it('procesa mensajes LEVEL_UPDATE y WINDOW_READY desde el worklet', async () => {
@@ -157,7 +157,7 @@ describe('AudioCaptureService', () => {
     expect(mockAudioContextInstance.close).toHaveBeenCalled();
   });
 
-  it('maneja errores en getUserMedia pasando a estado error', async () => {
+  it('maneja errores en getUserMedia pasando a state error', async () => {
     const onError = vi.fn();
     service.setCallbacks({ onError });
 

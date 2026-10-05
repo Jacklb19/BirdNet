@@ -120,7 +120,10 @@ export class AudioWindowAccumulator {
 
       const currentIndex = this.windowIndex;
       this.windowIndex++;
-      this.samplesSinceLastWindow = 0;
+      // Preserve the fractional audio block remainder to avoid drifting away from the 1.5 s hop.
+      this.samplesSinceLastWindow = canEmitFirstWindow
+        ? this.samplesAccumulatedTotal - this.windowSamples
+        : this.samplesSinceLastWindow - this.hopSamples;
 
       return { window: emittedWindow, index: currentIndex };
     }
@@ -304,8 +307,12 @@ class AudioWindowProcessor extends AudioWorkletProcessor {
       const windowBuf = new Float32Array(this.windowSamples);
       windowBuf.set(this.ringBuffer);
 
+      let mean = 0;
+      for (let i = 0; i < this.windowSamples; i++) mean += windowBuf[i];
+      mean /= this.windowSamples;
       let peak = 0;
       for (let i = 0; i < this.windowSamples; i++) {
+        windowBuf[i] -= mean;
         const abs = Math.abs(windowBuf[i]);
         if (abs > peak) peak = abs;
       }
@@ -331,7 +338,9 @@ class AudioWindowProcessor extends AudioWorkletProcessor {
       }
 
       this.windowIndex++;
-      this.samplesSinceLastWindow = 0;
+      this.samplesSinceLastWindow = canEmitFirst
+        ? this.samplesAccumulatedTotal - this.windowSamples
+        : this.samplesSinceLastWindow - this.hopSamples;
     }
 
     return true;

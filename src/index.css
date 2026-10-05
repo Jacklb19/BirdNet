@@ -275,6 +275,38 @@ html {
   overflow-x: hidden;
 }
 
+.detections-panel {
+  padding: var(--spacing-4);
+  margin-bottom: var(--spacing-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+  overflow-wrap: anywhere;
+}
+
+.detections-panel h2 {
+  font-size: var(--font-size-md);
+  margin-bottom: var(--spacing-3);
+}
+
+.detections-panel p + p {
+  margin-top: var(--spacing-2);
+}
+
+.detection-list {
+  list-style: none;
+  display: grid;
+  gap: var(--spacing-3);
+  margin-block: var(--spacing-3);
+}
+
+.detection-list li {
+  padding: var(--spacing-3);
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-md);
+}
+
 @media (max-width: 480px) {
   #root {
     padding: var(--spacing-4) var(--spacing-3);

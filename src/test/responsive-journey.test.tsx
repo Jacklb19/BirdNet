@@ -17,16 +17,21 @@ describe('Responsive E2E Main User Journey', () => {
     mockDetenerEscucha = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
 
     vi.spyOn(useAudioCaptureModule, 'useAudioCapture').mockReturnValue({
-      estado: 'idle',
-      error: null,
-      nivelRms: 0.15,
-      nivelPico: 0.35,
-      conteoVentanas: 1,
-      ultimoEspectrograma: null,
-      latenciaUltimoEspectrogramaMs: 12,
+      state: 'idle',
+      rmsLevel: 0.15,
+      peakLevel: 0.35,
+      windowCount: 1,
+      latestSpectrogram: null,
+      spectrogramLatencyMs: 12,
       sampleRate: 48000,
-      iniciarEscucha: mockIniciarEscucha,
-      detenerEscucha: mockDetenerEscucha,
+      modelStatus: 'idle',
+      detections: [],
+      inferenceLatencyMs: 0,
+      endToEndLatencyMs: 0,
+      droppedWindows: 0,
+      sessionError: null,
+      startListening: mockIniciarEscucha,
+      stopListening: mockDetenerEscucha,
     });
   });
 

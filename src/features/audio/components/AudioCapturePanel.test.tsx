@@ -6,16 +6,21 @@ import * as useAudioCaptureModule from '../hooks/useAudioCapture';
 describe('AudioCapturePanel', () => {
   beforeEach(() => {
     vi.spyOn(useAudioCaptureModule, 'useAudioCapture').mockReturnValue({
-      estado: 'idle',
-      error: null,
-      nivelRms: 0,
-      nivelPico: 0,
-      conteoVentanas: 0,
-      ultimoEspectrograma: null,
-      latenciaUltimoEspectrogramaMs: 0,
+      state: 'idle',
+      rmsLevel: 0,
+      peakLevel: 0,
+      windowCount: 0,
+      latestSpectrogram: null,
+      spectrogramLatencyMs: 0,
       sampleRate: 48000,
-      iniciarEscucha: vi.fn().mockResolvedValue(undefined),
-      detenerEscucha: vi.fn().mockResolvedValue(undefined),
+      modelStatus: 'idle',
+      detections: [],
+      inferenceLatencyMs: 0,
+      endToEndLatencyMs: 0,
+      droppedWindows: 0,
+      sessionError: null,
+      startListening: vi.fn().mockResolvedValue(undefined),
+      stopListening: vi.fn().mockResolvedValue(undefined),
     });
   });
 
@@ -37,18 +42,23 @@ describe('AudioCapturePanel', () => {
     expect(screen.getByTestId('latency')).toHaveTextContent('0 ms');
   });
 
-  it('muestra el botón de detener cuando el estado es escuchando', () => {
+  it('muestra el botón de detener cuando el state es listening', () => {
     vi.spyOn(useAudioCaptureModule, 'useAudioCapture').mockReturnValue({
-      estado: 'escuchando',
-      error: null,
-      nivelRms: 0.3,
-      nivelPico: 0.5,
-      conteoVentanas: 5,
-      ultimoEspectrograma: null,
-      latenciaUltimoEspectrogramaMs: 42,
+      state: 'listening',
+      rmsLevel: 0.3,
+      peakLevel: 0.5,
+      windowCount: 5,
+      latestSpectrogram: null,
+      spectrogramLatencyMs: 42,
       sampleRate: 48000,
-      iniciarEscucha: vi.fn().mockResolvedValue(undefined),
-      detenerEscucha: vi.fn().mockResolvedValue(undefined),
+      modelStatus: 'idle',
+      detections: [],
+      inferenceLatencyMs: 0,
+      endToEndLatencyMs: 0,
+      droppedWindows: 0,
+      sessionError: null,
+      startListening: vi.fn().mockResolvedValue(undefined),
+      stopListening: vi.fn().mockResolvedValue(undefined),
     });
 
     render(<AudioCapturePanel />);
@@ -61,22 +71,27 @@ describe('AudioCapturePanel', () => {
 
   it('muestra un mensaje de error cuando ocurre un fallo', () => {
     vi.spyOn(useAudioCaptureModule, 'useAudioCapture').mockReturnValue({
-      estado: 'error',
-      error: 'Permiso de micrófono denegado',
-      nivelRms: 0,
-      nivelPico: 0,
-      conteoVentanas: 0,
-      ultimoEspectrograma: null,
-      latenciaUltimoEspectrogramaMs: 0,
+      state: 'error',
+      rmsLevel: 0,
+      peakLevel: 0,
+      windowCount: 0,
+      latestSpectrogram: null,
+      spectrogramLatencyMs: 0,
       sampleRate: 48000,
-      iniciarEscucha: vi.fn().mockResolvedValue(undefined),
-      detenerEscucha: vi.fn().mockResolvedValue(undefined),
+      modelStatus: 'idle',
+      detections: [],
+      inferenceLatencyMs: 0,
+      endToEndLatencyMs: 0,
+      droppedWindows: 0,
+      sessionError: 'audio',
+      startListening: vi.fn().mockResolvedValue(undefined),
+      stopListening: vi.fn().mockResolvedValue(undefined),
     });
 
     render(<AudioCapturePanel />);
 
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'Permiso de micrófono denegado',
+      'No se pudo procesar el audio. Revisa el permiso del micrófono y vuelve a iniciar la escucha.',
     );
   });
 });

@@ -194,6 +194,7 @@ describe('InferenceService', () => {
       modelSizeBytes: 1000000,
     });
 
+    service.infer(new Float32Array(144000), 1, 123456);
     mockWorkerInstance.simulateMessage({
       type: 'INFERENCE_RESULT',
       detections: [
@@ -217,6 +218,7 @@ describe('InferenceService', () => {
       1,
       123456,
       15.2,
+      expect.any(Number),
     );
   });
 
@@ -230,5 +232,66 @@ describe('InferenceService', () => {
     expect(mockWorkerInstance.terminate).toHaveBeenCalled();
     expect(service.getStatus()).toBe('idle');
     expect(service.getManifest()).toBeNull();
+  });
+
+  it('keeps only the latest pending inference and includes queue time in latency', async () => {
+    const onWindowDropped = vi.fn();
+    const onInferenceResult = vi.fn();
+    const service = new InferenceService({ onWindowDropped, onInferenceResult });
+    await service.loadModel();
+    mockWorkerInstance.simulateMessage({ type: 'MODEL_LOADED', numClasses: 6522, modelSizeBytes: 1000000 });
+    vi.spyOn(performance, 'now').mockReturnValue(200);
+    for (let index = 0; index < 1000; index++) service.infer(new Float32Array(144000), index, 100);
+    expect(mockWorkerInstance.postMessage).toHaveBeenCalledTimes(2);
+    expect(onWindowDropped).toHaveBeenCalledTimes(998);
+    mockWorkerInstance.simulateMessage({ type: 'INFERENCE_RESULT', detections: [], windowIndex: 0, timestamp: 100, latencyMs: 20 });
+    expect(onInferenceResult).toHaveBeenCalledWith([], 0, 100, 20, 100);
+    expect(mockWorkerInstance.postMessage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ windowIndex: 999 }), [expect.any(ArrayBuffer)],
+    );
+    mockWorkerInstance.simulateMessage({ type: 'INFERENCE_ERROR', error: 'Failed', windowIndex: 999, timestamp: 100 });
+    service.infer(new Float32Array(144000), 1000, 200);
+    expect(mockWorkerInstance.postMessage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ windowIndex: 1000 }), [expect.any(ArrayBuffer)],
+    );
+  });
+
+  it('ignores results from a disposed worker and cancels a late manifest response', async () => {
+    const onInferenceResult = vi.fn();
+    const service = new InferenceService({ onInferenceResult });
+    await service.loadModel();
+    const oldHandler = mockWorkerInstance.onmessage;
+    service.dispose();
+    oldHandler?.(new MessageEvent('message', { data: { type: 'MODEL_LOADED', numClasses: 6522, modelSizeBytes: 0 } }));
+    expect(service.getStatus()).toBe('idle');
+    expect(onInferenceResult).not.toHaveBeenCalled();
+    let resolveFetch: ((response: Response) => void) | undefined;
+    vi.mocked(fetch).mockReturnValueOnce(new Promise((resolve) => { resolveFetch = resolve; }));
+    const loading = service.loadModel();
+    service.dispose();
+    resolveFetch?.({ ok: true, json: () => Promise.resolve(mockManifest) } as Response);
+    await loading;
+    expect(service.getManifest()).toBeNull();
+    expect(service.getStatus()).toBe('idle');
+  });
+
+  it('reports bad manifests, HTTP failures, malformed windows and fatal worker errors', async () => {
+    const onError = vi.fn();
+    const service = new InferenceService({ onError });
+    vi.mocked(fetch).mockResolvedValueOnce({ ok: false, status: 404 } as Response);
+    await service.loadModel();
+    expect(service.getStatus()).toBe('error');
+    vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ ...mockManifest, sample_rate: 1 }) } as Response);
+    await service.loadModel();
+    expect(onError).toHaveBeenLastCalledWith('Incompatible model manifest.');
+    await service.loadModel();
+    mockWorkerInstance.simulateMessage({ type: 'MODEL_LOADED', numClasses: 1, modelSizeBytes: 0 });
+    expect(service.getStatus()).toBe('error');
+    await service.loadModel();
+    mockWorkerInstance.simulateMessage({ type: 'MODEL_LOADED', numClasses: 6522, modelSizeBytes: 0 });
+    service.infer(new Float32Array(1), 0, 0);
+    expect(onError).toHaveBeenLastCalledWith('Invalid audio window.');
+    mockWorkerInstance.onerror?.(new ErrorEvent('error', { message: 'Worker crashed' }));
+    expect(service.getStatus()).toBe('error');
   });
 });

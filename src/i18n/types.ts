@@ -56,6 +56,18 @@ export interface TranslationSchema {
     scientificName: string;
     commonName: string;
     confidence: string;
+    statusLabel: string;
+    confirmedLocal: string;
+    provisional: string;
+    loadingModel: string;
+    downloadNotice: string;
+    modelError: string;
+    audioError: string;
+    processingError: string;
+    inferenceLatency: string;
+    endToEndLatency: string;
+    droppedWindows: string;
+    sessionOnly: string;
   };
   diagnostics: {
     title: string;

@@ -4,9 +4,9 @@ import { LatestWindowQueue } from './latestWindowQueue';
 
 export type AudioCaptureState =
   | 'idle'
-  | 'solicitando_permiso'
-  | 'escuchando'
-  | 'pausado'
+  | 'requesting_permission'
+  | 'listening'
+  | 'paused'
   | 'error';
 
 export interface AudioCaptureCallbacks {
@@ -59,13 +59,13 @@ export class AudioCaptureService {
    * Inicia la captura continua de audio solicitando acceso al micrófono.
    */
   public async start(): Promise<void> {
-    if (this.state === 'escuchando' || this.state === 'solicitando_permiso') {
+    if (this.state === 'listening' || this.state === 'requesting_permission') {
       return;
     }
 
+    const generation = ++this.generation;
     try {
-      const generation = ++this.generation;
-      this.setState('solicitando_permiso');
+      this.setState('requesting_permission');
 
       if (typeof navigator === 'undefined' || !('mediaDevices' in navigator)) {
         throw new Error('La API MediaDevices no está disponible en este entorno.');
@@ -150,9 +150,10 @@ export class AudioCaptureService {
       if (audioCtx.state === 'suspended') {
         await audioCtx.resume();
       }
-
-      this.setState('escuchando');
+      if (generation !== this.generation) return;
+      this.setState('listening');
     } catch (err) {
+      if (generation !== this.generation) return;
       const error = err instanceof Error ? err : new Error(String(err));
       this.setState('error');
       this.callbacks.onError?.(error);
@@ -171,6 +172,9 @@ export class AudioCaptureService {
   }
 
   private async cleanup(): Promise<void> {
+    this.melWorker?.terminate();
+    this.melWorker = null;
+    this.melQueue.clear();
     if (this.mediaStream) {
       this.mediaStream.getTracks().forEach((track) => {
         track.stop();
@@ -189,13 +193,10 @@ export class AudioCaptureService {
       this.workletNode = null;
     }
 
-    if (this.audioContext && this.audioContext.state !== 'closed') {
-      await this.audioContext.close();
-      this.audioContext = null;
+    const context = this.audioContext;
+    this.audioContext = null;
+    if (context && context.state !== 'closed') {
+      await context.close();
     }
-
-    this.melWorker?.terminate();
-    this.melWorker = null;
-    this.melQueue.clear();
   }
 }
