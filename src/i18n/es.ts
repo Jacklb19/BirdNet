@@ -5,7 +5,7 @@ export const es: TranslationSchema = {
     title: 'Preparación sin conexión', online: 'Con conexión', offline: 'Sin conexión',
     productionOnly: 'La instalación y la descarga persistente se verifican en la versión compilada de la aplicación.',
     updateModel: 'Comprobar y descargar versión del modelo', pending: 'Detecciones pendientes', storageUsage: 'Espacio de la cola local',
-    accountPending: 'La conexión de tu cuenta estará disponible en el Sprint 5. Tus registros permanecen en este dispositivo.',
+    accountPending: 'La conexión de tu cuenta aún no está disponible. Tus registros permanecen en este dispositivo.',
     locationPending: 'Pendientes sin ubicación', permissions: 'Permisos y almacenamiento',
     audioConsent: 'Autorizar el envío de fragmentos dudosos para verificación',
     audioExplanation: 'Solo se guarda y envía audio de confianza intermedia. Puedes retirar esta autorización; los fragmentos pendientes dejarán de enviarse.',

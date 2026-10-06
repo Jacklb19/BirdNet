@@ -21,6 +21,7 @@ export default defineConfig({
   },
   preview: {
     port: 4173,
+    proxy: { '/api': { target: 'http://127.0.0.1:8000', rewrite: (path) => path.replace(/^\/api/, '') } },
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'require-corp',

@@ -3,6 +3,9 @@ import json
 import os
 from pathlib import Path
 from uuid import UUID
+from urllib.parse import urlparse
+
+import httpx
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -12,7 +15,7 @@ from .contracts import AudioInput, BatchInput, BatchResponse
 from .repository import DetectionRepository
 from .storage import AudioStorage
 
-app = FastAPI(title="BirdNet Local", docs_url=None, redoc_url=None)
+app = FastAPI(title="BirdNet Local", root_path="/api", docs_url=None, redoc_url=None)
 
 
 def repository() -> DetectionRepository:
@@ -64,11 +67,26 @@ def audio_url(detection_id: UUID, payload: AudioInput, owner: UUID = Depends(aut
 def latest_model() -> dict:
     manifest_file = Path(os.environ.get("MODEL_MANIFEST_PATH", "public/models/manifest.json"))
     try:
-        manifest = json.loads(manifest_file.read_text(encoding="utf-8-sig"))
+        remote = os.environ.get("MODEL_MANIFEST_URL")
+        if remote:
+            url = urlparse(remote)
+            if url.scheme != "https" or not (url.hostname or "").endswith(".supabase.co"):
+                raise ValueError("Invalid manifest origin")
+            with httpx.Client(timeout=10) as client:
+                with client.stream("GET", remote) as response:
+                    response.raise_for_status()
+                    content = bytearray()
+                    for chunk in response.iter_bytes():
+                        content.extend(chunk)
+                        if len(content) > 128 * 1024:
+                            raise ValueError("Manifest exceeds metadata limit")
+                manifest = json.loads(content)
+        else:
+            manifest = json.loads(manifest_file.read_text(encoding="utf-8-sig"))
         resource_base = os.environ.get("MODEL_RESOURCE_BASE_URL", "/models/").rstrip("/")
         for field in ("model_file", "labels_file"):
             if not manifest[field].startswith(("https://", "http://", "/")):
                 manifest[field] = f"{resource_base}/{manifest[field]}"
         return manifest
-    except (OSError, ValueError, KeyError):
+    except (OSError, ValueError, KeyError, httpx.HTTPError):
         raise HTTPException(503, "Model manifest unavailable") from None

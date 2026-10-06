@@ -26,7 +26,7 @@ class AudioStorage:
         path = self.path(owner, detection)
         try:
             with self.client() as client:
-                response = client.post(f"/object/upload/sign/{self.bucket}/{path}", json={"upsert": True})
+                response = client.post(f"/object/upload/sign/{self.bucket}/{path}", headers={"x-upsert": "true"}, json={})
                 response.raise_for_status()
                 url = response.json()["url"]
                 if not isinstance(url, str) or not url.startswith("/object/upload/sign/"):

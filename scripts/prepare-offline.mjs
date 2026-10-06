@@ -3,7 +3,7 @@ import { injectManifest } from 'workbox-build';
 // Cache only application resources. The model has a separate explicit, verified download.
 const result = await injectManifest({
   swSrc: 'dist/service-worker.js', swDest: 'dist/service-worker.js', globDirectory: 'dist',
-  globPatterns: ['index.html', 'manifest.webmanifest', 'icons/*.svg', 'assets/**/*.{js,mjs,css,wasm}'],
+  globPatterns: ['index.html', 'manifest.webmanifest', 'models/manifest.json', 'icons/*.svg', 'assets/**/*.{js,mjs,css,wasm}'],
   maximumFileSizeToCacheInBytes: 32 * 1024 * 1024,
   dontCacheBustURLsMatching: /assets\/.*-[\w-]+\./,
 });

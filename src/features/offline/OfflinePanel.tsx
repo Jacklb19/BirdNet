@@ -25,9 +25,11 @@ export function OfflinePanel(): React.JSX.Element {
     void (async () => {
       const preferences = await offlineOperation<OfflineSettings>('GET_SETTINGS');
       const cached = await offlineOperation<ModelManifest | null>('MODEL_STATUS');
+      const available = cached ?? await offlineOperation<ModelManifest>('MODEL_MANIFEST');
       if (!isMounted()) return;
       setSettings(preferences);
       if (cached) setModel({ status: 'cached', received: cached.size_bytes, total: cached.size_bytes, manifest: cached });
+      else setModel({ status: 'missing', received: 0, total: available.size_bytes });
       await refresh();
     })().catch(() => { if (mounted) setError(true); });
     const interval = setInterval(() => { void refresh().catch(() => { if (mounted) setError(true); }); }, 5000);
@@ -61,7 +63,7 @@ export function OfflinePanel(): React.JSX.Element {
     <div className="section-heading"><h2>{text.title}</h2><span>{online ? text.online : text.offline}</span></div>
     {!import.meta.env.PROD ? <p>{text.productionOnly}</p> : <>
       <p role="status">{model.status === 'cached' ? dict.modelDownload.cachedStatus : model.status === 'downloading' ? dict.modelDownload.downloading : dict.modelDownload.missingWarning}</p>
-      {model.total > 0 && <p>{dict.modelDownload.sizeLabel} {formatBytes(model.total, locale)}</p>}
+      {model.total > 0 && <p>{dict.modelDownload.sizeLabel} {formatBytes(model.total, locale)} · {formatNumber(model.total, locale)} B</p>}
       <button type="button" className="offline-action" disabled={model.status === 'downloading' || !settings} onClick={() => { void download(); }}>{model.status === 'cached' ? text.updateModel : dict.modelDownload.buttonDownload}</button>
       {model.status === 'downloading' && <><progress aria-label={dict.modelDownload.downloading} value={model.received} max={model.total || 1} /><p>{formatBytes(model.received, locale)} / {formatBytes(model.total, locale)} · {formatPercent(model.total ? model.received / model.total : 0, locale, 0)}</p></>}
       <p>{dict.modelDownload.wifiRecommendation}</p>

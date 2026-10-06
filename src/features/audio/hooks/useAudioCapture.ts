@@ -62,7 +62,7 @@ export function useAudioCapture(): UseAudioCaptureReturn {
         const manifest = inference.getManifest();
         if (manifest) inference.infer(buffer, windowIndex, timestamp, 5, 0.45, {
           recordedAt: new Date(performance.timeOrigin + timestamp).toISOString(), location,
-          modelVersion: `${manifest.model_id}:${manifest.variant}`,
+          modelVersion: `${manifest.model_id}:${manifest.variant}:${manifest.sha256}`,
         });
         else inference.infer(buffer, windowIndex, timestamp, 5, 0.45);
       },

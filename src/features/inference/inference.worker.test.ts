@@ -4,6 +4,8 @@ import type { InferenceWorkerInbound } from './inference.types';
 const runtime = vi.hoisted(() => ({
   create: vi.fn(), run: vi.fn(), release: vi.fn(), disposeInput: vi.fn(), disposeOutput: vi.fn(),
 }));
+const persistence = vi.hoisted(() => ({ save: vi.fn() }));
+vi.mock('../offline/queueStore', () => ({ persistDetections: persistence.save }));
 vi.mock('onnxruntime-web/wasm', () => ({
   env: { wasm: {} },
   InferenceSession: { create: runtime.create },
@@ -21,6 +23,7 @@ describe('inference worker protocol', () => {
   beforeEach(async () => {
     vi.resetModules();
     vi.clearAllMocks();
+    persistence.save.mockResolvedValue(undefined);
     vi.stubGlobal('self', { location: { href: 'http://localhost:5173/' }, postMessage, onmessage: null });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true, text: () => Promise.resolve('Turdus fuscater_Great Thrush\nZonotrichia capensis_Rufous-collared Sparrow'),
@@ -80,5 +83,36 @@ describe('inference worker protocol', () => {
   it('dispatches worker messages through the installed entry point', async () => {
     self.onmessage?.(new MessageEvent('message', { data: loadRequest }));
     await vi.waitFor(() => { expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'MODEL_LOADED' })); });
+  });
+
+  it('publishes a classified window only after persistent storage commits', async () => {
+    await handle(loadRequest);
+    postMessage.mockClear();
+    let commit: (() => void) | undefined;
+    persistence.save.mockReturnValueOnce(new Promise<void>((resolve) => { commit = resolve; }));
+    const pending = handle({ ...inferRequest, persistence: { recordedAt: '2026-10-06T12:00:00Z', location: null, modelVersion: 'test-model' } });
+    await vi.waitFor(() => { expect(persistence.save).toHaveBeenCalled(); });
+    expect(postMessage).not.toHaveBeenCalled();
+    commit?.();
+    await pending;
+    expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'INFERENCE_RESULT' }));
+  });
+
+  it('reports storage failure instead of publishing an unsaved detection', async () => {
+    await handle(loadRequest);
+    postMessage.mockClear();
+    persistence.save.mockRejectedValueOnce(new Error('Quota exhausted'));
+    await handle({ ...inferRequest, persistence: { recordedAt: '2026-10-06T12:00:00Z', location: null, modelVersion: 'test-model' } });
+    expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'INFERENCE_ERROR', reason: 'storage' }));
+    expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'INFERENCE_RESULT' }));
+  });
+
+  it('acknowledges shutdown even if runtime release fails', async () => {
+    await handle(loadRequest);
+    runtime.release.mockRejectedValueOnce(new Error('Release failed'));
+    postMessage.mockClear();
+    self.onmessage?.(new MessageEvent('message', { data: { type: 'DISPOSE' } }));
+    await vi.waitFor(() => { expect(postMessage).toHaveBeenCalledWith({ type: 'DISPOSED' }); });
+    expect(postMessage).toHaveBeenCalledWith({ type: 'MODEL_ERROR', error: 'Release failed' });
   });
 });

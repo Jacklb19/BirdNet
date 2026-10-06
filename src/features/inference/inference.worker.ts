@@ -96,7 +96,8 @@ export async function handleWorkerRequest(message: InferenceWorkerInbound): Prom
 let requests = Promise.resolve();
 self.onmessage = (event: MessageEvent<InferenceWorkerInbound>): void => {
   requests = requests.then(async () => {
-    await handleWorkerRequest(event.data);
-    if (event.data.type === 'DISPOSE') self.postMessage({ type: 'DISPOSED' });
+    try { await handleWorkerRequest(event.data); }
+    catch (error) { postOutbound({ type: 'MODEL_ERROR', error: error instanceof Error ? error.message : String(error) }); }
+    finally { if (event.data.type === 'DISPOSE') self.postMessage({ type: 'DISPOSED' }); }
   });
 };

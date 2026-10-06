@@ -12,7 +12,8 @@ export function validateManifest(value: unknown): ModelManifest {
       !Number.isInteger(manifest.num_classes) || (manifest.num_classes ?? 0) <= 0 ||
       !Number.isSafeInteger(manifest.size_bytes) || (manifest.size_bytes ?? 0) <= 0 ||
       typeof manifest.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(manifest.sha256) ||
-      !['model_id', 'variant', 'model_file', 'labels_file', 'updated_at'].every((key) => typeof Reflect.get(manifest, key) === 'string' && Reflect.get(manifest, key))) throw new Error('Incompatible manifest.');
+      !['model_id', 'variant', 'model_file', 'labels_file', 'updated_at'].every((key) => typeof Reflect.get(manifest, key) === 'string' && Reflect.get(manifest, key)) ||
+      (manifest.model_id?.length ?? 0) + (manifest.variant?.length ?? 0) + 66 > 200) throw new Error('Incompatible manifest.');
   return manifest as ModelManifest;
 }
 function safeResource(path: string, base: string): string {
@@ -25,16 +26,28 @@ async function hash(buffer: ArrayBuffer): Promise<string> {
   return Array.from(digest, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-/** A pointer becomes active only after both resources have been completely verified. */
-export async function downloadModel(manifestUrl: string, progress: (received: number, total: number) => void): Promise<ModelManifest> {
-  let manifestResponse = await fetch(manifestUrl, { cache: 'no-store' });
-  if (manifestUrl === '/api/v1/model/latest' && (!manifestResponse.ok || !manifestResponse.headers.get('Content-Type')?.includes('application/json'))) {
+/** Discover size and compatibility without downloading model weights. */
+export async function availableManifest(manifestUrl = '/api/v1/model/latest'): Promise<{ manifest: ModelManifest; base: string }> {
+  let manifestResponse: Response;
+  try { manifestResponse = await fetch(manifestUrl, { cache: 'no-store' }); }
+  catch (error) {
+    if (manifestUrl !== '/api/v1/model/latest') throw error;
+    manifestUrl = '/models/manifest.json';
+    manifestResponse = await fetch(manifestUrl);
+  }
+  if (manifestUrl === '/api/v1/model/latest' && (manifestResponse.status === 404 || manifestResponse.ok && !manifestResponse.headers.get('Content-Type')?.includes('application/json'))) {
     manifestUrl = '/models/manifest.json';
     manifestResponse = await fetch(manifestUrl, { cache: 'no-store' });
   }
   if (!manifestResponse.ok) throw new Error('Model manifest unavailable.');
   const manifest = validateManifest(await manifestResponse.json());
   const base = new URL(manifestUrl, self.location.origin).href;
+  return { manifest, base };
+}
+
+/** A pointer becomes active only after both resources have been completely verified. */
+export async function downloadModel(manifestUrl: string, progress: (received: number, total: number) => void): Promise<ModelManifest> {
+  const { manifest, base } = await availableManifest(manifestUrl);
   const modelUrl = safeResource(manifest.model_file, base);
   const labelsUrl = safeResource(manifest.labels_file, base);
   const response = await fetch(modelUrl, { cache: 'no-store' });
@@ -68,7 +81,10 @@ export async function downloadModel(manifestUrl: string, progress: (received: nu
   await cache.put(ACTIVE_MODEL, Response.json(active));
   for (const key of await cache.keys()) {
     const url = new URL(key.url);
-    if (url.pathname !== ACTIVE_MODEL && !url.pathname.includes(manifest.sha256) && !(previousHash && url.pathname.includes(previousHash))) await cache.delete(key);
+    if (url.pathname !== ACTIVE_MODEL && !url.pathname.includes(manifest.sha256) && !(previousHash && url.pathname.includes(previousHash))) {
+      // Cleanup is optional; a failed cleanup must not report a verified installation as failed.
+      try { await cache.delete(key); } catch { break; }
+    }
   }
   return active;
 }

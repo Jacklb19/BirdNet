@@ -6,7 +6,7 @@ export const en: TranslationSchema = {
     title: 'Offline preparation', online: 'Connected', offline: 'Offline',
     productionOnly: 'Installation and persistent downloads are available in the compiled application.',
     updateModel: 'Check and download model version', pending: 'Pending detections', storageUsage: 'Local queue storage',
-    accountPending: 'Account connection is planned for Sprint 5. Your records remain on this device.',
+    accountPending: 'Account connection is not available yet. Your records remain on this device.',
     locationPending: 'Pending without location', permissions: 'Permissions and storage',
     audioConsent: 'Authorize uploading uncertain fragments for verification',
     audioExplanation: 'Only intermediate-confidence audio is retained and uploaded. Revoking permission stops pending uploads.',

@@ -4,6 +4,12 @@ import { SYNC_TAG } from './types';
 export async function registerOffline(): Promise<void> {
   if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return;
   await navigator.serviceWorker.register('/service-worker.js', { type: 'module' });
+  window.addEventListener('online', () => { void scheduleSynchronization().catch(() => { window.dispatchEvent(new Event('birdnet-sync-error')); }); });
+  setInterval(() => {
+    if (document.visibilityState === 'visible' && navigator.onLine) void scheduleSynchronization().catch(() => { window.dispatchEvent(new Event('birdnet-sync-error')); });
+  }, 30000);
+  await navigator.serviceWorker.ready;
+  await scheduleSynchronization();
 }
 
 /** MessageChannel keeps download progress and worker lifetime out of React rendering. */
@@ -23,9 +29,14 @@ export async function offlineOperation<T>(type: string, data: object = {}, progr
     worker.postMessage({ type, ...data }, [channel.port2]);
   });
 }
+let synchronization: Promise<void> | null = null;
 export async function scheduleSynchronization(): Promise<void> {
   if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return;
-  const registration = await navigator.serviceWorker.ready;
-  if ('sync' in registration) await (registration.sync as { register(tag: string): Promise<void> }).register(SYNC_TAG);
-  if (navigator.onLine) await offlineOperation('SYNC');
+  if (synchronization) return synchronization;
+  synchronization = (async () => {
+    const registration = await navigator.serviceWorker.ready;
+    if ('sync' in registration) await (registration.sync as { register(tag: string): Promise<void> }).register(SYNC_TAG);
+    if (navigator.onLine) await offlineOperation('SYNC');
+  })();
+  try { await synchronization; } finally { synchronization = null; }
 }

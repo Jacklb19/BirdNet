@@ -1,8 +1,12 @@
 import type { ClassifiedDetection } from '../inference/detectionPolicy';
-import { assertQueueCapacity, encodeAudio } from './queuePolicy';
+import { approximateLocation, assertQueueCapacity, encodeAudio } from './queuePolicy';
 import { DATABASE_NAME, DEFAULT_QUEUE_BYTES, type OfflineSettings, type PersistenceContext, type QueueStats, type StoredAudio, type StoredDetection, type SyncSession } from './types';
 
 const defaultSettings = (): OfflineSettings => ({ maxBytes: DEFAULT_QUEUE_BYTES, audioConsent: false, locationEnabled: false, session: null });
+function measureRecord(record: StoredDetection): void {
+  let previous: number;
+  do { previous = record.bytes; record.bytes = new TextEncoder().encode(JSON.stringify(record)).byteLength; } while (record.bytes !== previous);
+}
 function request<T>(operation: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => { operation.onsuccess = () => { resolve(operation.result); }; operation.onerror = () => { reject(operation.error ?? new Error('Storage request failed.')); }; });
 }
@@ -58,7 +62,7 @@ export async function bindSyncSession(session: SyncSession | null, claimUnowned 
       const next = records.map((row) => {
         if (row.owner) return row;
         const updated = { ...row, owner: session.userId };
-        updated.bytes = new TextEncoder().encode(JSON.stringify(updated)).byteLength;
+        measureRecord(updated);
         return updated;
       });
       assertQueueCapacity(next.reduce((sum, row) => sum + row.bytes, 0) + audio.reduce((sum, row) => sum + row.bytes, 0), 0, settings.maxBytes);
@@ -84,6 +88,9 @@ export async function queueStats(): Promise<QueueStats> {
 /** Called by the inference worker before it publishes a successful classification. */
 export async function persistDetections(candidates: readonly ClassifiedDetection[], samples: Float32Array, context: PersistenceContext): Promise<void> {
   if (candidates.length === 0) return;
+  const location = context.location ? approximateLocation(context.location.latitude, context.location.longitude) : null;
+  const recordedAt = new Date(context.recordedAt).toISOString();
+  if (!context.modelVersion || context.modelVersion.length > 200 || candidates.some((row) => !row.scientificName || row.scientificName.length > 200 || !Number.isFinite(row.confidence) || row.confidence < 0.45 || row.confidence > 1)) throw new Error('Invalid detection context.');
   const audioBlob = candidates.some((candidate) => candidate.status === 'provisional') ? encodeAudio(samples) : null;
   await transact(['settings', 'detections', 'audio'], 'readwrite', async (tx) => {
     const settings = (await request(tx.objectStore('settings').get('preferences')) as OfflineSettings | undefined) ?? defaultSettings();
@@ -91,8 +98,8 @@ export async function persistDetections(candidates: readonly ClassifiedDetection
     const audio = await request(tx.objectStore('audio').getAll()) as StoredAudio[];
     const audioId = audioBlob && settings.audioConsent ? crypto.randomUUID() : null;
     const records = candidates.map((candidate): StoredDetection => {
-      const record: StoredDetection = { id: crypto.randomUUID(), species: candidate.scientificName, confidence: candidate.confidence, status: candidate.status === 'provisional' ? 'provisional' : 'confirmed', recorded_at: context.recordedAt, location: context.location, model_version: context.modelVersion, owner: settings.session?.userId ?? null, audioId: candidate.status === 'provisional' ? audioId : null, metadataSynced: false, bytes: 0 };
-      record.bytes = new TextEncoder().encode(JSON.stringify(record)).byteLength;
+      const record: StoredDetection = { id: crypto.randomUUID(), species: candidate.scientificName, confidence: candidate.confidence, status: candidate.status === 'provisional' ? 'provisional' : 'confirmed', recorded_at: recordedAt, location, model_version: context.modelVersion, owner: settings.session?.userId ?? null, audioId: candidate.status === 'provisional' ? audioId : null, metadataSynced: false, bytes: 0 };
+      measureRecord(record);
       return record;
     });
     assertQueueCapacity(existing.reduce((sum, row) => sum + row.bytes, 0) + audio.reduce((sum, row) => sum + row.bytes, 0), records.reduce((sum, row) => sum + row.bytes, 0) + (audioId ? audioBlob?.size ?? 0 : 0), settings.maxBytes);

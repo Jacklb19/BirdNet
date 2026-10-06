@@ -1,6 +1,6 @@
 import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
-import { activeModel, downloadModel, MODEL_CACHE } from './modelCache';
+import { activeModel, availableManifest, downloadModel, MODEL_CACHE } from './modelCache';
 import { getSettings, queueStats, updateSettings } from './queueStore';
 import { synchronizeQueue } from './syncQueue';
 import { SYNC_TAG, type OfflineSettings } from './types';
@@ -21,7 +21,12 @@ cleanupOutdatedCaches();
 registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html'), { denylist: [/^\/api\//, /^\/__birdnet_models\//] }));
 registerRoute(({ url }) => url.pathname.startsWith('/__birdnet_models/'), async ({ request }) => (await (await caches.open(MODEL_CACHE)).match(request)) ?? new Response('Model unavailable', { status: 503 }));
 scope.addEventListener('activate', (event) => { event.waitUntil(scope.clients.claim()); });
-scope.addEventListener('sync', (event) => { if (event.tag === SYNC_TAG) event.waitUntil(synchronizeQueue()); });
+let synchronization: Promise<void> | null = null;
+async function synchronizeOnce(): Promise<void> {
+  synchronization ??= synchronizeQueue();
+  try { await synchronization; } finally { synchronization = null; }
+}
+scope.addEventListener('sync', (event) => { if (event.tag === SYNC_TAG) event.waitUntil(synchronizeOnce()); });
 let downloading: Promise<unknown> | null = null;
 scope.addEventListener('message', (event) => {
   const port = event.ports[0];
@@ -31,6 +36,7 @@ scope.addEventListener('message', (event) => {
       let result: unknown;
       switch (event.data.type) {
         case 'MODEL_STATUS': result = await activeModel(); break;
+        case 'MODEL_MANIFEST': result = (await availableManifest()).manifest; break;
         case 'DOWNLOAD_MODEL': {
           if (downloading) throw new Error('Model download already in progress.');
           const url = event.data.manifestUrl ?? '/models/manifest.json';
@@ -42,7 +48,7 @@ scope.addEventListener('message', (event) => {
         case 'GET_SETTINGS': result = await getSettings(); break;
         case 'UPDATE_SETTINGS': await updateSettings(event.data.changes ?? {}); break;
         case 'QUEUE_STATS': result = await queueStats(); break;
-        case 'SYNC': await synchronizeQueue(); break;
+        case 'SYNC': await synchronizeOnce(); break;
         default: throw new Error('Unknown offline operation.');
       }
       port.postMessage({ ok: true, result });

@@ -24,7 +24,7 @@ async function sessionFor(userId: string, requireConsent = false): Promise<SyncS
 
 /** Web Locks serialize foreground retries with Background Sync; UUIDs also protect the server. */
 export async function synchronizeQueue(): Promise<void> {
-  await navigator.locks.request('birdnet-sync', async () => {
+  const run = async (): Promise<void> => {
     const settings = await getSettings();
     const session = settings.session;
     if (!session || session.expiresAt * 1000 <= Date.now()) return;
@@ -57,5 +57,7 @@ export async function synchronizeQueue(): Promise<void> {
       if (!finalSession) return;
       await acknowledge(await send([row], finalSession, result.audio_path), true);
     }
-  });
+  };
+  if ('locks' in navigator) await navigator.locks.request('birdnet-sync', run);
+  else await run();
 }
