@@ -2,6 +2,7 @@
  * Tipos compartidos para el pipeline de inferencia ONNX (RF-05, ADR-01).
  * Define los mensajes entre el hilo principal y el Worker de inferencia.
  */
+import type { PersistenceContext } from '../offline/types';
 
 /** Estado del ciclo de vida del modelo en el Worker */
 export type ModelStatus = 'idle' | 'loading' | 'ready' | 'error';
@@ -55,11 +56,13 @@ export interface InferRequest {
   readonly topK?: number;
   /** Umbral mínimo de confianza para incluir una detección (por defecto 0.1) */
   readonly minConfidence?: number;
+  readonly persistence?: PersistenceContext;
 }
 
 export interface DisposeRequest {
   readonly type: 'DISPOSE';
 }
+export interface DisposedMessage { readonly type: 'DISPOSED' }
 
 export type InferenceWorkerInbound =
   | LoadModelRequest
@@ -93,10 +96,13 @@ export interface InferenceErrorMessage {
   readonly error: string;
   readonly windowIndex: number;
   readonly timestamp: number;
+  readonly reason?: 'storage';
 }
 
 export type InferenceWorkerOutbound =
   | ModelLoadedMessage
   | ModelErrorMessage
   | InferenceResultMessage
-  | InferenceErrorMessage;
+  | InferenceErrorMessage
+  | DisposedMessage;
+export type InferenceWorkerMessage = InferenceWorkerOutbound | DisposedMessage;

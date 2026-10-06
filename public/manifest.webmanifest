@@ -1,0 +1,12 @@
+{
+  "id": "/",
+  "name": "BirdNet Local",
+  "short_name": "BirdNet",
+  "lang": "es",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f4ed",
+  "theme_color": "#a63817",
+  "icons": [{ "src": "/icons/birdnet.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

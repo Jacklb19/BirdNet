@@ -4,7 +4,7 @@ import { cleanup } from '@testing-library/react';
 
 // jsdom does not render canvases; canvas-specific tests provide their own context.
 beforeEach(() => {
-  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+  if (typeof HTMLCanvasElement !== 'undefined') vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
 });
 
 afterEach(() => {

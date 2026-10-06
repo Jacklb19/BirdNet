@@ -24,7 +24,7 @@ export function AudioCapturePanel(): React.JSX.Element {
   const statusLabel = sessionError ? c.statusError : modelStatus === 'loading'
     ? dict.inference.loadingModel : statusLabels[state] ?? state;
   const sessionErrorLabel = sessionError === 'model' ? dict.inference.modelError
-    : sessionError === 'audio' ? dict.inference.audioError : dict.inference.processingError;
+    : sessionError === 'storage' ? dict.offline.storageError : sessionError === 'audio' ? dict.inference.audioError : dict.inference.processingError;
   const modelLabel = modelStatus === 'loading' ? dict.inference.loadingModel
     : modelStatus === 'ready' ? f.modelReady : sessionError === 'model' || modelStatus === 'error' ? c.statusError : f.modelPending;
   const handleToggle = (): void => {

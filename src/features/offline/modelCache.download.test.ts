@@ -1,0 +1,85 @@
+// @vitest-environment node
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createHash, webcrypto } from 'node:crypto';
+import { activeModel, availableManifest, downloadModel, modelResource } from './modelCache';
+import productionManifest from '../../../public/models/manifest.json';
+
+const origin = 'https://birdnet.example';
+const bytes = new Uint8Array([0, 1, 2, 3]);
+const manifest = { ...productionManifest, num_classes: 2, size_bytes: 4, sha256: createHash('sha256').update(bytes).digest('hex') };
+let stored: Map<string, Response>;
+let failPut: boolean;
+let failDelete: boolean;
+
+beforeEach(() => {
+  stored = new Map(); failPut = false; failDelete = false;
+  vi.stubGlobal('self', { location: { origin } });
+  vi.stubGlobal('crypto', webcrypto);
+  vi.stubGlobal('caches', { open: vi.fn(() => Promise.resolve({
+    match: (key: string) => Promise.resolve(stored.get(new URL(key, origin).pathname)?.clone()),
+    put: (key: string, response: Response) => { if (failPut) throw new Error('Quota'); stored.set(new URL(key, origin).pathname, response.clone()); return Promise.resolve(); },
+    keys: () => Promise.resolve([...stored.keys()].map((key) => new Request(new URL(key, origin)))),
+    delete: (key: Request) => { if (failDelete) throw new Error('Quota'); return Promise.resolve(stored.delete(new URL(key.url).pathname)); },
+  })) });
+  vi.stubGlobal('fetch', vi.fn((url: string) => {
+    if (url.endsWith('.onnx')) return Promise.resolve(new Response(bytes));
+    if (url.endsWith('labels.txt')) return Promise.resolve(new Response('Turdus fuscater_Great Thrush\nZonotrichia capensis_Sparrow'));
+    return Promise.resolve(Response.json(manifest));
+  }));
+});
+afterEach(() => { vi.unstubAllGlobals(); });
+
+describe('verified model download and recovery', () => {
+  it('reports byte progress and exposes verified resources only after a complete download', async () => {
+    const progress = vi.fn();
+    expect(await activeModel()).toBeNull();
+    const installed = await downloadModel('/models/manifest.json', progress);
+    expect(progress).toHaveBeenLastCalledWith(4, 4);
+    expect(installed.model_file).toBe(modelResource(manifest.sha256, 'onnx'));
+    expect(await activeModel()).toEqual(installed);
+    stored.delete(installed.labels_file);
+    expect(await activeModel()).toBeNull();
+  });
+  it.each(['oversize', 'truncated', 'hash', 'labels', 'missing-labels', 'http', 'quota'])('retains the active version after a failed update: %s', async (failure) => {
+    const installed = await downloadModel('/models/manifest.json', () => undefined);
+    if (failure === 'oversize') vi.mocked(fetch).mockImplementationOnce(() => Promise.resolve(Response.json({ ...manifest, size_bytes: 1 })));
+    if (failure === 'truncated') vi.mocked(fetch).mockImplementationOnce(() => Promise.resolve(Response.json({ ...manifest, size_bytes: 5 })));
+    if (failure === 'hash') vi.mocked(fetch).mockImplementationOnce(() => Promise.resolve(Response.json({ ...manifest, sha256: '0'.repeat(64) })));
+    if (failure === 'labels') vi.mocked(fetch).mockResolvedValueOnce(Response.json(manifest)).mockResolvedValueOnce(new Response(bytes)).mockResolvedValueOnce(new Response('wrong-count'));
+    if (failure === 'missing-labels') vi.mocked(fetch).mockResolvedValueOnce(Response.json(manifest)).mockResolvedValueOnce(new Response(bytes)).mockResolvedValueOnce(new Response(null, { status: 404 }));
+    if (failure === 'http') vi.mocked(fetch).mockResolvedValueOnce(Response.json(manifest)).mockResolvedValueOnce(new Response(null, { status: 503 }));
+    if (failure === 'quota') failPut = true;
+    await expect(downloadModel('/models/manifest.json', () => undefined)).rejects.toThrow();
+    expect(await activeModel()).toEqual(installed);
+  });
+  it('rejects corrupt manifests, changed bytes and label count corruption', async () => {
+    await downloadModel('/models/manifest.json', () => undefined);
+    stored.set(modelResource(manifest.sha256, 'onnx'), new Response(new Uint8Array([4, 3, 2, 1])));
+    expect(await activeModel()).toBeNull();
+    stored.set('/__birdnet_models/active.json', new Response('not json'));
+    expect(await activeModel()).toBeNull();
+  });
+  it('falls back to the packaged metadata for static previews and offline metadata access', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response('<html>', { headers: { 'Content-Type': 'text/html' } }));
+    expect((await availableManifest()).base).toBe(`${origin}/models/manifest.json`);
+    vi.mocked(fetch).mockRejectedValueOnce(new Error('Offline'));
+    expect((await availableManifest()).manifest).toEqual(manifest);
+    vi.mocked(fetch).mockRejectedValueOnce(new Error('Offline'));
+    await expect(availableManifest('/custom.json')).rejects.toThrow();
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 503 }));
+    await expect(availableManifest('/custom.json')).rejects.toThrow();
+  });
+  it('rejects untrusted resource origins before downloading weights', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(Response.json({ ...manifest, model_file: 'https://foreign.example/model.onnx' }));
+    await expect(downloadModel('/manifest.json', () => undefined)).rejects.toThrow('Untrusted');
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+  it('cleans older versions but does not turn a cleanup error into download failure', async () => {
+    stored.set('/__birdnet_models/obsolete.onnx', new Response('old'));
+    await downloadModel('/models/manifest.json', () => undefined);
+    expect(stored.has('/__birdnet_models/obsolete.onnx')).toBe(false);
+    stored.set('/__birdnet_models/obsolete.onnx', new Response('old'));
+    failDelete = true;
+    await expect(downloadModel('/models/manifest.json', () => undefined)).resolves.toBeDefined();
+  });
+});

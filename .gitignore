@@ -42,6 +42,9 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 tmp/
+playwright-report/
+test-results/
+.pytest_cache/
 
 # IDE
 .idea/

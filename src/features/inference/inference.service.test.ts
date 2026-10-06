@@ -229,6 +229,8 @@ describe('InferenceService', () => {
     service.dispose();
 
     expect(mockWorkerInstance.postMessage).toHaveBeenCalledWith({ type: 'DISPOSE' });
+    expect(mockWorkerInstance.terminate).not.toHaveBeenCalled();
+    mockWorkerInstance.simulateMessage({ type: 'DISPOSED' });
     expect(mockWorkerInstance.terminate).toHaveBeenCalled();
     expect(service.getStatus()).toBe('idle');
     expect(service.getManifest()).toBeNull();
