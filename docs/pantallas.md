@@ -49,3 +49,19 @@ Este documento especifica las vistas principales de la aplicación web progresiv
   - Navegable íntegramente por teclado con indicadores de foco visibles (`:focus-visible`).
   - Totalmente funcional y sin desplazamiento horizontal en pantallas desde 360 px hasta 1440 px.
   - Controles con etiquetas semánticas y áreas táctiles mínimas de 44 px.
+
+## 4. Sistema visual de campo — revisión del 6 de octubre de 2026
+
+Esta revisión presenta las tres vistas existentes; no incorpora capacidades del Sprint 4.
+
+- Identidad de instrumento de campo: fondo claro, tinta oscura, verde profundo, títulos firmes, iconos de línea y separadores. Tema nocturno azul oscuro según ADR-09. Sin fuentes remotas, dependencias nuevas ni animaciones decorativas.
+- Fuente de verdad: `src/index.css`. Colores, tamaños de texto, espaciado, bordes, radios, duración, tamaños táctiles y capas están centralizados. Los textos nuevos pertenecen a ambos diccionarios.
+- Captura: en móvil, navegación inferior y control de escucha persistente encima, con botón de 80 × 80 px, etiqueta de acción y estado acompañado por icono. Se reserva espacio al final del contenido y para el área segura del dispositivo. En escritorio, señal y detecciones aparecen en dos columnas.
+- Detecciones: nombre común dominante, nombre científico, confianza numérica y barra proporcional; estado escrito e icono. Se conservan las advertencias de indicios, confirmación humana, última ventana y ausencia de certeza. Las provisionales conservan el estado sin verificación en nube.
+- Espectrograma: paleta interna conservada. El Canvas sigue leyendo colores calculados y redibujándose al cambiar el tema. Los rótulos HTML superpuestos conservan su tamaño de lectura cuando se reduce el Canvas en móvil.
+- Vúmetro: barra de alto contraste, marcador de pico y escala porcentual 0–100 con RMS y pico numéricos. No se cambia la medida existente a dBFS.
+- Modelo: pendiente, preparación con progreso indeterminado, listo para escuchar y error. «Listo» describe la sesión en memoria; no implica caché ni uso sin conexión. El servicio no expone bytes descargados ni distingue descarga e inicialización: no se muestran porcentajes ficticios. Tampoco expone un estado de inferencia en curso; se mantienen los estados reales de escucha.
+- Configuración: filas táctiles de al menos 80 px, radios nativos con presentación contrastada, agrupación por tema/idioma y persistencia existente. Navegación de al menos 56 px.
+- Diagnóstico: las cuatro comprobaciones ya implementadas, como lista con icono, descripción y estado explícito. Sin añadir comprobaciones descritas para futuros sprints.
+
+Ver evidencia, comandos y límites en `docs/verificacion-redisenio.md`.
