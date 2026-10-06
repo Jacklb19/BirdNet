@@ -2,6 +2,14 @@ import type { TranslationSchema } from './types';
 
 // TODO(S7): Review and complete English translations before final production delivery.
 export const en: TranslationSchema = {
+  field: {
+    capture: 'Capture',
+    diagnostics: 'Diagnostics',
+    fieldListening: 'Field listening',
+    sessionStatus: 'Listening status',
+    modelPending: 'Pending',
+    modelReady: 'Ready to listen',
+  },
   app: {
     title: 'BirdNet Local',
     subtitle: 'Continuous acoustic bird monitoring with in-browser inference',

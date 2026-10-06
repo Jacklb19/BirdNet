@@ -1,6 +1,14 @@
 import type { TranslationSchema } from './types';
 
 export const es: TranslationSchema = {
+  field: {
+    capture: 'Captura',
+    diagnostics: 'Diagnóstico',
+    fieldListening: 'Escucha de campo',
+    sessionStatus: 'Estado de escucha',
+    modelPending: 'Pendiente',
+    modelReady: 'Listo para escuchar',
+  },
   app: {
     title: 'BirdNet Local',
     subtitle: 'Monitoreo acústico continuo de aves con inferencia en el navegador',
