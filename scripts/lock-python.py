@@ -27,6 +27,7 @@ def lock(roots: list[str], destination: str):
     Path(destination).write_text("\n".join(locked[name] for name in sorted(locked)) + "\n", encoding="utf-8")
 
 
-runtime = [line for line in Path("requirements.txt").read_text().splitlines() if line and not line.startswith(("-", "#"))]
-lock(runtime, "requirements.lock.txt")
+# Vercel's requirements parser rejects -c includes, so the runtime file is the flat closure itself.
+runtime = [line for line in Path("requirements.in").read_text().splitlines() if line and not line.startswith(("-", "#"))]
+lock(runtime, "requirements.txt")
 lock(runtime + ["pytest==9.1.1", "uvicorn==0.54.0"], "requirements-dev.lock.txt")

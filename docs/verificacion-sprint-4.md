@@ -35,7 +35,7 @@ node $birdnetNpmCli run test:coverage
 node $birdnetNpmCli run build
 ```
 
-Para el backend, utilizar Python 3.12 y un entorno `.venv`, con `python -m pip install -r requirements-dev.txt`. Los archivos de restricciones versionados fijan también las dependencias transitivas. No se necesitan secretos reales para las pruebas.
+Para el backend, utilizar Python 3.12 y un entorno `.venv`, con `python -m pip install -r requirements-dev.txt`. `requirements.txt` y `requirements-dev.lock.txt` fijan también las dependencias transitivas; se regeneran desde `requirements.in` con `python scripts/lock-python.py`. No se necesitan secretos reales para las pruebas.
 
 Crear exclusivamente la base temporal local de pruebas, con Docker activo:
 
