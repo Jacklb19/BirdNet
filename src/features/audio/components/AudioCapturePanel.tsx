@@ -1,46 +1,65 @@
 import { useAudioCapture } from '../hooks/useAudioCapture';
 import { SpectrogramCanvas } from './SpectrogramCanvas';
-
-const ESTADO_LABELS: Record<string, string> = {
-  idle: 'Inactivo',
-  solicitando_permiso: 'Solicitando permiso…',
-  escuchando: 'Escuchando',
-  pausado: 'Pausado',
-  error: 'Error',
-};
+import { DetectionsPanel } from '../../inference/DetectionsPanel';
+import {
+  useI18n,
+  formatPercent,
+  formatDecimal,
+  formatNumber,
+  formatMilliseconds,
+} from '../../../i18n';
 
 /**
- * Panel principal de captura acústica con control de un solo toque,
- * vúmetro de nivel, métricas en vivo y visualización del mel-espectrograma.
+ * Main acoustic capture panel with one-touch toggle control,
+ * real-time VU meter, session metrics, and live mel-spectrogram canvas.
  */
 export function AudioCapturePanel(): React.JSX.Element {
+  const { locale, dict } = useI18n();
   const {
-    estado,
-    error,
-    nivelRms,
-    nivelPico,
-    conteoVentanas,
-    ultimoEspectrograma,
-    latenciaUltimoEspectrogramaMs,
+    state,
+    rmsLevel,
+    peakLevel,
+    windowCount,
+    latestSpectrogram,
+    spectrogramLatencyMs,
     sampleRate,
-    iniciarEscucha,
-    detenerEscucha,
+    startListening,
+    stopListening,
+    modelStatus,
+    detections,
+    inferenceLatencyMs,
+    endToEndLatencyMs,
+    droppedWindows,
+    sessionError,
   } = useAudioCapture();
 
-  const escuchando = estado === 'escuchando';
-  const procesando = estado === 'solicitando_permiso';
+  const c = dict.capture;
+  const p = dict.privacy;
+
+  const statusLabels: Record<string, string> = {
+    idle: c.statusIdle,
+    requesting_permission: c.statusRequesting,
+    listening: c.statusListening,
+    paused: c.statusPaused,
+    error: c.statusError,
+  };
+
+  const isListening = state === 'listening';
+  const isStarting = state === 'requesting_permission' || modelStatus === 'loading';
+  const sessionErrorLabel = sessionError === 'model' ? dict.inference.modelError
+    : sessionError === 'audio' ? dict.inference.audioError : dict.inference.processingError;
 
   const handleToggle = (): void => {
-    if (escuchando) {
-      void detenerEscucha();
+    if (isListening || modelStatus === 'loading') {
+      void stopListening();
     } else {
-      void iniciarEscucha();
+      void startListening();
     }
   };
 
   return (
-    <section aria-label="Panel de captura acústica" style={{ padding: 'var(--spacing-4)' }}>
-      {/* Banner de privacidad (RNF-08) */}
+    <section aria-label={c.panelAria} style={{ padding: 'var(--spacing-4)' }}>
+      {/* Privacy banner (RNF-08) */}
       <div
         role="note"
         style={{
@@ -53,13 +72,14 @@ export function AudioCapturePanel(): React.JSX.Element {
           color: 'var(--color-success-text)',
         }}
       >
-        <strong>Privacidad:</strong> El audio se procesa íntegramente en tu
-        dispositivo y no se transmite a ningún servidor. Solo los fragmentos de
-        confianza intermedia pueden ser enviados a verificación, con tu
-        autorización explícita.
+        <strong>{p.title}</strong> {p.description}
       </div>
 
-      {/* Botón principal de un solo toque (HU-01, RNF-10: área >= 48x48px) */}
+      <p style={{ color: 'var(--color-text-secondary)', marginBottom: 'var(--spacing-4)', fontSize: 'var(--font-size-base)' }}>
+        {dict.inference.downloadNotice}
+      </p>
+
+      {/* Main one-touch toggle button (HU-01, RNF-10: area >= 48x48px, target 80x80px) */}
       <div
         style={{
           display: 'flex',
@@ -72,24 +92,24 @@ export function AudioCapturePanel(): React.JSX.Element {
         <button
           type="button"
           onClick={handleToggle}
-          disabled={procesando}
-          aria-label={escuchando ? 'Detener escucha' : 'Iniciar escucha'}
+          disabled={state === 'requesting_permission'}
+          aria-label={isListening || modelStatus === 'loading' ? c.stopListening : c.startListening}
           style={{
             width: 'var(--touch-target-size)',
             height: 'var(--touch-target-size)',
             borderRadius: 'var(--radius-full)',
             border: 'none',
-            cursor: procesando ? 'wait' : 'pointer',
+            cursor: isStarting ? 'wait' : 'pointer',
             fontSize: 'var(--font-size-hero)',
-            backgroundColor: escuchando ? 'var(--color-danger)' : 'var(--color-primary)',
+            backgroundColor: isListening ? 'var(--color-danger)' : 'var(--color-primary)',
             color: 'var(--color-primary-text)',
-            boxShadow: escuchando
+            boxShadow: isListening
               ? '0 0 0 4px var(--color-danger-ring)'
               : '0 0 0 4px var(--color-primary-ring)',
             transition: 'all 0.2s ease',
           }}
         >
-          {escuchando ? '⏹' : '🎙'}
+          {isListening || modelStatus === 'loading' ? '⏹' : '🎙'}
         </button>
 
         <span
@@ -97,15 +117,15 @@ export function AudioCapturePanel(): React.JSX.Element {
           style={{
             fontSize: 'var(--font-size-base)',
             fontWeight: 'var(--font-weight-semibold)',
-            color: escuchando ? 'var(--color-danger)' : 'var(--color-text-secondary)',
+            color: isListening ? 'var(--color-danger)' : 'var(--color-text-secondary)',
           }}
         >
-          {ESTADO_LABELS[estado] ?? estado}
+          {sessionError ? c.statusError : modelStatus === 'loading' ? dict.inference.loadingModel : statusLabels[state] ?? state}
         </span>
       </div>
 
-      {/* Error */}
-      {error && (
+      {/* Error display */}
+      {sessionError && (
         <div
           role="alert"
           style={{
@@ -118,11 +138,11 @@ export function AudioCapturePanel(): React.JSX.Element {
             fontSize: 'var(--font-size-base)',
           }}
         >
-          {error}
+          {sessionErrorLabel}
         </div>
       )}
 
-      {/* Vúmetro de nivel */}
+      {/* Input level meter */}
       <div
         style={{
           marginBottom: 'var(--spacing-6)',
@@ -138,7 +158,7 @@ export function AudioCapturePanel(): React.JSX.Element {
             color: 'var(--color-text-secondary)',
           }}
         >
-          Nivel de entrada
+          {c.inputLevel}
         </h2>
 
         <div style={{ marginBottom: 'var(--spacing-2)' }}>
@@ -152,17 +172,17 @@ export function AudioCapturePanel(): React.JSX.Element {
           >
             <div
               role="meter"
-              aria-label="Nivel RMS del micrófono"
-              aria-valuenow={Math.round(nivelRms * 100)}
+              aria-label={c.rmsAria}
+              aria-valuenow={Math.round(rmsLevel * 100)}
               aria-valuemin={0}
               aria-valuemax={100}
               style={{
                 height: '100%',
-                width: `${String(Math.min(nivelRms * 100, 100))}%`,
+                width: `${String(Math.min(rmsLevel * 100, 100))}%`,
                 backgroundColor:
-                  nivelRms > 0.8
+                  rmsLevel > 0.8
                     ? 'var(--color-danger)'
-                    : nivelRms > 0.4
+                    : rmsLevel > 0.4
                       ? 'var(--color-warning)'
                       : 'var(--color-primary)',
                 borderRadius: 'var(--radius-md)',
@@ -179,13 +199,13 @@ export function AudioCapturePanel(): React.JSX.Element {
               marginTop: 'var(--spacing-1)',
             }}
           >
-            <span>RMS: {(nivelRms * 100).toFixed(1)}%</span>
-            <span>Pico: {(nivelPico * 100).toFixed(1)}%</span>
+            <span>{c.rmsLabel} {formatPercent(rmsLevel, locale, 1)}</span>
+            <span>{c.peakLabel} {formatPercent(peakLevel, locale, 1)}</span>
           </div>
         </div>
       </div>
 
-      {/* Visualización del mel-espectrograma */}
+      {/* Mel-spectrogram live canvas */}
       <div
         style={{
           marginBottom: 'var(--spacing-6)',
@@ -201,12 +221,14 @@ export function AudioCapturePanel(): React.JSX.Element {
             color: 'var(--color-text-secondary)',
           }}
         >
-          Mel-espectrograma
+          {c.melSpectrogram}
         </h2>
-        <SpectrogramCanvas espectrograma={ultimoEspectrograma} />
+        <SpectrogramCanvas espectrograma={latestSpectrogram} />
       </div>
 
-      {/* Métricas técnicas en vivo */}
+      <DetectionsPanel detections={detections} />
+
+      {/* Session metrics */}
       <div
         style={{
           padding: 'var(--spacing-4)',
@@ -223,17 +245,24 @@ export function AudioCapturePanel(): React.JSX.Element {
             color: 'var(--color-text-secondary)',
           }}
         >
-          Métricas de sesión
+          {c.sessionMetrics}
         </h2>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-2)' }}>
-          <span>Frecuencia de muestreo:</span>
-          <span data-testid="sample-rate">{(sampleRate / 1000).toFixed(1)} kHz</span>
+          <span>{c.sampleRate}</span>
+          <span data-testid="sample-rate">{formatDecimal(sampleRate / 1000, locale, 1)} kHz</span>
 
-          <span>Ventanas procesadas:</span>
-          <span data-testid="window-count">{conteoVentanas}</span>
+          <span>{c.windowsCount}</span>
+          <span data-testid="window-count">{formatNumber(windowCount, locale)}</span>
 
-          <span>Latencia del espectrograma:</span>
-          <span data-testid="latency">{latenciaUltimoEspectrogramaMs} ms</span>
+          <span>{c.spectrogramLatency}</span>
+          <span data-testid="latency">{formatMilliseconds(spectrogramLatencyMs, locale, 0)}</span>
+
+          <span>{dict.inference.inferenceLatency}</span>
+          <span data-testid="inference-latency">{formatMilliseconds(inferenceLatencyMs, locale, 0)}</span>
+          <span>{dict.inference.endToEndLatency}</span>
+          <span data-testid="end-to-end-latency">{formatMilliseconds(endToEndLatencyMs, locale, 0)}</span>
+          <span>{dict.inference.droppedWindows}</span>
+          <span data-testid="dropped-windows">{formatNumber(droppedWindows, locale)}</span>
         </div>
       </div>
     </section>

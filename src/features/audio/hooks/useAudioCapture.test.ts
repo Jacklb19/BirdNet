@@ -1,90 +1,157 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useAudioCapture } from './useAudioCapture';
-import { AudioCaptureService } from '../services/audioCaptureService';
+import { AudioCaptureService, type AudioCaptureCallbacks } from '../services/audioCaptureService';
+import { InferenceService, type InferenceCallbacks } from '../../inference/inference.service';
+import type { ModelStatus } from '../../inference/inference.types';
 
 vi.mock('../services/audioCaptureService');
+vi.mock('../../inference/inference.service');
 
-describe('useAudioCapture', () => {
+describe('useAudioCapture listening session', () => {
+  let captureCallbacks: AudioCaptureCallbacks;
+  let inferenceCallbacks: InferenceCallbacks;
+  let status: ModelStatus;
+  const start = vi.fn();
+  const stop = vi.fn();
+  const infer = vi.fn();
+  const dispose = vi.fn();
+
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('se inicializa en estado idle con niveles en cero', () => {
-    const { result } = renderHook(() => useAudioCapture());
-
-    expect(result.current.estado).toBe('idle');
-    expect(result.current.error).toBeNull();
-    expect(result.current.nivelRms).toBe(0);
-    expect(result.current.nivelPico).toBe(0);
-    expect(result.current.conteoVentanas).toBe(0);
-    expect(result.current.ultimoEspectrograma).toBeNull();
-  });
-
-  it('llama a service.start al invocar iniciarEscucha', async () => {
-    const startMock = vi.fn().mockResolvedValue(undefined);
-    vi.mocked(AudioCaptureService).mockImplementation(function (
-      this: AudioCaptureService,
-      callbacks,
-    ) {
-      this.start = startMock.mockImplementation(() => {
-        callbacks?.onStateChange?.('escuchando');
-        return Promise.resolve();
-      });
-      this.stop = vi.fn().mockResolvedValue(undefined);
-      this.getState = vi.fn().mockReturnValue('idle');
-      this.setCallbacks = vi.fn();
+    status = 'idle';
+    start.mockImplementation(() => {
+      captureCallbacks.onStateChange?.('listening');
+      return Promise.resolve();
     });
+    stop.mockImplementation(() => {
+      captureCallbacks.onStateChange?.('idle');
+      return Promise.resolve();
+    });
+    dispose.mockImplementation(() => { status = 'idle'; inferenceCallbacks.onStatusChange?.('idle'); });
+    vi.mocked(AudioCaptureService).mockImplementation(function (this: AudioCaptureService, callbacks) {
+      captureCallbacks = callbacks ?? {};
+      this.start = start;
+      this.stop = stop;
+    });
+    vi.mocked(InferenceService).mockImplementation(function (this: InferenceService, callbacks) {
+      inferenceCallbacks = callbacks ?? {};
+      this.loadModel = vi.fn(() => { status = 'loading'; callbacks?.onStatusChange?.('loading'); return Promise.resolve(); });
+      this.getStatus = () => status;
+      this.infer = infer;
+      this.dispose = dispose;
+    });
+  });
 
-    const { result } = renderHook(() => useAudioCapture());
+  afterEach(() => { vi.restoreAllMocks(); });
 
+  async function ready(): Promise<void> {
     await act(async () => {
-      await result.current.iniciarEscucha();
+      status = 'ready';
+      inferenceCallbacks.onStatusChange?.('ready');
+      inferenceCallbacks.onModelLoaded?.(6522);
+      await Promise.resolve();
     });
+  }
 
-    expect(startMock).toHaveBeenCalledTimes(1);
-    expect(result.current.estado).toBe('escuchando');
+  it('starts idle and starts capture only after the model is ready', async () => {
+    const { result } = renderHook(() => useAudioCapture());
+    expect(result.current.detections).toEqual([]);
+    expect(result.current.state).toBe('idle');
+    await act(async () => { await result.current.startListening(); await result.current.startListening(); });
+    expect(result.current.modelStatus).toBe('loading');
+    expect(start).not.toHaveBeenCalled();
+    await ready();
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(result.current.state).toBe('listening');
   });
 
-  it('llama a service.stop y restablece niveles al invocar detenerEscucha', async () => {
-    const stopMock = vi.fn().mockResolvedValue(undefined);
-    vi.mocked(AudioCaptureService).mockImplementation(function (
-      this: AudioCaptureService,
-      callbacks,
-    ) {
-      this.start = vi.fn().mockImplementation(() => {
-        callbacks?.onStateChange?.('escuchando');
-        callbacks?.onLevelUpdate?.(0.4, 0.6);
-        return Promise.resolve();
-      });
-      this.stop = stopMock.mockImplementation(() => {
-        callbacks?.onStateChange?.('idle');
-        return Promise.resolve();
-      });
-      this.getState = vi.fn().mockReturnValue('idle');
-      this.setCallbacks = vi.fn();
-    });
-
+  it('routes live windows to inference and applies the policy with latency metrics', async () => {
     const { result } = renderHook(() => useAudioCapture());
-
-    await act(async () => {
-      await result.current.iniciarEscucha();
+    await act(async () => { await result.current.startListening(); });
+    await ready();
+    const buffer = new Float32Array(144000);
+    act(() => {
+      captureCallbacks.onLevelUpdate?.(0.4, 0.6);
+      captureCallbacks.onWindowReady?.(buffer, 7, 100);
+      captureCallbacks.onWindowsDropped?.(2);
+      inferenceCallbacks.onWindowDropped?.();
+      captureCallbacks.onMelSpectrogramReady?.({
+        type: 'MEL_SPECTROGRAM_READY', data: new Float32Array(1), numFrames: 1,
+        numMelBands: 1, windowIndex: 7, durationMs: 12, timestamp: 100,
+      });
+      inferenceCallbacks.onInferenceResult?.([0.2, 0.45, 0.8].map((confidence, classIndex) => ({
+        classIndex, confidence, label: 'Turdus fuscater_Great Thrush',
+        scientificName: 'Turdus fuscater', commonName: 'Great Thrush',
+      })), 7, 100, 30, 45);
     });
+    expect(infer).toHaveBeenCalledWith(buffer, 7, 100, 5, 0.45);
+    expect(result.current.detections.map((item) => item.status)).toEqual(['provisional', 'confirmed_local']);
+    expect(result.current.inferenceLatencyMs).toBe(30);
+    expect(result.current.endToEndLatencyMs).toBe(45);
+    expect(result.current.droppedWindows).toBe(3);
+    expect(result.current.windowCount).toBe(1);
+    expect(result.current.spectrogramLatencyMs).toBe(12);
+    await act(async () => { await result.current.stopListening(); });
+    expect(result.current.rmsLevel).toBe(0);
+    expect(result.current.peakLevel).toBe(0);
+    expect(dispose).toHaveBeenCalledTimes(1);
+  });
 
-    expect(result.current.estado).toBe('escuchando');
-    expect(result.current.nivelRms).toBe(0.4);
-
-    await act(async () => {
-      await result.current.detenerEscucha();
+  it('ignores late model and inference callbacks after stop or unmount', async () => {
+    const { result, unmount } = renderHook(() => useAudioCapture());
+    await act(async () => { await result.current.startListening(); await result.current.stopListening(); });
+    await ready();
+    expect(start).not.toHaveBeenCalled();
+    act(() => {
+      captureCallbacks.onWindowReady?.(new Float32Array(144000), 1, 100);
+      inferenceCallbacks.onInferenceResult?.([], 1, 100, 10, 20);
     });
+    expect(infer).not.toHaveBeenCalled();
+    expect(result.current.endToEndLatencyMs).toBe(0);
+    unmount();
+    await ready();
+    expect(start).not.toHaveBeenCalled();
+    expect(stop).toHaveBeenCalledTimes(2);
+  });
 
-    expect(stopMock).toHaveBeenCalledTimes(1);
-    expect(result.current.nivelRms).toBe(0);
-    expect(result.current.nivelPico).toBe(0);
-    expect(result.current.estado).toBe('idle');
+  it('handles denied microphone permission and permits retry', async () => {
+    start.mockRejectedValueOnce(new Error('Permission denied'));
+    const { result } = renderHook(() => useAudioCapture());
+    await act(async () => { await result.current.startListening(); });
+    await ready();
+    expect(result.current.sessionError).toBe('audio');
+    await act(async () => { await result.current.startListening(); });
+    await ready();
+    expect(result.current.sessionError).toBeNull();
+    expect(result.current.state).toBe('listening');
+  });
+
+  it.each(['error', 'ready'] as const)('stops resources after an inference failure in state %s', async (modelStatus) => {
+    const { result } = renderHook(() => useAudioCapture());
+    await act(async () => { await result.current.startListening(); });
+    await act(async () => {
+      status = modelStatus;
+      inferenceCallbacks.onError?.('Worker failed');
+      await Promise.resolve();
+    });
+    expect(result.current.sessionError).toBe(modelStatus === 'error' ? 'model' : 'inference');
+    expect(dispose).toHaveBeenCalled();
+    expect(stop).toHaveBeenCalled();
+  });
+
+  it('reports malformed predictions and DSP errors explicitly', async () => {
+    const { result } = renderHook(() => useAudioCapture());
+    await act(async () => { await result.current.startListening(); });
+    await ready();
+    act(() => {
+      inferenceCallbacks.onInferenceResult?.([{
+        classIndex: 0, confidence: NaN, label: '', scientificName: '', commonName: '',
+      }], 0, 0, 0, 0);
+    });
+    expect(result.current.sessionError).toBe('inference');
+    await act(async () => { await result.current.startListening(); });
+    act(() => { captureCallbacks.onError?.(new Error('DSP failed')); });
+    expect(result.current.sessionError).toBe('audio');
   });
 });

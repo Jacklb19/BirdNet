@@ -1,16 +1,22 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
+import { I18nProvider } from './i18n';
+import { ThemeProvider } from './theme';
 import App from './App';
 
-const contenedor = document.getElementById('root');
+const rootElement = document.getElementById('root');
 
-if (!contenedor) {
-  throw new Error('No se encontró el elemento raíz (#root) en el documento.');
+if (!rootElement) {
+  throw new Error('Root element (#root) not found in the document.');
 }
 
-createRoot(contenedor).render(
+createRoot(rootElement).render(
   <StrictMode>
-    <App />
+    <ThemeProvider>
+      <I18nProvider>
+        <App />
+      </I18nProvider>
+    </ThemeProvider>
   </StrictMode>,
 );

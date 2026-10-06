@@ -1,8 +1,13 @@
 import { useState, useId } from 'react';
 import { verificarCapacidades } from './verificarCapacidades';
 import type { CapacidadesEntorno } from './diagnostico.types';
+import { useI18n, formatNumber } from '../../i18n';
 
+/**
+ * Diagnostics page verifying browser and device platform capabilities.
+ */
 export function DiagnosticoPage(): React.JSX.Element {
+  const { locale, dict } = useI18n();
   const [capacidades, setCapacidades] = useState<CapacidadesEntorno>(() =>
     verificarCapacidades(),
   );
@@ -14,29 +19,28 @@ export function DiagnosticoPage(): React.JSX.Element {
     setContadorPrueba((prev) => prev + 1);
   };
 
+  const d = dict.diagnostics;
+  const caps = d.capabilities;
+
   const items = [
     {
-      etiqueta: 'Aislamiento de origen cruzado (crossOriginIsolated)',
-      descripcion:
-        'Indica si las cabeceras COOP y COEP están activas y habilitan memoria compartida.',
+      etiqueta: caps.crossOriginIsolatedName,
+      descripcion: caps.crossOriginIsolatedDesc,
       activo: capacidades.crossOriginIsolated,
     },
     {
-      etiqueta: 'Soporte de Web Workers',
-      descripcion:
-        'Permite delegar tareas de cómputo en segundo plano sin congelar la interfaz.',
+      etiqueta: caps.webWorkerName,
+      descripcion: caps.webWorkerDesc,
       activo: capacidades.soportaWorkers,
     },
     {
-      etiqueta: 'Soporte de WebAssembly',
-      descripcion:
-        'Habilita la ejecución de módulos compilados de alto rendimiento en el cliente.',
+      etiqueta: caps.webAssemblyName,
+      descripcion: caps.webAssemblyDesc,
       activo: capacidades.soportaWebAssembly,
     },
     {
-      etiqueta: 'Soporte de SharedArrayBuffer',
-      descripcion:
-        'Permite compartir memoria entre hilos sin copias estructuradas.',
+      etiqueta: caps.sharedArrayBufferName,
+      descripcion: caps.sharedArrayBufferDesc,
       activo: capacidades.soportaSharedArrayBuffer,
     },
   ];
@@ -51,11 +55,10 @@ export function DiagnosticoPage(): React.JSX.Element {
             color: 'var(--color-text-primary)',
           }}
         >
-          BirdNet Local — Diagnóstico de Plataforma Web
+          {d.title}
         </h1>
         <p style={{ color: 'var(--color-text-muted)' }}>
-          Verificación de capacidades de ejecución en cliente para BirdNet Local:
-          procesamiento de audio, Web Workers para inferencia ONNX, WebAssembly y cabeceras de entorno.
+          {d.description}
         </p>
       </header>
 
@@ -76,10 +79,10 @@ export function DiagnosticoPage(): React.JSX.Element {
             color: 'var(--color-text-primary)',
           }}
         >
-          Capacidades detectadas en tiempo de ejecución
+          {d.capabilitiesTitle}
         </h2>
 
-        <ul style={{ listStyle: 'none', display: 'grid', gap: 'var(--spacing-4)' }}>
+        <ul style={{ listStyle: 'none', display: 'grid', gap: 'var(--spacing-4)', padding: 0 }}>
           {items.map((item) => (
             <li
               key={item.etiqueta}
@@ -91,9 +94,10 @@ export function DiagnosticoPage(): React.JSX.Element {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 gap: 'var(--spacing-4)',
+                flexWrap: 'wrap',
               }}
             >
-              <div>
+              <div style={{ flex: 1, minWidth: '240px' }}>
                 <strong style={{ display: 'block', color: 'var(--color-text-primary)' }}>
                   {item.etiqueta}
                 </strong>
@@ -122,7 +126,7 @@ export function DiagnosticoPage(): React.JSX.Element {
                   whiteSpace: 'nowrap',
                 }}
               >
-                {item.activo ? 'Disponible' : 'No disponible'}
+                {item.activo ? d.statusSupported : d.statusUnsupported}
               </span>
             </li>
           ))}
@@ -143,26 +147,31 @@ export function DiagnosticoPage(): React.JSX.Element {
             color: 'var(--color-text-primary)',
           }}
         >
-          Verificación de Reactividad
+          {d.reactivityTitle}
         </h2>
         <p style={{ marginBottom: 'var(--spacing-4)', color: 'var(--color-text-muted)' }}>
-          Verificaciones realizadas:{' '}
-          <strong data-testid="contador-pruebas">{contadorPrueba}</strong>
+          {d.testsCount}{' '}
+          <strong data-testid="contador-pruebas">{formatNumber(contadorPrueba, locale)}</strong>
         </p>
         <button
           type="button"
           onClick={handleRecalcular}
           style={{
+            minHeight: 'var(--touch-target-min)',
             padding: 'var(--spacing-2) var(--spacing-4)',
-            backgroundColor: 'var(--color-dark-surface)',
-            color: 'var(--color-dark-text)',
-            border: 'none',
+            backgroundColor: 'var(--color-surface-raised)',
+            color: 'var(--color-text-primary)',
+            border: '1px solid var(--color-border)',
             borderRadius: 'var(--radius-sm)',
             cursor: 'pointer',
             fontSize: 'var(--font-size-md)',
+            fontWeight: 'var(--font-weight-semibold)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          Reevaluar capacidades
+          {d.runTests}
         </button>
       </section>
     </main>
