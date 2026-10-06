@@ -23,7 +23,7 @@ vi.mock('./features/audio/hooks/useAudioCapture', () => ({
 }));
 
 describe('App', () => {
-  it('renderiza la vista de captura acústica por defecto', () => {
+  it('renders acoustic capture by default', () => {
     render(<App />);
 
     expect(
@@ -40,13 +40,13 @@ describe('App', () => {
     ).toBeInTheDocument();
   });
 
-  it('permite alternar a la página de diagnóstico', () => {
+  it('keeps diagnostics out of product navigation and available in development settings', () => {
     render(<App />);
-
-    const diagButton = screen.getByRole('button', {
-      name: /diagnóstico de plataforma/i,
-    });
-    fireEvent.click(diagButton);
+    expect(screen.queryByRole('button', { name: /diagnóstico de plataforma/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /configuración/i }));
+    const tools = screen.getByText(/herramientas de desarrollo/i);
+    expect(tools.closest('details')).not.toHaveAttribute('open');
+    fireEvent.click(tools);
 
     expect(
       screen.getByRole('heading', {
@@ -54,5 +54,17 @@ describe('App', () => {
         name: /birdnet local — diagnóstico de plataforma web/i,
       }),
     ).toBeInTheDocument();
+  });
+
+  it('excludes development diagnostics from the production interface', () => {
+    vi.stubEnv('DEV', false);
+    try {
+      render(<App />);
+      fireEvent.click(screen.getByRole('button', { name: /configuración/i }));
+      expect(screen.queryByText(/herramientas de desarrollo/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /reevaluar capacidades/i })).not.toBeInTheDocument();
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

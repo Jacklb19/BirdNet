@@ -12,6 +12,8 @@ export interface TranslationSchema {
     sessionStatus: string;
     modelPending: string;
     modelReady: string;
+    localProcessing: string;
+    developmentTools: string;
   };
   app: {
     title: string;

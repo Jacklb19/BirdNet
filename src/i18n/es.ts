@@ -8,6 +8,8 @@ export const es: TranslationSchema = {
     sessionStatus: 'Estado de escucha',
     modelPending: 'Pendiente',
     modelReady: 'Listo para escuchar',
+    localProcessing: 'Audio en tu dispositivo',
+    developmentTools: 'Herramientas de desarrollo',
   },
   app: {
     title: 'BirdNet Local',
@@ -36,7 +38,7 @@ export const es: TranslationSchema = {
     rmsAria: 'Nivel RMS del micrófono',
     peakLabel: 'Pico:',
     melSpectrogram: 'Mel-espectrograma',
-    spectrogramEmpty: 'Inicia la escucha para observar el mel-espectrograma en tiempo real',
+    spectrogramEmpty: 'Inicia la escucha para ver la señal',
     spectrogramMelUpper: '15 kHz (Mel sup.)',
     spectrogramWindowPrefix: 'Ventana #',
     sessionMetrics: 'Métricas de sesión',

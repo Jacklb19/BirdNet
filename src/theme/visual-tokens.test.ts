@@ -37,6 +37,8 @@ describe('Field visual tokens from the production stylesheet', () => {
         ['color-success-text', 'color-success-bg'], ['color-error-text', 'color-error-bg'],
         ['color-badge-active-text', 'color-badge-active-bg'], ['color-badge-inactive-text', 'color-badge-inactive-bg'],
         ['color-canvas-text', 'color-canvas-bg'], ['color-canvas-text-muted', 'color-canvas-bg'],
+        ['color-swatch-light-text', 'color-swatch-light-bg'], ['color-swatch-dark-text', 'color-swatch-dark-bg'],
+        ['color-warning', 'color-bg'], ['color-success-text', 'color-surface'],
       ];
       for (const [foreground = '', background = ''] of pairs) {
         expect(theme[foreground], foreground).toBeDefined();

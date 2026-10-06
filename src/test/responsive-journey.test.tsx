@@ -75,11 +75,12 @@ describe('Responsive E2E Main User Journey', () => {
       expect(screen.getByRole('meter', { name: /nivel rms/i })).toBeInTheDocument();
       expect(screen.getByTestId('sample-rate')).toBeInTheDocument();
 
-      // ─── 2. Navegación a Diagnóstico de Plataforma ────────────────────
-      const navDiagnostics = screen.getByRole('button', { name: /diagnóstico de plataforma/i });
-      expect(navDiagnostics.style.minHeight).toBe('var(--touch-target-min)');
-
-      await user.click(navDiagnostics);
+      // Development checks are deliberately outside primary navigation.
+      expect(screen.queryByRole('button', { name: /diagnóstico de plataforma/i })).not.toBeInTheDocument();
+      const navSettings = screen.getByRole('button', { name: /configuración/i });
+      expect(navSettings.style.minHeight).toBe('var(--touch-target-min)');
+      await user.click(navSettings);
+      await user.click(screen.getByText(/herramientas de desarrollo/i));
 
       expect(
         screen.getByRole('heading', {
@@ -94,9 +95,7 @@ describe('Responsive E2E Main User Journey', () => {
 
       expect(screen.getByTestId('contador-pruebas')).toHaveTextContent('1');
 
-      // ─── 3. Navegación a Configuración (/settings) ─────────────────────
-      const navSettings = screen.getByRole('button', { name: /configuración/i });
-      await user.click(navSettings);
+      await user.click(screen.getByText(/herramientas de desarrollo/i));
 
       expect(
         screen.getByRole('heading', { level: 2, name: /configuración y preferencias/i }),
@@ -119,7 +118,7 @@ describe('Responsive E2E Main User Journey', () => {
 
       // Comprobar que la navegación ahora muestra etiquetas en inglés
       expect(screen.getByRole('button', { name: /acoustic capture/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /platform diagnostics/i })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /platform diagnostics/i })).not.toBeInTheDocument();
 
       // Volver a Captura y comprobar vista en inglés
       await user.click(screen.getByRole('button', { name: /acoustic capture/i }));

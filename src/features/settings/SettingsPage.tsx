@@ -1,6 +1,7 @@
 import { useI18n, type Locale } from '../../i18n';
 import { useTheme, type ThemePreference } from '../../theme';
 import { FieldIcon, type FieldIconName } from '../../shared/FieldIcon';
+import { DiagnosticoPage } from '../diagnostico/DiagnosticoPage';
 
 /** Native preference controls preserve keyboard navigation and immediate local persistence. */
 export function SettingsPage(): React.JSX.Element {
@@ -17,7 +18,7 @@ export function SettingsPage(): React.JSX.Element {
             ['system', s.themeSystem, 'system'], ['light', s.themeLight, 'sun'], ['dark', s.themeDark, 'moon'],
           ] as [ThemePreference, string, FieldIconName][]).map(([value, label, icon]) => (
             <label key={value} className="preference-option" data-selected={preference === value}>
-              <FieldIcon name={icon} /><span>{label}</span>
+              <span className="theme-swatch" data-preview={value} aria-hidden="true"><FieldIcon name={icon} /></span><span>{label}</span>
               <input type="radio" name="theme" value={value} checked={preference === value} onChange={() => { setTheme(value); }} />
             </label>
           ))}
@@ -33,6 +34,10 @@ export function SettingsPage(): React.JSX.Element {
         </fieldset>
       </div>
       <p className="saved-notice"><FieldIcon name="shield" />{s.savedNotice}</p>
+      {import.meta.env.DEV && <details className="development-tools">
+        <summary>{dict.field.developmentTools}</summary>
+        <DiagnosticoPage />
+      </details>}
     </section>
   );
 }
