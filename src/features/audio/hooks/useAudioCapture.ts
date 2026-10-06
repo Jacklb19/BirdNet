@@ -5,6 +5,10 @@ import { AUDIO_CONSTANTS } from '../dsp/audio.constants';
 import { InferenceService } from '../../inference/inference.service';
 import type { ModelStatus } from '../../inference/inference.types';
 import { applyDetectionPolicy, type ClassifiedDetection } from '../../inference/detectionPolicy';
+import { getSettings } from '../../offline/queueStore';
+import { approximateLocation } from '../../offline/queuePolicy';
+import { scheduleSynchronization } from '../../offline/offlineClient';
+import type { ApproximateLocation } from '../../offline/types';
 
 export interface UseAudioCaptureReturn {
   state: AudioCaptureState;
@@ -19,7 +23,7 @@ export interface UseAudioCaptureReturn {
   inferenceLatencyMs: number;
   endToEndLatencyMs: number;
   droppedWindows: number;
-  sessionError: 'model' | 'audio' | 'inference' | null;
+  sessionError: 'model' | 'audio' | 'inference' | 'storage' | null;
   startListening: () => Promise<void>;
   stopListening: () => Promise<void>;
 }
@@ -41,16 +45,26 @@ export function useAudioCapture(): UseAudioCaptureReturn {
   const serviceRef = useRef<AudioCaptureService | null>(null);
   const inferenceRef = useRef<InferenceService | null>(null);
   const requestedRef = useRef(false);
+  const clearLocationRef = useRef<() => void>(() => undefined);
 
   useEffect(() => {
     let mounted = true;
+    let location: ApproximateLocation | null = null;
+    let locationWatch: number | null = null;
+    const clearLocation = (): void => { if (locationWatch !== null) navigator.geolocation.clearWatch(locationWatch); locationWatch = null; location = null; };
+    clearLocationRef.current = clearLocation;
     const isActive = (): boolean => mounted && requestedRef.current;
     const capture = new AudioCaptureService({
       onStateChange: (state) => { if (mounted) setState(state); },
       onLevelUpdate: (rms, peak) => { setRmsLevel(rms); setPeakLevel(peak); },
       onWindowReady: (buffer, windowIndex, timestamp) => {
         if (!requestedRef.current) return;
-        inference.infer(buffer, windowIndex, timestamp, 5, 0.45);
+        const manifest = inference.getManifest();
+        if (manifest) inference.infer(buffer, windowIndex, timestamp, 5, 0.45, {
+          recordedAt: new Date(performance.timeOrigin + timestamp).toISOString(), location,
+          modelVersion: `${manifest.model_id}:${manifest.variant}`,
+        });
+        else inference.infer(buffer, windowIndex, timestamp, 5, 0.45);
       },
       onWindowsDropped: (count) => { setDroppedWindows((total) => total + count); },
       onMelSpectrogramReady: (response) => {
@@ -62,6 +76,15 @@ export function useAudioCapture(): UseAudioCaptureReturn {
     const startCapture = async (): Promise<void> => {
       if (!isActive()) return;
       try {
+        if (typeof indexedDB !== 'undefined') {
+          const settings = await getSettings();
+          if (!isActive()) return;
+          if (settings.locationEnabled && 'geolocation' in navigator) {
+            locationWatch = navigator.geolocation.watchPosition((position) => {
+              location = approximateLocation(position.coords.latitude, position.coords.longitude);
+            }, () => { location = null; }, { enableHighAccuracy: false, maximumAge: 0 });
+          }
+        }
         await capture.start();
       } catch {
         failSession('audio');
@@ -77,11 +100,13 @@ export function useAudioCapture(): UseAudioCaptureReturn {
           setWindowCount((count) => count + 1);
           setInferenceLatencyMs(latencyMs);
           setEndToEndLatencyMs(totalMs);
+          void scheduleSynchronization().catch(() => { window.dispatchEvent(new Event('birdnet-sync-error')); });
         } catch {
           failSession('inference');
         }
       },
       onWindowDropped: () => { setDroppedWindows((total) => total + 1); },
+      onStorageError: () => { failSession('storage'); },
       onError: () => {
         failSession(inference.getStatus() === 'error' ? 'model' : 'inference');
       },
@@ -90,6 +115,7 @@ export function useAudioCapture(): UseAudioCaptureReturn {
       if (!isActive()) return;
       setSessionError(reason);
       requestedRef.current = false;
+      clearLocation();
       inference.dispose();
       void capture.stop();
     };
@@ -97,6 +123,7 @@ export function useAudioCapture(): UseAudioCaptureReturn {
     inferenceRef.current = inference;
     return () => {
       mounted = false;
+      clearLocation();
       requestedRef.current = false;
       inference.dispose();
       void capture.stop();
@@ -121,6 +148,7 @@ export function useAudioCapture(): UseAudioCaptureReturn {
 
   const stopListening = useCallback(async (): Promise<void> => {
     requestedRef.current = false;
+    clearLocationRef.current();
     inferenceRef.current?.dispose();
     await serviceRef.current?.stop();
     setRmsLevel(0);

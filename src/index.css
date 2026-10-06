@@ -377,6 +377,16 @@ summary::marker { color: var(--color-primary); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+.offline-panel { margin-top: var(--spacing-8); border-top: var(--border-width) solid var(--color-border); padding-top: var(--spacing-6); }
+.offline-panel p { margin-block: var(--spacing-3); color: var(--color-text-secondary); overflow-wrap: anywhere; }
+.offline-panel progress { width: 100%; accent-color: var(--color-primary); }
+.offline-action { min-height: var(--touch-target-min); padding: var(--spacing-3) var(--spacing-4); border: var(--border-width) solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text-primary); background: var(--color-surface); font: inherit; max-width: 100%; }
+.offline-action:disabled { color: var(--color-text-muted); cursor: wait; }
+.offline-preferences { margin-top: var(--spacing-6); padding: var(--spacing-4); border: var(--border-width) solid var(--color-border-subtle); min-width: 0; }
+.offline-preferences legend { font-weight: var(--font-weight-bold); }
+.offline-preferences label { display: flex; align-items: center; gap: var(--spacing-3); min-height: var(--touch-target-size); }
+.offline-preferences input[type='checkbox'] { width: var(--radio-size); height: var(--radio-size); flex-shrink: 0; accent-color: var(--color-primary); }
+.offline-preferences input[type='number'] { width: var(--confidence-width); min-height: var(--touch-target-min); padding: var(--spacing-2); background: var(--color-surface); color: var(--color-text-primary); border: var(--border-width) solid var(--color-border); font: inherit; }
 @media (forced-colors: active) {
   .preference-option input { appearance: auto; }
   .listen-button, .level-fill, .confidence-track span { background: Highlight; color: HighlightText; }

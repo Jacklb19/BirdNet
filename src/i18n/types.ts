@@ -5,6 +5,13 @@
 export type Locale = 'es' | 'en';
 
 export interface TranslationSchema {
+  offline: {
+    title: string; online: string; offline: string; productionOnly: string; updateModel: string;
+    pending: string; storageUsage: string; accountPending: string; locationPending: string;
+    permissions: string; audioConsent: string; audioExplanation: string; locationConsent: string;
+    locationExplanation: string; storageLimit: string; capacityExplanation: string;
+    persistenceUnavailable: string; error: string; storageError: string;
+  };
   field: {
     capture: string;
     diagnostics: string;

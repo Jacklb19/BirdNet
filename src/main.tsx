@@ -4,8 +4,10 @@ import './index.css';
 import { I18nProvider } from './i18n';
 import { ThemeProvider } from './theme';
 import App from './App';
+import { registerOffline } from './features/offline/offlineClient';
 
 const rootElement = document.getElementById('root');
+void registerOffline().catch(() => { document.documentElement.dataset.offlineError = 'true'; });
 
 if (!rootElement) {
   throw new Error('Root element (#root) not found in the document.');

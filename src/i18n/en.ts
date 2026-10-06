@@ -2,6 +2,21 @@ import type { TranslationSchema } from './types';
 
 // TODO(S7): Review and complete English translations before final production delivery.
 export const en: TranslationSchema = {
+  offline: {
+    title: 'Offline preparation', online: 'Connected', offline: 'Offline',
+    productionOnly: 'Installation and persistent downloads are available in the compiled application.',
+    updateModel: 'Check and download model version', pending: 'Pending detections', storageUsage: 'Local queue storage',
+    accountPending: 'Account connection is planned for Sprint 5. Your records remain on this device.',
+    locationPending: 'Pending without location', permissions: 'Permissions and storage',
+    audioConsent: 'Authorize uploading uncertain fragments for verification',
+    audioExplanation: 'Only intermediate-confidence audio is retained and uploaded. Revoking permission stops pending uploads.',
+    locationConsent: 'Record approximate location while listening',
+    locationExplanation: 'Your browser will request permission. Only an approximate cell is stored; without permission, records remain local without invented locations.',
+    storageLimit: 'Queue limit (MiB)', capacityExplanation: 'Listening stops when storage is full. Pending records are never deleted automatically.',
+    persistenceUnavailable: 'Persistent storage was not granted. The browser may reclaim data under storage pressure; check preparation before going into the field.',
+    error: 'The operation could not finish. Pending records remain; check connection, storage and model preparation.',
+    storageError: 'The new detection could not be saved. Listening stopped; check available storage before continuing.',
+  },
   field: {
     capture: 'Capture',
     diagnostics: 'Diagnostics',
@@ -68,14 +83,14 @@ export const en: TranslationSchema = {
     confirmedLocal: 'Confirmed by the local model',
     provisional: 'Provisional, not verified in the cloud',
     loadingModel: 'Preparing the local model…',
-    downloadNotice: 'The first listening session downloads the acoustic model. Wi-Fi is recommended.',
+    downloadNotice: 'Download the model from Settings before listening offline.',
     modelError: 'The model could not be loaded. Check your connection and start listening again.',
     audioError: 'Audio could not be processed. Check microphone permission and start listening again.',
     processingError: 'Audio analysis failed. Start listening again.',
     inferenceLatency: 'Model latency:',
     endToEndLatency: 'Latency since capture:',
     droppedWindows: 'Windows dropped due to overload:',
-    sessionOnly: 'Results from the latest window, for this session only. They are not yet saved or sent to the cloud.',
+    sessionOnly: 'Results from the latest window. Detections remain in the local queue until synchronization is acknowledged.',
   },
   diagnostics: {
     title: 'BirdNet Local — Web Platform Diagnostics',

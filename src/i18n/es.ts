@@ -1,6 +1,21 @@
 import type { TranslationSchema } from './types';
 
 export const es: TranslationSchema = {
+  offline: {
+    title: 'Preparación sin conexión', online: 'Con conexión', offline: 'Sin conexión',
+    productionOnly: 'La instalación y la descarga persistente se verifican en la versión compilada de la aplicación.',
+    updateModel: 'Comprobar y descargar versión del modelo', pending: 'Detecciones pendientes', storageUsage: 'Espacio de la cola local',
+    accountPending: 'La conexión de tu cuenta estará disponible en el Sprint 5. Tus registros permanecen en este dispositivo.',
+    locationPending: 'Pendientes sin ubicación', permissions: 'Permisos y almacenamiento',
+    audioConsent: 'Autorizar el envío de fragmentos dudosos para verificación',
+    audioExplanation: 'Solo se guarda y envía audio de confianza intermedia. Puedes retirar esta autorización; los fragmentos pendientes dejarán de enviarse.',
+    locationConsent: 'Registrar ubicación aproximada durante la escucha',
+    locationExplanation: 'El navegador solicitará permiso. Solo se guarda una celda aproximada; sin permiso, la detección permanece local y no se inventa su ubicación.',
+    storageLimit: 'Límite de cola (MiB)', capacityExplanation: 'Si el espacio se agota, la escucha se detiene. No se borran registros pendientes automáticamente.',
+    persistenceUnavailable: 'El navegador no garantizó almacenamiento persistente. Puede liberar datos bajo presión de espacio; comprueba la preparación antes de salir.',
+    error: 'La operación no pudo completarse. Los pendientes se conservan; comprueba conexión, espacio y preparación del modelo.',
+    storageError: 'No se pudo guardar la nueva detección. Se detuvo la escucha; revisa el espacio disponible antes de continuar.',
+  },
   field: {
     capture: 'Captura',
     diagnostics: 'Diagnóstico',
@@ -67,14 +82,14 @@ export const es: TranslationSchema = {
     confirmedLocal: 'Confirmada por el modelo local',
     provisional: 'Provisional, sin verificar en la nube',
     loadingModel: 'Preparando el modelo local…',
-    downloadNotice: 'La primera escucha descarga el modelo acústico. Se recomienda usar Wi-Fi.',
+    downloadNotice: 'Descarga el modelo desde Configuración antes de escuchar sin conexión.',
     modelError: 'No se pudo cargar el modelo. Comprueba la conexión y vuelve a iniciar la escucha.',
     audioError: 'No se pudo procesar el audio. Revisa el permiso del micrófono y vuelve a iniciar la escucha.',
     processingError: 'El análisis de audio falló. Vuelve a iniciar la escucha.',
     inferenceLatency: 'Latencia del modelo:',
     endToEndLatency: 'Latencia desde la captura:',
     droppedWindows: 'Ventanas descartadas por sobrecarga:',
-    sessionOnly: 'Resultados de la última ventana, solo durante esta sesión. Todavía no se guardan ni se envían a la nube.',
+    sessionOnly: 'Resultados de la última ventana. Las detecciones se conservan en la cola local hasta confirmar su sincronización.',
   },
   diagnostics: {
     title: 'BirdNet Local — Diagnóstico de Plataforma Web',

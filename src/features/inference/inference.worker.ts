@@ -2,6 +2,8 @@ import * as ort from 'onnxruntime-web/wasm';
 import wasmUrl from 'onnxruntime-web/ort-wasm-simd-threaded.wasm?url';
 import wasmModuleUrl from 'onnxruntime-web/ort-wasm-simd-threaded.mjs?url';
 import { extractTopDetections } from './inferenceResults';
+import { applyDetectionPolicy } from './detectionPolicy';
+import { persistDetections } from '../offline/queueStore';
 import type { InferenceWorkerInbound, InferenceWorkerOutbound, LoadModelRequest, InferRequest } from './inference.types';
 
 let session: ort.InferenceSession | null = null;
@@ -37,6 +39,7 @@ async function loadModel(message: LoadModelRequest): Promise<void> {
 }
 
 async function infer(message: InferRequest): Promise<void> {
+  let persistenceStarted = false;
   try {
     const startedAt = performance.now();
     if (!session) throw new Error('Model is not loaded.');
@@ -53,6 +56,11 @@ async function infer(message: InferRequest): Promise<void> {
       if (!output || !(output.data instanceof Float32Array)) throw new Error('Invalid classifier tensor.');
       try {
         const detections = extractTopDetections(output.data, message.topK ?? 5, message.minConfidence ?? 0.1, labels);
+        if (message.persistence) {
+          persistenceStarted = true;
+          await persistDetections(applyDetectionPolicy(detections), message.audioBuffer, message.persistence);
+          persistenceStarted = false;
+        }
         postOutbound({
           type: 'INFERENCE_RESULT', detections, windowIndex: message.windowIndex,
           timestamp: message.timestamp, latencyMs: performance.now() - startedAt,
@@ -67,6 +75,7 @@ async function infer(message: InferRequest): Promise<void> {
     postOutbound({
       type: 'INFERENCE_ERROR', error: error instanceof Error ? error.message : String(error),
       windowIndex: message.windowIndex, timestamp: message.timestamp,
+      ...(persistenceStarted ? { reason: 'storage' as const } : {}),
     });
   }
 }
@@ -84,6 +93,10 @@ export async function handleWorkerRequest(message: InferenceWorkerInbound): Prom
   }
 }
 
+let requests = Promise.resolve();
 self.onmessage = (event: MessageEvent<InferenceWorkerInbound>): void => {
-  void handleWorkerRequest(event.data);
+  requests = requests.then(async () => {
+    await handleWorkerRequest(event.data);
+    if (event.data.type === 'DISPOSE') self.postMessage({ type: 'DISPOSED' });
+  });
 };

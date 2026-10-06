@@ -16,6 +16,9 @@ import type {
   InferRequest,
 } from './inference.types';
 import { LatestWindowQueue } from '../audio/services/latestWindowQueue';
+import { offlineOperation } from '../offline/offlineClient';
+import type { PersistenceContext } from '../offline/types';
+import type { InferenceWorkerMessage } from './inference.types';
 
 export interface InferenceCallbacks {
   onStatusChange?: (status: ModelStatus) => void;
@@ -23,6 +26,7 @@ export interface InferenceCallbacks {
   onInferenceResult?: (detections: readonly Detection[], windowIndex: number, timestamp: number, latencyMs: number, endToEndLatencyMs: number) => void;
   onWindowDropped?: () => void;
   onError?: (error: string) => void;
+  onStorageError?: () => void;
 }
 
 export class InferenceService {
@@ -74,18 +78,23 @@ export class InferenceService {
 
     this.setStatus('loading');
     const generation = ++this.generation;
-    this.worker?.terminate();
+    this.worker?.postMessage({ type: 'DISPOSE' });
     this.worker = null;
     this.activeWindowIndex = null;
     this.queue.clear();
 
     try {
       // Descargar manifiesto
-      const response = await fetch(manifestUrl);
-      if (!response.ok) {
-        throw new Error(`Error descargando manifiesto: ${String(response.status)}`);
+      let manifest: ModelManifest;
+      if (import.meta.env.PROD && 'serviceWorker' in navigator || 'serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        const cached = await offlineOperation<ModelManifest | null>('MODEL_STATUS');
+        if (!cached) throw new Error('Download and verify the model before listening.');
+        manifest = cached;
+      } else {
+        const response = await fetch(manifestUrl);
+        if (!response.ok) throw new Error(`Error downloading manifest: ${String(response.status)}`);
+        manifest = await response.json() as ModelManifest;
       }
-      const manifest = (await response.json()) as ModelManifest;
       if (generation !== this.generation) return;
       this.manifest = manifest;
       if (this.manifest.sample_rate !== 48000 || this.manifest.window_samples !== 144000 ||
@@ -96,8 +105,8 @@ export class InferenceService {
 
       // Construir URLs absolutas para el modelo y labels
       const baseUrl = manifestUrl.substring(0, manifestUrl.lastIndexOf('/') + 1);
-      const modelUrl = baseUrl + this.manifest.model_file;
-      const labelsUrl = baseUrl + this.manifest.labels_file;
+      const modelUrl = /^(https?:\/\/|\/)/.test(this.manifest.model_file) ? this.manifest.model_file : baseUrl + this.manifest.model_file;
+      const labelsUrl = /^(https?:\/\/|\/)/.test(this.manifest.labels_file) ? this.manifest.labels_file : baseUrl + this.manifest.labels_file;
 
       // Instanciar Worker
       this.worker = new Worker(
@@ -105,7 +114,9 @@ export class InferenceService {
         { type: 'module' },
       );
 
-      this.worker.onmessage = (event: MessageEvent<InferenceWorkerOutbound>) => {
+      const currentWorker = this.worker;
+      this.worker.onmessage = (event: MessageEvent<InferenceWorkerMessage>) => {
+        if (event.data.type === 'DISPOSED') { currentWorker.terminate(); return; }
         if (generation !== this.generation) return;
         this.handleWorkerMessage(event.data);
       };
@@ -141,6 +152,7 @@ export class InferenceService {
     timestamp: number,
     topK: number = 5,
     minConfidence: number = 0.1,
+    persistence?: PersistenceContext,
   ): void {
     if (!this.worker || this.status !== 'ready') {
       return;
@@ -157,6 +169,7 @@ export class InferenceService {
         timestamp,
         topK,
         minConfidence,
+        ...(persistence ? { persistence } : {}),
     });
   }
 
@@ -169,7 +182,7 @@ export class InferenceService {
     this.activeWindowIndex = null;
     if (this.worker) {
       this.worker.postMessage({ type: 'DISPOSE' });
-      this.worker.terminate();
+      // The worker acknowledges disposal after its active persistence transaction completes.
       this.worker = null;
     }
     this.setStatus('idle');
@@ -206,6 +219,12 @@ export class InferenceService {
         break;
       case 'INFERENCE_ERROR':
         if (msg.windowIndex !== this.activeWindowIndex) return;
+        if (msg.reason === 'storage' && this.callbacks.onStorageError) {
+          this.queue.clear();
+          this.activeWindowIndex = null;
+          this.callbacks.onStorageError();
+          return;
+        }
         this.callbacks.onError?.(msg.error);
         this.activeWindowIndex = null;
         this.queue.complete();

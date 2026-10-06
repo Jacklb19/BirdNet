@@ -1,6 +1,6 @@
 import type { ClassifiedDetection } from '../inference/detectionPolicy';
 import { assertQueueCapacity, encodeAudio } from './queuePolicy';
-import { DATABASE_NAME, DEFAULT_QUEUE_BYTES, type OfflineSettings, type PersistenceContext, type QueueStats, type StoredAudio, type StoredDetection } from './types';
+import { DATABASE_NAME, DEFAULT_QUEUE_BYTES, type OfflineSettings, type PersistenceContext, type QueueStats, type StoredAudio, type StoredDetection, type SyncSession } from './types';
 
 const defaultSettings = (): OfflineSettings => ({ maxBytes: DEFAULT_QUEUE_BYTES, audioConsent: false, locationEnabled: false, session: null });
 function request<T>(operation: IDBRequest<T>): Promise<T> {
@@ -33,6 +33,7 @@ export async function getSettings(): Promise<OfflineSettings> {
   return transact(['settings'], 'readonly', async (tx) => (await request(tx.objectStore('settings').get('preferences')) as OfflineSettings | undefined) ?? defaultSettings());
 }
 export async function updateSettings(changes: Partial<Omit<OfflineSettings, 'session'>>): Promise<void> {
+  if (Object.keys(changes).some((key) => !['maxBytes', 'audioConsent', 'locationEnabled'].includes(key))) throw new Error('Invalid preferences.');
   await transact(['settings', 'detections', 'audio'], 'readwrite', async (tx) => {
     const settingsStore = tx.objectStore('settings');
     const settings = (await request(settingsStore.get('preferences')) as OfflineSettings | undefined) ?? defaultSettings();
@@ -42,6 +43,28 @@ export async function updateSettings(changes: Partial<Omit<OfflineSettings, 'ses
     assertQueueCapacity(records.reduce((total, row) => total + row.bytes, 0) + audio.reduce((total, row) => total + row.bytes, 0), 0, next.maxBytes);
     if (typeof next.audioConsent !== 'boolean' || typeof next.locationEnabled !== 'boolean') throw new Error('Invalid preferences.');
     await request(settingsStore.put(next, 'preferences'));
+  });
+}
+
+/** S5 must call this only after an explicit account association; never silently reassign owners. */
+export async function bindSyncSession(session: SyncSession | null, claimUnowned = false): Promise<void> {
+  if (session && (!/^[a-f0-9-]{36}$/i.test(session.userId) || !session.accessToken || !Number.isFinite(session.expiresAt))) throw new Error('Invalid session.');
+  await transact(['settings', 'detections', 'audio'], 'readwrite', async (tx) => {
+    const store = tx.objectStore('settings');
+    const settings = (await request(store.get('preferences')) as OfflineSettings | undefined) ?? defaultSettings();
+    if (session && claimUnowned) {
+      const records = await request(tx.objectStore('detections').getAll()) as StoredDetection[];
+      const audio = await request(tx.objectStore('audio').getAll()) as StoredAudio[];
+      const next = records.map((row) => {
+        if (row.owner) return row;
+        const updated = { ...row, owner: session.userId };
+        updated.bytes = new TextEncoder().encode(JSON.stringify(updated)).byteLength;
+        return updated;
+      });
+      assertQueueCapacity(next.reduce((sum, row) => sum + row.bytes, 0) + audio.reduce((sum, row) => sum + row.bytes, 0), 0, settings.maxBytes);
+      for (const row of next) await request(tx.objectStore('detections').put(row));
+    }
+    await request(store.put({ ...settings, session }, 'preferences'));
   });
 }
 export async function listDetections(): Promise<StoredDetection[]> {
