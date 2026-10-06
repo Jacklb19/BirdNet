@@ -2,178 +2,46 @@ import { useState, useId } from 'react';
 import { verificarCapacidades } from './verificarCapacidades';
 import type { CapacidadesEntorno } from './diagnostico.types';
 import { useI18n, formatNumber } from '../../i18n';
+import { FieldIcon } from '../../shared/FieldIcon';
 
-/**
- * Diagnostics page verifying browser and device platform capabilities.
- */
+/** Reports the existing platform checks without expanding diagnostic capabilities. */
 export function DiagnosticoPage(): React.JSX.Element {
   const { locale, dict } = useI18n();
-  const [capacidades, setCapacidades] = useState<CapacidadesEntorno>(() =>
-    verificarCapacidades(),
-  );
-  const [contadorPrueba, setContadorPrueba] = useState<number>(0);
-  const listaId = useId();
-
-  const handleRecalcular = (): void => {
-    setCapacidades(verificarCapacidades());
-    setContadorPrueba((prev) => prev + 1);
+  const [capabilities, setCapabilities] = useState<CapacidadesEntorno>(() => verificarCapacidades());
+  const [testCount, setTestCount] = useState(0);
+  const listId = useId();
+  const handleRecheck = (): void => {
+    setCapabilities(verificarCapacidades());
+    setTestCount((previous) => previous + 1);
   };
-
   const d = dict.diagnostics;
   const caps = d.capabilities;
-
   const items = [
-    {
-      etiqueta: caps.crossOriginIsolatedName,
-      descripcion: caps.crossOriginIsolatedDesc,
-      activo: capacidades.crossOriginIsolated,
-    },
-    {
-      etiqueta: caps.webWorkerName,
-      descripcion: caps.webWorkerDesc,
-      activo: capacidades.soportaWorkers,
-    },
-    {
-      etiqueta: caps.webAssemblyName,
-      descripcion: caps.webAssemblyDesc,
-      activo: capacidades.soportaWebAssembly,
-    },
-    {
-      etiqueta: caps.sharedArrayBufferName,
-      descripcion: caps.sharedArrayBufferDesc,
-      activo: capacidades.soportaSharedArrayBuffer,
-    },
+    { label: caps.crossOriginIsolatedName, description: caps.crossOriginIsolatedDesc, supported: capabilities.crossOriginIsolated },
+    { label: caps.webWorkerName, description: caps.webWorkerDesc, supported: capabilities.soportaWorkers },
+    { label: caps.webAssemblyName, description: caps.webAssemblyDesc, supported: capabilities.soportaWebAssembly },
+    { label: caps.sharedArrayBufferName, description: caps.sharedArrayBufferDesc, supported: capabilities.soportaSharedArrayBuffer },
   ];
-
   return (
-    <main style={{ padding: 'var(--spacing-4)' }}>
-      <header style={{ marginBottom: 'var(--spacing-8)' }}>
-        <h1
-          style={{
-            fontSize: 'var(--font-size-2xl)',
-            marginBottom: 'var(--spacing-2)',
-            color: 'var(--color-text-primary)',
-          }}
-        >
-          {d.title}
-        </h1>
-        <p style={{ color: 'var(--color-text-muted)' }}>
-          {d.description}
-        </p>
-      </header>
-
-      <section
-        aria-labelledby={listaId}
-        style={{
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-sm)',
-          padding: 'var(--spacing-6)',
-          marginBottom: 'var(--spacing-8)',
-        }}
-      >
-        <h2
-          id={listaId}
-          style={{
-            fontSize: 'var(--font-size-lg)',
-            marginBottom: 'var(--spacing-4)',
-            color: 'var(--color-text-primary)',
-          }}
-        >
-          {d.capabilitiesTitle}
-        </h2>
-
-        <ul style={{ listStyle: 'none', display: 'grid', gap: 'var(--spacing-4)', padding: 0 }}>
-          {items.map((item) => (
-            <li
-              key={item.etiqueta}
-              style={{
-                padding: 'var(--spacing-3)',
-                border: '1px solid var(--color-border-subtle)',
-                borderRadius: 'var(--radius-sm)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: 'var(--spacing-4)',
-                flexWrap: 'wrap',
-              }}
-            >
-              <div style={{ flex: 1, minWidth: '240px' }}>
-                <strong style={{ display: 'block', color: 'var(--color-text-primary)' }}>
-                  {item.etiqueta}
-                </strong>
-                <span
-                  style={{
-                    fontSize: 'var(--font-size-base)',
-                    color: 'var(--color-text-subtle)',
-                  }}
-                >
-                  {item.descripcion}
-                </span>
-              </div>
-              <span
-                role="status"
-                style={{
-                  fontWeight: 'var(--font-weight-semibold)',
-                  padding: 'var(--spacing-1) var(--spacing-2)',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: item.activo
-                    ? 'var(--color-badge-active-bg)'
-                    : 'var(--color-badge-inactive-bg)',
-                  color: item.activo
-                    ? 'var(--color-badge-active-text)'
-                    : 'var(--color-badge-inactive-text)',
-                  fontSize: 'var(--font-size-base)',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {item.activo ? d.statusSupported : d.statusUnsupported}
-              </span>
-            </li>
-          ))}
-        </ul>
+    <section className="page diagnostics-page">
+      <header className="page-heading"><p className="eyebrow">{dict.app.title}</p><h1 aria-label={d.title}>{dict.field.diagnostics}</h1><p>{d.description}</p></header>
+      <section aria-labelledby={listId} className="capabilities-section">
+        <h2 id={listId}>{d.capabilitiesTitle}</h2>
+        <ul className="capability-list">{items.map((item) => (
+          <li key={item.label}>
+            <FieldIcon name={item.supported ? 'ready' : 'error'} />
+            <div><strong>{item.label}</strong><p>{item.description}</p></div>
+            <span role="status" className="capability-status" data-supported={item.supported}>{item.supported ? d.statusSupported : d.statusUnsupported}</span>
+          </li>
+        ))}</ul>
       </section>
-
-      <section
-        style={{
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-sm)',
-          padding: 'var(--spacing-6)',
-        }}
-      >
-        <h2
-          style={{
-            fontSize: 'var(--font-size-lg)',
-            marginBottom: 'var(--spacing-4)',
-            color: 'var(--color-text-primary)',
-          }}
-        >
-          {d.reactivityTitle}
-        </h2>
-        <p style={{ marginBottom: 'var(--spacing-4)', color: 'var(--color-text-muted)' }}>
-          {d.testsCount}{' '}
-          <strong data-testid="contador-pruebas">{formatNumber(contadorPrueba, locale)}</strong>
-        </p>
-        <button
-          type="button"
-          onClick={handleRecalcular}
-          style={{
-            minHeight: 'var(--touch-target-min)',
-            padding: 'var(--spacing-2) var(--spacing-4)',
-            backgroundColor: 'var(--color-surface-raised)',
-            color: 'var(--color-text-primary)',
-            border: '1px solid var(--color-border)',
-            borderRadius: 'var(--radius-sm)',
-            cursor: 'pointer',
-            fontSize: 'var(--font-size-md)',
-            fontWeight: 'var(--font-weight-semibold)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {d.runTests}
+      <section className="reactivity-section">
+        <h2>{d.reactivityTitle}</h2>
+        <p>{d.testsCount} <strong data-testid="contador-pruebas">{formatNumber(testCount, locale)}</strong></p>
+        <button className="field-button" type="button" onClick={handleRecheck} style={{ minHeight: 'var(--touch-target-min)' }}>
+          <FieldIcon name="signal" />{d.runTests}
         </button>
       </section>
-    </main>
+    </section>
   );
 }

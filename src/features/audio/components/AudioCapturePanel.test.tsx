@@ -42,6 +42,23 @@ describe('AudioCapturePanel', () => {
     expect(screen.getByTestId('latency')).toHaveTextContent('0 ms');
   });
 
+  it('keeps model preparation cancellable and never invents download percentages', () => {
+    const initial = useAudioCaptureModule.useAudioCapture();
+    vi.mocked(useAudioCaptureModule.useAudioCapture).mockReturnValue({ ...initial, modelStatus: 'loading' });
+    render(<AudioCapturePanel />);
+    expect(screen.getByRole('button', { name: /detener escucha/i })).toBeEnabled();
+    expect(screen.getByRole('progressbar')).not.toHaveAttribute('value');
+    expect(screen.queryByText(/100\s*%.*descarg/i)).not.toBeInTheDocument();
+  });
+
+  it('distinguishes a ready runtime without claiming persistent offline storage', () => {
+    const initial = useAudioCaptureModule.useAudioCapture();
+    vi.mocked(useAudioCaptureModule.useAudioCapture).mockReturnValue({ ...initial, modelStatus: 'ready' });
+    render(<AudioCapturePanel />);
+    expect(screen.getByRole('status')).toHaveTextContent('Listo para escuchar');
+    expect(screen.queryByText(/almacenado localmente en caché/i)).not.toBeInTheDocument();
+  });
+
   it('muestra el botón de detener cuando el state es listening', () => {
     vi.spyOn(useAudioCaptureModule, 'useAudioCapture').mockReturnValue({
       state: 'listening',

@@ -62,6 +62,11 @@ export function SpectrogramCanvas({
       computedStyles.getPropertyValue('--color-canvas-text-muted').trim() || '#9ca3af';
     const canvasOverlay =
       computedStyles.getPropertyValue('--color-canvas-overlay').trim() || 'rgba(0, 0, 0, 0.4)';
+    const emptyFont = computedStyles.getPropertyValue('--canvas-font-empty').trim() || '600 20px system-ui';
+    const scaleFont = computedStyles.getPropertyValue('--canvas-font-scale').trim() || '600 16px monospace';
+    const axisHeight = Number(computedStyles.getPropertyValue('--canvas-axis-height').trim()) || 32;
+    const axisPadding = Number(computedStyles.getPropertyValue('--canvas-axis-padding').trim()) || 12;
+    const axisBaseline = Number(computedStyles.getPropertyValue('--canvas-axis-baseline').trim()) || 22;
 
     // Empty state when no audio stream has started
     if (!espectrograma || espectrograma.numFrames === 0) {
@@ -69,7 +74,7 @@ export function SpectrogramCanvas({
       ctx.fillRect(0, 0, ancho, alto);
 
       ctx.fillStyle = canvasTextMuted;
-      ctx.font = '14px system-ui, sans-serif';
+      ctx.font = emptyFont;
       ctx.textAlign = 'center';
       ctx.fillText(dict.capture.spectrogramEmpty, ancho / 2, alto / 2);
       return;
@@ -106,22 +111,22 @@ export function SpectrogramCanvas({
 
           // Overlay frequency and time scale markers
           ctx.fillStyle = canvasOverlay;
-          ctx.fillRect(0, 0, ancho, 24);
-          ctx.fillRect(0, alto - 20, ancho, 20);
+          ctx.fillRect(0, 0, ancho, axisHeight);
+          ctx.fillRect(0, alto - axisHeight, ancho, axisHeight);
 
           ctx.fillStyle = canvasText;
-          ctx.font = '11px ui-monospace, monospace';
+          ctx.font = scaleFont;
           ctx.textAlign = 'left';
-          ctx.fillText(dict.capture.spectrogramMelUpper, 8, 16);
-          ctx.fillText(`${formatDecimal(0, locale, 1)} s`, 8, alto - 6);
+          ctx.fillText(dict.capture.spectrogramMelUpper, axisPadding, axisBaseline);
+          ctx.fillText(`${formatDecimal(0, locale, 1)} s`, axisPadding, alto - axisHeight + axisBaseline);
 
           ctx.textAlign = 'right';
           ctx.fillText(
             `${dict.capture.spectrogramWindowPrefix}${String(espectrograma.windowIndex)}`,
-            ancho - 8,
-            16,
+            ancho - axisPadding,
+            axisBaseline,
           );
-          ctx.fillText(`${formatDecimal(3, locale, 1)} s`, ancho - 8, alto - 6);
+          ctx.fillText(`${formatDecimal(3, locale, 1)} s`, ancho - axisPadding, alto - axisHeight + axisBaseline);
         })
         .catch(() => {
           ctx.fillStyle = canvasBg;
@@ -134,29 +139,20 @@ export function SpectrogramCanvas({
   }, [espectrograma, ancho, alto, themeResolved, locale, dict]);
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        width: '100%',
-        maxWidth: `${String(ancho)}px`,
-      }}
-    >
+    <div className="spectrogram-frame">
       <canvas
         ref={canvasRef}
         width={ancho}
         height={alto}
         data-testid="spectrogram-canvas"
-        style={{
-          width: '100%',
-          height: 'auto',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--color-canvas-border)',
-          boxShadow: 'var(--color-canvas-shadow)',
-          backgroundColor: 'var(--color-canvas-bg)',
-        }}
+        role="img"
+        aria-label={dict.capture.melSpectrogram}
       />
+      {(!espectrograma || espectrograma.numFrames === 0) && <p className="spectrogram-empty">{dict.capture.spectrogramEmpty}</p>}
+      {espectrograma && espectrograma.numFrames > 0 && <>
+        <div className="spectrogram-axis spectrogram-axis-upper"><span>{dict.capture.spectrogramMelUpper}</span><span>{dict.capture.spectrogramWindowPrefix}{String(espectrograma.windowIndex)}</span></div>
+        <div className="spectrogram-axis spectrogram-axis-lower"><span>{formatDecimal(0, locale, 1)} s</span><span>{formatDecimal(3, locale, 1)} s</span></div>
+      </>}
     </div>
   );
 }

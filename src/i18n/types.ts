@@ -5,6 +5,16 @@
 export type Locale = 'es' | 'en';
 
 export interface TranslationSchema {
+  field: {
+    capture: string;
+    diagnostics: string;
+    fieldListening: string;
+    sessionStatus: string;
+    modelPending: string;
+    modelReady: string;
+    localProcessing: string;
+    developmentTools: string;
+  };
   app: {
     title: string;
     subtitle: string;

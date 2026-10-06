@@ -1,269 +1,93 @@
 import { useAudioCapture } from '../hooks/useAudioCapture';
 import { SpectrogramCanvas } from './SpectrogramCanvas';
 import { DetectionsPanel } from '../../inference/DetectionsPanel';
-import {
-  useI18n,
-  formatPercent,
-  formatDecimal,
-  formatNumber,
-  formatMilliseconds,
-} from '../../../i18n';
+import { FieldIcon } from '../../../shared/FieldIcon';
+import { useI18n, formatPercent, formatDecimal, formatNumber, formatMilliseconds } from '../../../i18n';
 
-/**
- * Main acoustic capture panel with one-touch toggle control,
- * real-time VU meter, session metrics, and live mel-spectrogram canvas.
- */
+/** Field capture view with a thumb-accessible control and live acoustic readings. */
 export function AudioCapturePanel(): React.JSX.Element {
   const { locale, dict } = useI18n();
   const {
-    state,
-    rmsLevel,
-    peakLevel,
-    windowCount,
-    latestSpectrogram,
-    spectrogramLatencyMs,
-    sampleRate,
-    startListening,
-    stopListening,
-    modelStatus,
-    detections,
-    inferenceLatencyMs,
-    endToEndLatencyMs,
-    droppedWindows,
-    sessionError,
+    state, rmsLevel, peakLevel, windowCount, latestSpectrogram, spectrogramLatencyMs, sampleRate,
+    startListening, stopListening, modelStatus, detections, inferenceLatencyMs, endToEndLatencyMs,
+    droppedWindows, sessionError,
   } = useAudioCapture();
-
   const c = dict.capture;
-  const p = dict.privacy;
-
+  const f = dict.field;
   const statusLabels: Record<string, string> = {
-    idle: c.statusIdle,
-    requesting_permission: c.statusRequesting,
-    listening: c.statusListening,
-    paused: c.statusPaused,
-    error: c.statusError,
+    idle: c.statusIdle, requesting_permission: c.statusRequesting, listening: c.statusListening,
+    paused: c.statusPaused, error: c.statusError,
   };
-
   const isListening = state === 'listening';
   const isStarting = state === 'requesting_permission' || modelStatus === 'loading';
+  const canStop = isListening || modelStatus === 'loading';
+  const statusLabel = sessionError ? c.statusError : modelStatus === 'loading'
+    ? dict.inference.loadingModel : statusLabels[state] ?? state;
   const sessionErrorLabel = sessionError === 'model' ? dict.inference.modelError
     : sessionError === 'audio' ? dict.inference.audioError : dict.inference.processingError;
-
+  const modelLabel = modelStatus === 'loading' ? dict.inference.loadingModel
+    : modelStatus === 'ready' ? f.modelReady : sessionError === 'model' || modelStatus === 'error' ? c.statusError : f.modelPending;
   const handleToggle = (): void => {
-    if (isListening || modelStatus === 'loading') {
-      void stopListening();
-    } else {
-      void startListening();
-    }
+    if (canStop) { void stopListening(); } else { void startListening(); }
   };
 
   return (
-    <section aria-label={c.panelAria} style={{ padding: 'var(--spacing-4)' }}>
-      {/* Privacy banner (RNF-08) */}
-      <div
-        role="note"
-        style={{
-          backgroundColor: 'var(--color-success-bg)',
-          border: '1px solid var(--color-success-border)',
-          borderRadius: 'var(--radius-md)',
-          padding: 'var(--spacing-3) var(--spacing-4)',
-          marginBottom: 'var(--spacing-6)',
-          fontSize: 'var(--font-size-base)',
-          color: 'var(--color-success-text)',
-        }}
-      >
-        <strong>{p.title}</strong> {p.description}
-      </div>
-
-      <p style={{ color: 'var(--color-text-secondary)', marginBottom: 'var(--spacing-4)', fontSize: 'var(--font-size-base)' }}>
-        {dict.inference.downloadNotice}
-      </p>
-
-      {/* Main one-touch toggle button (HU-01, RNF-10: area >= 48x48px, target 80x80px) */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 'var(--spacing-4)',
-          marginBottom: 'var(--spacing-6)',
-        }}
-      >
-        <button
-          type="button"
-          onClick={handleToggle}
-          disabled={state === 'requesting_permission'}
-          aria-label={isListening || modelStatus === 'loading' ? c.stopListening : c.startListening}
-          style={{
-            width: 'var(--touch-target-size)',
-            height: 'var(--touch-target-size)',
-            borderRadius: 'var(--radius-full)',
-            border: 'none',
-            cursor: isStarting ? 'wait' : 'pointer',
-            fontSize: 'var(--font-size-hero)',
-            backgroundColor: isListening ? 'var(--color-danger)' : 'var(--color-primary)',
-            color: 'var(--color-primary-text)',
-            boxShadow: isListening
-              ? '0 0 0 4px var(--color-danger-ring)'
-              : '0 0 0 4px var(--color-primary-ring)',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          {isListening || modelStatus === 'loading' ? '⏹' : '🎙'}
-        </button>
-
-        <span
-          aria-live="polite"
-          style={{
-            fontSize: 'var(--font-size-base)',
-            fontWeight: 'var(--font-weight-semibold)',
-            color: isListening ? 'var(--color-danger)' : 'var(--color-text-secondary)',
-          }}
-        >
-          {sessionError ? c.statusError : modelStatus === 'loading' ? dict.inference.loadingModel : statusLabels[state] ?? state}
-        </span>
-      </div>
-
-      {/* Error display */}
-      {sessionError && (
-        <div
-          role="alert"
-          style={{
-            backgroundColor: 'var(--color-error-bg)',
-            border: '1px solid var(--color-error-border)',
-            borderRadius: 'var(--radius-md)',
-            padding: 'var(--spacing-3)',
-            marginBottom: 'var(--spacing-4)',
-            color: 'var(--color-error-text)',
-            fontSize: 'var(--font-size-base)',
-          }}
-        >
-          {sessionErrorLabel}
-        </div>
-      )}
-
-      {/* Input level meter */}
-      <div
-        style={{
-          marginBottom: 'var(--spacing-6)',
-          padding: 'var(--spacing-4)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-md)',
-        }}
-      >
-        <h2
-          style={{
-            fontSize: 'var(--font-size-md)',
-            marginBottom: 'var(--spacing-3)',
-            color: 'var(--color-text-secondary)',
-          }}
-        >
-          {c.inputLevel}
-        </h2>
-
-        <div style={{ marginBottom: 'var(--spacing-2)' }}>
-          <div
-            style={{
-              height: '12px',
-              backgroundColor: 'var(--color-border-subtle)',
-              borderRadius: 'var(--radius-md)',
-              overflow: 'hidden',
-            }}
-          >
-            <div
-              role="meter"
-              aria-label={c.rmsAria}
-              aria-valuenow={Math.round(rmsLevel * 100)}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              style={{
-                height: '100%',
-                width: `${String(Math.min(rmsLevel * 100, 100))}%`,
-                backgroundColor:
-                  rmsLevel > 0.8
-                    ? 'var(--color-danger)'
-                    : rmsLevel > 0.4
-                      ? 'var(--color-warning)'
-                      : 'var(--color-primary)',
-                borderRadius: 'var(--radius-md)',
-                transition: 'width 0.1s ease',
-              }}
-            />
+    <section aria-label={c.panelAria} className="page capture-page" data-listening={isListening} data-error={Boolean(sessionError)}>
+      <header className="page-heading"><p className="eyebrow">{dict.app.navCapture}</p><h2>{f.fieldListening}</h2></header>
+      <div className="capture-workspace">
+        <section className="recorder" aria-label={f.fieldListening}>
+          <div className="recorder-head">
+            <div className="listening-copy">
+              <span className="eyebrow">{f.sessionStatus}</span>
+              <p className="listening-state" aria-live="polite"><FieldIcon name={sessionError ? 'error' : isListening ? 'signal' : isStarting ? 'download' : 'clock'} />{statusLabel}</p>
+            </div>
+            <div className="listening-control">
+              <div className="control-copy"><span className="control-caption">{canStop ? c.stopListening : c.startListening}</span><span className="control-local"><FieldIcon name="shield" />{f.localProcessing}</span></div>
+              <div className="listen-bezel">
+                <button className="listen-button" type="button" onClick={handleToggle}
+                  disabled={state === 'requesting_permission'} aria-label={canStop ? c.stopListening : c.startListening}
+                  style={{ width: 'var(--touch-target-size)', height: 'var(--touch-target-size)' }}>
+                  <FieldIcon name={canStop ? 'stop' : 'mic'} />
+                </button>
+              </div>
+            </div>
           </div>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              fontSize: 'var(--font-size-xs)',
-              color: 'var(--color-text-subtle)',
-              marginTop: 'var(--spacing-1)',
-            }}
-          >
-            <span>{c.rmsLabel} {formatPercent(rmsLevel, locale, 1)}</span>
-            <span>{c.peakLabel} {formatPercent(peakLevel, locale, 1)}</span>
-          </div>
-        </div>
+          {sessionError && <div role="alert" className="error-notice"><FieldIcon name="error" /><p>{sessionErrorLabel}</p></div>}
+          <section className="signal-panel" aria-label={c.melSpectrogram}>
+            <div className="section-heading"><h2>{c.melSpectrogram}</h2><span className="technical-label">{formatDecimal(3, locale, 1)} s</span></div>
+            <SpectrogramCanvas espectrograma={latestSpectrogram} />
+            <div className="level-panel">
+              <div className="section-heading"><h2>{c.inputLevel}</h2><span className="technical-label">{c.peakLabel} {formatPercent(peakLevel, locale, 1)}</span></div>
+              <div className="level-track" role="meter" aria-label={c.rmsAria}
+                aria-valuenow={Math.round(rmsLevel * 100)} aria-valuemin={0} aria-valuemax={100}>
+                <div className="level-fill" data-level={rmsLevel > 0.8 ? 'high' : rmsLevel > 0.4 ? 'medium' : 'low'} style={{ width: `${String(Math.min(rmsLevel * 100, 100))}%` }} />
+                <span className="peak-marker" style={{ left: `${String(Math.min(peakLevel * 100, 100))}%` }} />
+              </div>
+              <div className="meter-scale"><span>{formatPercent(0, locale, 0)}</span><strong>{c.rmsLabel} {formatPercent(rmsLevel, locale, 1)}</strong><span>{formatPercent(1, locale, 0)}</span></div>
+            </div>
+          </section>
+          <section className="model-state" aria-label={dict.modelDownload.title} data-status={sessionError === 'model' ? 'error' : modelStatus}>
+            <FieldIcon name={sessionError === 'model' || modelStatus === 'error' ? 'error' : modelStatus === 'ready' ? 'ready' : 'download'} />
+            <div><h2>{dict.modelDownload.title}</h2><p>{dict.inference.downloadNotice}</p></div>
+            <span className="model-label" role="status">{modelLabel}</span>
+            {modelStatus === 'loading' && <progress aria-label={dict.inference.loadingModel} />}
+          </section>
+        </section>
+        <DetectionsPanel detections={detections} />
       </div>
-
-      {/* Mel-spectrogram live canvas */}
-      <div
-        style={{
-          marginBottom: 'var(--spacing-6)',
-          padding: 'var(--spacing-4)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-md)',
-        }}
-      >
-        <h2
-          style={{
-            fontSize: 'var(--font-size-md)',
-            marginBottom: 'var(--spacing-3)',
-            color: 'var(--color-text-secondary)',
-          }}
-        >
-          {c.melSpectrogram}
-        </h2>
-        <SpectrogramCanvas espectrograma={latestSpectrogram} />
-      </div>
-
-      <DetectionsPanel detections={detections} />
-
-      {/* Session metrics */}
-      <div
-        style={{
-          padding: 'var(--spacing-4)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-md)',
-          fontSize: 'var(--font-size-sm)',
-          color: 'var(--color-text-muted)',
-        }}
-      >
-        <h2
-          style={{
-            fontSize: 'var(--font-size-md)',
-            marginBottom: 'var(--spacing-3)',
-            color: 'var(--color-text-secondary)',
-          }}
-        >
-          {c.sessionMetrics}
-        </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-2)' }}>
-          <span>{c.sampleRate}</span>
-          <span data-testid="sample-rate">{formatDecimal(sampleRate / 1000, locale, 1)} kHz</span>
-
-          <span>{c.windowsCount}</span>
-          <span data-testid="window-count">{formatNumber(windowCount, locale)}</span>
-
-          <span>{c.spectrogramLatency}</span>
-          <span data-testid="latency">{formatMilliseconds(spectrogramLatencyMs, locale, 0)}</span>
-
-          <span>{dict.inference.inferenceLatency}</span>
-          <span data-testid="inference-latency">{formatMilliseconds(inferenceLatencyMs, locale, 0)}</span>
-          <span>{dict.inference.endToEndLatency}</span>
-          <span data-testid="end-to-end-latency">{formatMilliseconds(endToEndLatencyMs, locale, 0)}</span>
-          <span>{dict.inference.droppedWindows}</span>
-          <span data-testid="dropped-windows">{formatNumber(droppedWindows, locale)}</span>
-        </div>
+      <div className="capture-footnotes">
+        <details className="privacy-notice"><summary><FieldIcon name="shield" />{dict.privacy.title} {f.localProcessing}</summary><p>{dict.privacy.description}</p></details>
+        <details className="session-metrics">
+          <summary>{c.sessionMetrics}</summary>
+          <dl>
+            <div><dt>{c.sampleRate}</dt><dd data-testid="sample-rate">{formatDecimal(sampleRate / 1000, locale, 1)} kHz</dd></div>
+            <div><dt>{c.windowsCount}</dt><dd data-testid="window-count">{formatNumber(windowCount, locale)}</dd></div>
+            <div><dt>{c.spectrogramLatency}</dt><dd data-testid="latency">{formatMilliseconds(spectrogramLatencyMs, locale, 0)}</dd></div>
+            <div><dt>{dict.inference.inferenceLatency}</dt><dd data-testid="inference-latency">{formatMilliseconds(inferenceLatencyMs, locale, 0)}</dd></div>
+            <div><dt>{dict.inference.endToEndLatency}</dt><dd data-testid="end-to-end-latency">{formatMilliseconds(endToEndLatencyMs, locale, 0)}</dd></div>
+            <div><dt>{dict.inference.droppedWindows}</dt><dd data-testid="dropped-windows">{formatNumber(droppedWindows, locale)}</dd></div>
+          </dl>
+        </details>
       </div>
     </section>
   );
