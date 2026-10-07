@@ -1,8 +1,6 @@
 import { AUDIO_CONSTANTS } from './audio.constants';
 
-/**
- * Calcula el valor pico absoluto (máxima amplitud) del búfer de audio.
- */
+/** Largest absolute amplitude of the buffer. */
 export function calculatePeak(samples: Float32Array): number {
   let max = 0;
   for (let i = 0; i < samples.length; i++) {
@@ -14,10 +12,7 @@ export function calculatePeak(samples: Float32Array): number {
   return max;
 }
 
-/**
- * Calcula la raíz del valor cuadrático medio (RMS) del búfer de audio.
- * Útil para medir la energía/volumen sonoro y niveles de vúmetro.
- */
+/** Root mean square of the buffer: its average energy, the quantity a level meter shows. */
 export function calculateRms(samples: Float32Array): number {
   if (samples.length === 0) {
     return 0;
@@ -31,23 +26,24 @@ export function calculateRms(samples: Float32Array): number {
 }
 
 /**
- * Normaliza la señal de audio en relación con su valor pico.
- * Si el pico es inferior al umbral de silencio, no se escala para no amplificar el ruido.
- * Modifica o devuelve un nuevo búfer Float32Array normalizado.
+ * Scales the signal so its peak equals `targetPeak`. A buffer whose peak is at or below
+ * `silenceThreshold` is returned unscaled so background noise in silence is not amplified.
  *
- * @param samples Búfer de audio
- * @param targetPeak Amplitud pico deseada (por defecto 0.95 para evitar saturación)
- * @param inPlace Si es true, modifica el array original; si es false, devuelve una copia
+ * @param samples Audio buffer.
+ * @param targetPeak Peak amplitude after scaling.
+ * @param inPlace When true the input buffer is modified; otherwise a scaled copy is returned.
+ * @param silenceThreshold Peak at or below which the buffer is left unscaled.
  */
 export function normalizeAudio(
   samples: Float32Array,
-  targetPeak: number = 0.95,
+  targetPeak: number = AUDIO_CONSTANTS.NORMALIZATION_TARGET_PEAK,
   inPlace: boolean = false,
+  silenceThreshold: number = AUDIO_CONSTANTS.SILENCE_THRESHOLD_RMS,
 ): Float32Array {
   const peak = calculatePeak(samples);
   const output = inPlace ? samples : new Float32Array(samples);
 
-  if (peak <= AUDIO_CONSTANTS.SILENCE_THRESHOLD_RMS) {
+  if (peak <= silenceThreshold) {
     return output;
   }
 

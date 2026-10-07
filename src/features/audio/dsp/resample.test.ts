@@ -2,17 +2,17 @@ import { describe, it, expect } from 'vitest';
 import { resampleAudio, StreamingResampler } from './resample';
 
 describe('resampleAudio', () => {
-  it('devuelve una copia idéntica si las frecuencias de muestreo son iguales', () => {
+  it('returns an identical copy when the rates are equal', () => {
     const input = new Float32Array([0.1, 0.5, -0.3, 0.8]);
     const result = resampleAudio(input, 48000, 48000);
 
     expect(result.length).toBe(input.length);
     expect(Array.from(result)).toEqual(Array.from(input));
-    expect(result).not.toBe(input); // nueva instancia
+    expect(result).not.toBe(input); // a new instance
   });
 
-  it('remuestrea correctamente al duplicar la tasa de muestreo (upsampling)', () => {
-    // 2 muestras a 10 Hz remuestreadas a 20 Hz -> 4 muestras
+  it('upsamples to twice the rate', () => {
+    // 2 samples at 10 Hz become 4 samples at 20 Hz
     const input = new Float32Array([0.0, 1.0]);
     const result = resampleAudio(input, 10, 20);
 
@@ -23,8 +23,8 @@ describe('resampleAudio', () => {
     expect(result[3]).toBeCloseTo(1.0, 4);
   });
 
-  it('remuestrea correctamente al reducir la tasa de muestreo (downsampling)', () => {
-    // 4 muestras a 20 Hz remuestreadas a 10 Hz -> 2 muestras
+  it('downsamples to half the rate', () => {
+    // 4 samples at 20 Hz become 2 samples at 10 Hz
     const input = new Float32Array([0.0, 0.5, 1.0, 1.0]);
     const result = resampleAudio(input, 20, 10);
 
@@ -33,13 +33,13 @@ describe('resampleAudio', () => {
     expect(result[1]).toBeCloseTo(1.0, 4);
   });
 
-  it('lanza error si las frecuencias de muestreo son no positivas', () => {
+  it('rejects non-positive sample rates', () => {
     const input = new Float32Array([0.1, 0.2]);
     expect(() => resampleAudio(input, 0, 48000)).toThrow();
     expect(() => resampleAudio(input, 48000, -10)).toThrow();
   });
 
-  it('maneja arrays vacíos sin fallar', () => {
+  it('handles empty buffers', () => {
     const input = new Float32Array(0);
     const result = resampleAudio(input, 44100, 48000);
     expect(result.length).toBe(0);
@@ -47,9 +47,9 @@ describe('resampleAudio', () => {
 });
 
 describe('StreamingResampler', () => {
-  it('conserva continuidad de señal lineal a través de múltiples chunks sucesivos', () => {
+  it('keeps a linear signal continuous across consecutive blocks', () => {
     const resampler = new StreamingResampler(10, 20);
-    // Señal rampa continua de 0 a 30 en 4 chunks de 2 muestras cada uno
+    // A ramp from 0 to 30 in 4 blocks of 2 samples
     const chunk1 = new Float32Array([0, 10]);
     const chunk2 = new Float32Array([20, 30]);
 
@@ -60,7 +60,7 @@ describe('StreamingResampler', () => {
     merged.set(out1, 0);
     merged.set(out2, out1.length);
 
-    // Con rampa lineal y factor 2x, los pasos deben ser exactamente 5
+    // A linear ramp upsampled 2x advances exactly 5 per sample
     for (let i = 1; i < merged.length; i++) {
       const curr = merged[i] ?? 0;
       const prev = merged[i - 1] ?? 0;
@@ -69,14 +69,14 @@ describe('StreamingResampler', () => {
     }
   });
 
-  it('devuelve una copia idéntica cuando source y target son iguales', () => {
+  it('returns an identical copy when source and target rates are equal', () => {
     const resampler = new StreamingResampler(48000, 48000);
     const chunk = new Float32Array([1, 2, 3]);
     const out = resampler.processChunk(chunk);
     expect(Array.from(out)).toEqual([1, 2, 3]);
   });
 
-  it('lanza error si las frecuencias son no positivas', () => {
+  it('rejects non-positive rates', () => {
     expect(() => new StreamingResampler(-1, 48000)).toThrow();
     expect(() => new StreamingResampler(48000, 0)).toThrow();
   });

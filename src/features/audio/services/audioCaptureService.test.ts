@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { AudioCaptureService } from './audioCaptureService';
+import { AudioCaptureError, AudioCaptureService } from './audioCaptureService';
+import { AUDIO_CONSTANTS } from '../dsp/audio.constants';
+import { AUDIO_WINDOW_PROCESSOR_OPTIONS } from '../worklet/audio-window-processor';
 
 describe('AudioCaptureService', () => {
   let service: AudioCaptureService;
@@ -22,6 +24,7 @@ describe('AudioCaptureService', () => {
     port: mockPort,
     connect: vi.fn(),
     disconnect: vi.fn(),
+    onprocessorerror: null as (() => void) | null,
   };
   const mockMelWorker = {
     onmessage: null as ((event: MessageEvent) => void) | null,
@@ -30,6 +33,7 @@ describe('AudioCaptureService', () => {
     terminate: vi.fn(),
   };
 
+  let getUserMedia: ReturnType<typeof vi.fn>;
   let mockAudioContextInstance: {
     state: string;
     currentTime: number;
@@ -62,10 +66,9 @@ describe('AudioCaptureService', () => {
       return mockWorkletNode;
     }) as unknown as typeof AudioWorkletNode;
 
+    getUserMedia = vi.fn().mockResolvedValue(mockStream);
     Object.defineProperty(globalThis.navigator, 'mediaDevices', {
-      value: {
-        getUserMedia: vi.fn().mockResolvedValue(mockStream),
-      },
+      value: { getUserMedia },
       writable: true,
       configurable: true,
     });
@@ -78,11 +81,11 @@ describe('AudioCaptureService', () => {
     vi.unstubAllGlobals();
   });
 
-  it('inicia en state idle', () => {
+  it('starts idle', () => {
     expect(service.getState()).toBe('idle');
   });
 
-  it('inicia captura y actualiza state a listening', async () => {
+  it('starts capture and moves to listening', async () => {
     const onStateChange = vi.fn();
     service.setCallbacks({ onStateChange });
 
@@ -102,13 +105,38 @@ describe('AudioCaptureService', () => {
     expect(url).toMatch(/audio-window-processor\.worklet.*\.js/);
   });
 
-  it('no vuelve a iniciar si ya está listening', async () => {
+  it('opens the microphone and worklet with the shared audio parameters', async () => {
+    await service.start();
+
+    expect(getUserMedia).toHaveBeenCalledWith({ audio: AUDIO_CONSTANTS.CAPTURE_CONSTRAINTS });
+    expect(AudioContext).toHaveBeenCalledWith({ sampleRate: AUDIO_CONSTANTS.TARGET_SAMPLE_RATE });
+    expect(AudioWorkletNode).toHaveBeenCalledWith(mockAudioContextInstance, AUDIO_CONSTANTS.WORKLET_PROCESSOR_NAME, {
+      processorOptions: AUDIO_WINDOW_PROCESSOR_OPTIONS,
+    });
+  });
+
+  it('reports a processor failure, such as rejected options, and releases resources', async () => {
+    const onError = vi.fn();
+    service.setCallbacks({ onError });
+    await service.start();
+    mockWorkletNode.onprocessorerror?.();
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ code: 'window_processor_failed' }));
+    await vi.waitFor(() => { expect(service.getState()).toBe('idle'); });
+  });
+
+  it('reports a typed error when the MediaDevices API is missing', async () => {
+    Reflect.deleteProperty(globalThis.navigator, 'mediaDevices');
+    await expect(service.start()).rejects.toBeInstanceOf(AudioCaptureError);
+    expect(service.getState()).toBe('error');
+  });
+
+  it('does not start twice while listening', async () => {
     await service.start();
     await service.start();
     expect(service.getState()).toBe('listening');
   });
 
-  it('procesa mensajes LEVEL_UPDATE y WINDOW_READY desde el worklet', async () => {
+  it('handles LEVEL_UPDATE and WINDOW_READY messages from the worklet', async () => {
     const onLevelUpdate = vi.fn();
     const onWindowReady = vi.fn();
     const onMelSpectrogramReady = vi.fn();
@@ -123,15 +151,13 @@ describe('AudioCaptureService', () => {
 
     expect(mockPort.onmessage).not.toBeNull();
 
-    // Simular LEVEL_UPDATE
     mockPort.onmessage?.({
       data: { type: 'LEVEL_UPDATE', rms: 0.12, peak: 0.45 },
     } as MessageEvent);
 
     expect(onLevelUpdate).toHaveBeenCalledWith(0.12, 0.45);
 
-    // Simular WINDOW_READY
-    const testBuffer = new Float32Array(144000);
+    const testBuffer = new Float32Array(AUDIO_CONSTANTS.WINDOW_SAMPLES);
     mockPort.onmessage?.({
       data: {
         type: 'WINDOW_READY',
@@ -152,7 +178,7 @@ describe('AudioCaptureService', () => {
     expect(onMelSpectrogramReady).toHaveBeenCalled();
   });
 
-  it('limpia recursos y pasa a idle al llamar a stop()', async () => {
+  it('releases resources and returns to idle on stop()', async () => {
     await service.start();
     await service.stop();
 
@@ -163,15 +189,15 @@ describe('AudioCaptureService', () => {
     expect(mockAudioContextInstance.close).toHaveBeenCalled();
   });
 
-  it('maneja errores en getUserMedia pasando a state error', async () => {
+  it('moves to error when getUserMedia fails', async () => {
     const onError = vi.fn();
     service.setCallbacks({ onError });
 
     vi.spyOn(navigator.mediaDevices, 'getUserMedia').mockRejectedValueOnce(
-      new Error('Permiso denegado'),
+      new Error('Permission denied'),
     );
 
-    await expect(service.start()).rejects.toThrow('Permiso denegado');
+    await expect(service.start()).rejects.toThrow('Permission denied');
     expect(service.getState()).toBe('error');
     expect(onError).toHaveBeenCalledWith(expect.any(Error));
   });
@@ -184,14 +210,14 @@ describe('AudioCaptureService', () => {
     await service.start();
     for (let windowIndex = 0; windowIndex < 4; windowIndex++) {
       mockPort.onmessage?.({ data: {
-        type: 'WINDOW_READY', buffer: new Float32Array(144000).fill(windowIndex), windowIndex, timestamp: 1000,
+        type: 'WINDOW_READY', buffer: new Float32Array(AUDIO_CONSTANTS.WINDOW_SAMPLES).fill(windowIndex), windowIndex, timestamp: 1000,
       } } as MessageEvent);
     }
     expect(mockMelWorker.postMessage).toHaveBeenCalledTimes(1);
     mockMelWorker.onmessage?.({ data: { type: 'MEL_SPECTROGRAM_READY' } } as MessageEvent);
     const sent = mockMelWorker.postMessage.mock.calls[1]?.[0] as { buffer: Float32Array; windowIndex: number };
     expect(sent.windowIndex).toBe(3);
-    expect(sent.buffer.length).toBe(144000);
+    expect(sent.buffer.length).toBe(AUDIO_CONSTANTS.WINDOW_SAMPLES);
     expect(sent.buffer[0]).toBe(3);
   });
 

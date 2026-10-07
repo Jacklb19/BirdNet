@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { formatBytes, formatNumber, formatPercent, useI18n } from '../../i18n';
-import type { ModelManifest } from '../inference/inference.types';
 import { offlineOperation, scheduleSynchronization } from './offlineClient';
-import { DEFAULT_QUEUE_BYTES, type ModelDownloadState, type OfflineSettings, type QueueStats } from './types';
+import { DEFAULT_QUEUE_BYTES } from './offline.constants';
+import type { ModelDownloadState, OfflineSettings, QueueStats } from './types';
 
 /** Real cache and queue states complement the existing recorder without adding navigation. */
 export function OfflinePanel(): React.JSX.Element {
@@ -19,13 +19,13 @@ export function OfflinePanel(): React.JSX.Element {
     let mounted = true;
     const isMounted = (): boolean => mounted;
     const refresh = async (): Promise<void> => {
-      const result = await offlineOperation<QueueStats>('QUEUE_STATS');
+      const result = await offlineOperation('QUEUE_STATS');
       if (mounted) setStats(result);
     };
     void (async () => {
-      const preferences = await offlineOperation<OfflineSettings>('GET_SETTINGS');
-      const cached = await offlineOperation<ModelManifest | null>('MODEL_STATUS');
-      const available = cached ?? await offlineOperation<ModelManifest>('MODEL_MANIFEST');
+      const preferences = await offlineOperation('GET_SETTINGS');
+      const cached = await offlineOperation('MODEL_STATUS');
+      const available = cached ?? await offlineOperation('MODEL_MANIFEST');
       if (!isMounted()) return;
       setSettings(preferences);
       if (cached) setModel({ status: 'cached', received: cached.size_bytes, total: cached.size_bytes, manifest: cached });
@@ -45,7 +45,7 @@ export function OfflinePanel(): React.JSX.Element {
     try {
       setError(false);
       await offlineOperation('UPDATE_SETTINGS', { changes });
-      setSettings(await offlineOperation<OfflineSettings>('GET_SETTINGS'));
+      setSettings(await offlineOperation('GET_SETTINGS'));
     } catch { setError(true); }
   };
   const download = async (): Promise<void> => {
@@ -53,7 +53,7 @@ export function OfflinePanel(): React.JSX.Element {
     setModel((previous) => ({ ...previous, status: 'downloading', received: 0 }));
     try {
       if ('persist' in navigator.storage) setPersistent(await navigator.storage.persist());
-      const cached = await offlineOperation<ModelManifest>('DOWNLOAD_MODEL', { manifestUrl: '/api/v1/model/latest' }, (received, total) => {
+      const cached = await offlineOperation('DOWNLOAD_MODEL', { manifestUrl: '/api/v1/model/latest' }, (received, total) => {
         setModel((previous) => ({ ...previous, status: 'downloading', received, total }));
       });
       setModel({ status: 'cached', received: cached.size_bytes, total: cached.size_bytes, manifest: cached });

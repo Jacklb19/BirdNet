@@ -3,7 +3,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useAudioCapture } from './useAudioCapture';
 import { AudioCaptureService, type AudioCaptureCallbacks } from '../services/audioCaptureService';
 import { InferenceService, type InferenceCallbacks } from '../../inference/inference.service';
-import type { ModelStatus } from '../../inference/inference.types';
+import type { ModelManifest, ModelStatus } from '../../inference/inference.types';
+import { MIN_CANDIDATE_CONFIDENCE, TOP_K } from '../../inference/inference.constants';
+import { formatModelVersion } from '../../inference/modelManifest';
+import { AUDIO_CONSTANTS } from '../dsp/audio.constants';
 
 vi.mock('../services/audioCaptureService');
 vi.mock('../../inference/inference.service');
@@ -12,6 +15,7 @@ describe('useAudioCapture listening session', () => {
   let captureCallbacks: AudioCaptureCallbacks;
   let inferenceCallbacks: InferenceCallbacks;
   let status: ModelStatus;
+  let manifest: ModelManifest | null;
   const start = vi.fn();
   const stop = vi.fn();
   const infer = vi.fn();
@@ -20,6 +24,7 @@ describe('useAudioCapture listening session', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     status = 'idle';
+    manifest = null;
     start.mockImplementation(() => {
       captureCallbacks.onStateChange?.('listening');
       return Promise.resolve();
@@ -38,6 +43,7 @@ describe('useAudioCapture listening session', () => {
       inferenceCallbacks = callbacks ?? {};
       this.loadModel = vi.fn(() => { status = 'loading'; callbacks?.onStatusChange?.('loading'); return Promise.resolve(); });
       this.getStatus = () => status;
+      this.getManifest = () => manifest;
       this.infer = infer;
       this.dispose = dispose;
     });
@@ -70,7 +76,7 @@ describe('useAudioCapture listening session', () => {
     const { result } = renderHook(() => useAudioCapture());
     await act(async () => { await result.current.startListening(); });
     await ready();
-    const buffer = new Float32Array(144000);
+    const buffer = new Float32Array(AUDIO_CONSTANTS.WINDOW_SAMPLES);
     act(() => {
       captureCallbacks.onLevelUpdate?.(0.4, 0.6);
       captureCallbacks.onWindowReady?.(buffer, 7, 100);
@@ -85,7 +91,7 @@ describe('useAudioCapture listening session', () => {
         scientificName: 'Turdus fuscater', commonName: 'Great Thrush',
       })), 7, 100, 30, 45);
     });
-    expect(infer).toHaveBeenCalledWith(buffer, 7, 100, 5, 0.45);
+    expect(infer).toHaveBeenCalledWith(buffer, 7, 100, TOP_K, MIN_CANDIDATE_CONFIDENCE, undefined);
     expect(result.current.detections.map((item) => item.status)).toEqual(['provisional', 'confirmed_local']);
     expect(result.current.inferenceLatencyMs).toBe(30);
     expect(result.current.endToEndLatencyMs).toBe(45);
@@ -98,13 +104,29 @@ describe('useAudioCapture listening session', () => {
     expect(dispose).toHaveBeenCalledTimes(1);
   });
 
+  it('stores windows with the version of the model that classified them', async () => {
+    manifest = {
+      model_id: 'birdnet', variant: 'fp32', sha256: 'a'.repeat(64), sample_rate: AUDIO_CONSTANTS.TARGET_SAMPLE_RATE,
+      window_samples: AUDIO_CONSTANTS.WINDOW_SAMPLES, window_seconds: AUDIO_CONSTANTS.WINDOW_DURATION_SEC,
+      num_classes: 1, size_bytes: 1, labels_file: 'labels.txt', model_file: 'model.onnx', updated_at: '2026-10-07',
+    };
+    const { result } = renderHook(() => useAudioCapture());
+    await act(async () => { await result.current.startListening(); });
+    await ready();
+    const buffer = new Float32Array(AUDIO_CONSTANTS.WINDOW_SAMPLES);
+    act(() => { captureCallbacks.onWindowReady?.(buffer, 2, 100); });
+    expect(infer).toHaveBeenCalledWith(buffer, 2, 100, TOP_K, MIN_CANDIDATE_CONFIDENCE, expect.objectContaining({
+      location: null, modelVersion: formatModelVersion(manifest),
+    }));
+  });
+
   it('ignores late model and inference callbacks after stop or unmount', async () => {
     const { result, unmount } = renderHook(() => useAudioCapture());
     await act(async () => { await result.current.startListening(); await result.current.stopListening(); });
     await ready();
     expect(start).not.toHaveBeenCalled();
     act(() => {
-      captureCallbacks.onWindowReady?.(new Float32Array(144000), 1, 100);
+      captureCallbacks.onWindowReady?.(new Float32Array(AUDIO_CONSTANTS.WINDOW_SAMPLES), 1, 100);
       inferenceCallbacks.onInferenceResult?.([], 1, 100, 10, 20);
     });
     expect(infer).not.toHaveBeenCalled();

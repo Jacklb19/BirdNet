@@ -1,13 +1,13 @@
 /**
- * Tipos compartidos para el pipeline de inferencia ONNX (RF-05, ADR-01).
- * Define los mensajes entre el hilo principal y el Worker de inferencia.
+ * Types of the ONNX inference pipeline (RF-05, ADR-01), including the messages exchanged between the
+ * main thread and the inference worker.
  */
 import type { PersistenceContext } from '../offline/types';
 
-/** Estado del ciclo de vida del modelo en el Worker */
+/** Lifecycle state of the model in the worker. */
 export type ModelStatus = 'idle' | 'loading' | 'ready' | 'error';
 
-/** Información del modelo cargado, leída de manifest.json (ADR-05) */
+/** Model description read from its manifest (ADR-05); validated by `validateManifest`. */
 export interface ModelManifest {
   readonly model_id: string;
   readonly variant: string;
@@ -22,81 +22,107 @@ export interface ModelManifest {
   readonly updated_at: string;
 }
 
-/** Una detección individual con su especie, confianza y posición en el ranking */
+/** One ranked species candidate of a window. */
 export interface Detection {
-  /** Índice en el vector de salida del modelo (0..num_classes-1) */
+  /** Index in the model output vector (0..num_classes-1). */
   readonly classIndex: number;
-  /** Etiqueta completa del modelo: "Genus species_Common Name" */
+  /** Full model label: scientific and common name joined by `MODEL_LABEL_SEPARATOR`. */
   readonly label: string;
-  /** Nombre científico (primera parte de la etiqueta) */
+  /** Scientific name (label part before the separator). */
   readonly scientificName: string;
-  /** Nombre común (segunda parte de la etiqueta, después del guion bajo) */
+  /** Common name (label part after the separator). */
   readonly commonName: string;
-  /** Probabilidad tras sigmoide, entre 0 y 1 (RNF-09: siempre mostrar confianza) */
+  /** Probability after the sigmoid, between 0 and 1 (RNF-09: confidence is always shown). */
   readonly confidence: number;
 }
 
-// ─── Mensajes entrantes al Worker ────────────────────────────────────────
+/** Wire names of the messages between the main thread and the inference worker. */
+export const INFERENCE_WORKER_MESSAGES = Object.freeze({
+  loadModel: 'LOAD_MODEL',
+  infer: 'INFER',
+  dispose: 'DISPOSE',
+  disposed: 'DISPOSED',
+  modelLoaded: 'MODEL_LOADED',
+  modelError: 'MODEL_ERROR',
+  inferenceResult: 'INFERENCE_RESULT',
+  inferenceError: 'INFERENCE_ERROR',
+} as const);
+
+/** Why an inference failed, when the main thread must react differently from a classifier error. */
+export const INFERENCE_ERROR_REASONS = Object.freeze({
+  /** The window was classified but could not be stored, so its result was not published. */
+  storage: 'storage',
+} as const);
+
+export type InferenceErrorReason = (typeof INFERENCE_ERROR_REASONS)[keyof typeof INFERENCE_ERROR_REASONS];
+
+// ─── Messages to the worker ──────────────────────────────────────────────
 
 export interface LoadModelRequest {
-  readonly type: 'LOAD_MODEL';
+  readonly type: typeof INFERENCE_WORKER_MESSAGES.loadModel;
   readonly modelUrl: string;
   readonly labelsUrl: string;
+  /** Model input length in samples (`manifest.window_samples`); every INFER buffer must match it. */
+  readonly windowSamples: number;
+  /** Model file size in bytes (`manifest.size_bytes`, verified with its hash when the model is cached). */
+  readonly modelSizeBytes: number;
 }
 
 export interface InferRequest {
-  readonly type: 'INFER';
-  /** Audio crudo normalizado a 48 kHz, 144.000 muestras */
+  readonly type: typeof INFERENCE_WORKER_MESSAGES.infer;
+  /** Normalized audio at the model sample rate, exactly `windowSamples` long. */
   readonly audioBuffer: Float32Array;
-  /** Índice de la ventana de origen */
+  /** Index of the source window. */
   readonly windowIndex: number;
-  /** Timestamp de captura */
+  /** Capture time on the main thread's `performance.now()` clock. */
   readonly timestamp: number;
-  /** Número máximo de detecciones a devolver (por defecto 5) */
+  /** Maximum candidates returned (default `TOP_K`). */
   readonly topK?: number;
-  /** Umbral mínimo de confianza para incluir una detección (por defecto 0.1) */
+  /** Minimum confidence of a returned candidate (default `MIN_CANDIDATE_CONFIDENCE`). */
   readonly minConfidence?: number;
+  /** When present, the classified window is stored before the result is published. */
   readonly persistence?: PersistenceContext;
 }
 
 export interface DisposeRequest {
-  readonly type: 'DISPOSE';
+  readonly type: typeof INFERENCE_WORKER_MESSAGES.dispose;
 }
-export interface DisposedMessage { readonly type: 'DISPOSED' }
+/** Sent once the worker has released its session; only then may the main thread terminate it. */
+export interface DisposedMessage { readonly type: typeof INFERENCE_WORKER_MESSAGES.disposed }
 
 export type InferenceWorkerInbound =
   | LoadModelRequest
   | InferRequest
   | DisposeRequest;
 
-// ─── Mensajes salientes del Worker ───────────────────────────────────────
+// ─── Messages from the worker ────────────────────────────────────────────
 
 export interface ModelLoadedMessage {
-  readonly type: 'MODEL_LOADED';
+  readonly type: typeof INFERENCE_WORKER_MESSAGES.modelLoaded;
   readonly numClasses: number;
   readonly modelSizeBytes: number;
 }
 
 export interface ModelErrorMessage {
-  readonly type: 'MODEL_ERROR';
+  readonly type: typeof INFERENCE_WORKER_MESSAGES.modelError;
   readonly error: string;
 }
 
 export interface InferenceResultMessage {
-  readonly type: 'INFERENCE_RESULT';
+  readonly type: typeof INFERENCE_WORKER_MESSAGES.inferenceResult;
   readonly detections: readonly Detection[];
   readonly windowIndex: number;
   readonly timestamp: number;
-  /** Latencia de la inferencia en milisegundos */
+  /** Inference latency in milliseconds. */
   readonly latencyMs: number;
 }
 
 export interface InferenceErrorMessage {
-  readonly type: 'INFERENCE_ERROR';
+  readonly type: typeof INFERENCE_WORKER_MESSAGES.inferenceError;
   readonly error: string;
   readonly windowIndex: number;
   readonly timestamp: number;
-  readonly reason?: 'storage';
+  readonly reason?: InferenceErrorReason;
 }
 
 export type InferenceWorkerOutbound =

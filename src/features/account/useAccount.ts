@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
+import { config } from '../../config/env';
 import { scheduleSynchronization } from '../offline/offlineClient';
 import { bindSyncSession, listDetections } from '../offline/queueStore';
-import { supabase, toSyncSession } from './supabaseClient';
+import { GENERIC_ACCOUNT_FAILURE, type AccountFailure } from './account.constants';
+import { accountFailure, supabase, toSyncSession } from './supabaseClient';
 
-export type AccountError = 'invalidCredentials' | 'generic' | null;
+export type AccountError = AccountFailure | null;
 
 export interface AccountState {
   readonly configured: boolean;
@@ -20,6 +22,11 @@ export interface AccountState {
   signOut(): Promise<void>;
   claimLocal(): Promise<void>;
   declineClaim(): void;
+}
+
+/** Where the confirmation e-mail returns: the configured URL (resolved against this origin), or this origin. */
+function emailRedirectUrl(): string {
+  return config.authRedirectUrl === null ? window.location.origin : new URL(config.authRedirectUrl, window.location.origin).href;
 }
 
 async function countUnowned(): Promise<number> {
@@ -48,7 +55,7 @@ export function useAccount(): AccountState {
         if (next) await scheduleSynchronization();
         const unowned = next ? await countUnowned() : 0;
         if (subscription.active) setUnownedCount(unowned);
-      })().catch(() => { if (subscription.active) setError('generic'); });
+      })().catch(() => { if (subscription.active) setError(GENERIC_ACCOUNT_FAILURE); });
     });
     return () => { subscription.active = false; data.subscription.unsubscribe(); };
   }, []);
@@ -58,7 +65,7 @@ export function useAccount(): AccountState {
     setError(null);
     try { return await action(); }
     catch (caught) {
-      setError(caught instanceof Error && /invalid login credentials/i.test(caught.message) ? 'invalidCredentials' : 'generic');
+      setError(accountFailure(caught));
       return fallback;
     } finally { setWorking(false); }
   }, []);
@@ -71,7 +78,7 @@ export function useAccount(): AccountState {
 
   const signUp = useCallback((email: string, password: string) => run(async () => {
     if (!supabase) throw new Error('Accounts are not configured.');
-    const { data, error: failure } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } });
+    const { data, error: failure } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: emailRedirectUrl() } });
     if (failure) throw failure;
     return data.session === null;
   }, false), [run]);

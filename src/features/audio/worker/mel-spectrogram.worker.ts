@@ -2,37 +2,27 @@ import { AUDIO_CONSTANTS } from '../dsp/audio.constants';
 import {
   createMelFilterbank,
   computeMelSpectrogram,
+  DEFAULT_MEL_FILTERBANK,
   type MelFilterbankConfig,
 } from '../dsp/mel';
+import {
+  MEL_WORKER_MESSAGES,
+  type MelSpectrogramResponse,
+  type MelWorkerInboundMessage,
+  type MelWorkerOutboundMessage,
+} from './mel-spectrogram.protocol';
 
-export interface ComputeMelRequest {
-  type: 'COMPUTE_MEL';
-  buffer: Float32Array;
-  windowIndex: number;
-  timestamp: number;
-}
+// Re-exported for modules that already import the message types from the worker.
+export type {
+  ComputeMelRequest,
+  MelErrorMessage,
+  MelSpectrogramResponse,
+  MelWorkerInboundMessage,
+  MelWorkerOutboundMessage,
+  ResetRequest,
+} from './mel-spectrogram.protocol';
 
-export interface MelSpectrogramResponse {
-  type: 'MEL_SPECTROGRAM_READY';
-  data: Float32Array;
-  numFrames: number;
-  numMelBands: number;
-  windowIndex: number;
-  durationMs: number;
-  timestamp: number;
-}
-
-export interface ResetRequest {
-  type: 'RESET';
-}
-
-export type MelWorkerInboundMessage = ComputeMelRequest | ResetRequest;
-export type MelWorkerOutboundMessage = MelSpectrogramResponse | { type: 'MEL_ERROR'; error: string };
-
-/**
- * Pipeline determinista reutilizable para el cómputo de mel-espectrograma.
- * Conserva el banco de filtros en memoria para evitar reconstrucciones.
- */
+/** Deterministic mel spectrogram pipeline that keeps its filterbank so it is built once per worker. */
 export class MelSpectrogramPipeline {
   private readonly filterbank: Float32Array[];
   private readonly sampleRate: number;
@@ -42,22 +32,20 @@ export class MelSpectrogramPipeline {
   constructor(
     config: Partial<MelFilterbankConfig> & { hopLength?: number } = {},
   ) {
-    this.sampleRate = config.sampleRate ?? AUDIO_CONSTANTS.TARGET_SAMPLE_RATE;
-    this.fftSize = config.fftSize ?? AUDIO_CONSTANTS.FFT_SIZE;
+    this.sampleRate = config.sampleRate ?? DEFAULT_MEL_FILTERBANK.sampleRate;
+    this.fftSize = config.fftSize ?? DEFAULT_MEL_FILTERBANK.fftSize;
     this.hopLength = config.hopLength ?? AUDIO_CONSTANTS.STFT_HOP_LENGTH;
 
     this.filterbank = createMelFilterbank({
       sampleRate: this.sampleRate,
       fftSize: this.fftSize,
-      numMelBands: config.numMelBands ?? AUDIO_CONSTANTS.NUM_MEL_BANDS,
-      minFreqHz: config.minFreqHz ?? AUDIO_CONSTANTS.MIN_FREQUENCY_HZ,
-      maxFreqHz: config.maxFreqHz ?? AUDIO_CONSTANTS.MAX_FREQUENCY_HZ,
+      numMelBands: config.numMelBands ?? DEFAULT_MEL_FILTERBANK.numMelBands,
+      minFreqHz: config.minFreqHz ?? DEFAULT_MEL_FILTERBANK.minFreqHz,
+      maxFreqHz: config.maxFreqHz ?? DEFAULT_MEL_FILTERBANK.maxFreqHz,
     });
   }
 
-  /**
-   * Procesa una ventana de audio de 3 s y retorna el mel-espectrograma con latencia de ejecución.
-   */
+  /** Computes the mel spectrogram of one analysis window and reports how long it took. */
   public processWindow(
     samples: Float32Array,
     windowIndex: number,
@@ -76,7 +64,7 @@ export class MelSpectrogramPipeline {
     const durationMs = performance.now() - startTime;
 
     return {
-      type: 'MEL_SPECTROGRAM_READY',
+      type: MEL_WORKER_MESSAGES.spectrogramReady,
       data: result.data,
       numFrames: result.numFrames,
       numMelBands: result.numMelBands,
@@ -93,15 +81,15 @@ if (typeof self !== 'undefined' && typeof window === 'undefined') {
 
   self.onmessage = (event: MessageEvent<MelWorkerInboundMessage>): void => {
     const { data } = event;
-    if (data.type === 'COMPUTE_MEL') {
+    if (data.type === MEL_WORKER_MESSAGES.computeMel) {
       const workerScope = self as unknown as {
-        postMessage: (msg: unknown, transfer?: Transferable[]) => void;
+        postMessage: (msg: MelWorkerOutboundMessage, transfer?: Transferable[]) => void;
       };
       try {
         const response = pipeline.processWindow(data.buffer, data.windowIndex, data.timestamp);
         workerScope.postMessage(response, [response.data.buffer]);
       } catch (error) {
-        workerScope.postMessage({ type: 'MEL_ERROR', error: error instanceof Error ? error.message : String(error) });
+        workerScope.postMessage({ type: MEL_WORKER_MESSAGES.error, error: error instanceof Error ? error.message : String(error) });
       }
     }
   };

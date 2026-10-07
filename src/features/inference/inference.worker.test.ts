@@ -1,5 +1,6 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
-import type { InferenceWorkerInbound } from './inference.types';
+import type { InferenceWorkerInbound, LoadModelRequest } from './inference.types';
+import { AUDIO_CONSTANTS } from '../audio/dsp/audio.constants';
 
 const runtime = vi.hoisted(() => ({
   create: vi.fn(), run: vi.fn(), release: vi.fn(), disposeInput: vi.fn(), disposeOutput: vi.fn(),
@@ -15,9 +16,12 @@ vi.mock('onnxruntime-web/wasm', () => ({
 describe('inference worker protocol', () => {
   let handle: (message: InferenceWorkerInbound) => Promise<void>;
   const postMessage = vi.fn();
-  const loadRequest = { type: 'LOAD_MODEL', modelUrl: '/model.onnx', labelsUrl: '/labels.txt' } as const;
+  const loadRequest: LoadModelRequest = {
+    type: 'LOAD_MODEL', modelUrl: '/model.onnx', labelsUrl: '/labels.txt',
+    windowSamples: AUDIO_CONSTANTS.WINDOW_SAMPLES, modelSizeBytes: 1_000_000,
+  };
   const inferRequest = {
-    type: 'INFER', audioBuffer: new Float32Array(144000), windowIndex: 3, timestamp: 100,
+    type: 'INFER', audioBuffer: new Float32Array(AUDIO_CONSTANTS.WINDOW_SAMPLES), windowIndex: 3, timestamp: 100,
   } as const;
 
   beforeEach(async () => {
@@ -40,7 +44,7 @@ describe('inference worker protocol', () => {
 
   it('loads the model, classifies raw audio and disposes tensors', async () => {
     await handle(loadRequest);
-    expect(postMessage).toHaveBeenCalledWith({ type: 'MODEL_LOADED', numClasses: 2, modelSizeBytes: 0 });
+    expect(postMessage).toHaveBeenCalledWith({ type: 'MODEL_LOADED', numClasses: 2, modelSizeBytes: loadRequest.modelSizeBytes });
     await handle(inferRequest);
     expect(postMessage).toHaveBeenLastCalledWith(expect.objectContaining({
       type: 'INFERENCE_RESULT', windowIndex: 3, timestamp: 100,
@@ -58,7 +62,12 @@ describe('inference worker protocol', () => {
     await handle({ type: 'DISPOSE' });
   });
 
-  it.each(['http', 'empty', 'runtime', 'shape'])('reports model load failure: %s', async (failure) => {
+  it.each(['window', 'http', 'empty', 'runtime', 'shape'])('reports model load failure: %s', async (failure) => {
+    if (failure === 'window') {
+      await handle({ ...loadRequest, windowSamples: 0 });
+      expect(postMessage).toHaveBeenLastCalledWith(expect.objectContaining({ type: 'MODEL_ERROR' }));
+      return;
+    }
     if (failure === 'http') vi.mocked(fetch).mockResolvedValueOnce({ ok: false } as Response);
     if (failure === 'empty') vi.mocked(fetch).mockResolvedValueOnce({ ok: true, text: () => Promise.resolve('\n') } as Response);
     if (failure === 'runtime') runtime.create.mockRejectedValueOnce('WASM failed');
@@ -71,13 +80,29 @@ describe('inference worker protocol', () => {
     await handle(loadRequest);
     let request = { ...inferRequest };
     if (failure === 'length') request = { ...request, audioBuffer: new Float32Array(10) };
-    if (failure === 'samples') request = { ...request, audioBuffer: new Float32Array(144000).fill(NaN) };
+    if (failure === 'samples') request = { ...request, audioBuffer: new Float32Array(AUDIO_CONSTANTS.WINDOW_SAMPLES).fill(NaN) };
     if (failure === 'missing') runtime.run.mockResolvedValueOnce({});
     if (failure === 'output') runtime.run.mockResolvedValueOnce({ output: { data: [1, 2] } });
     if (failure === 'runtime') runtime.run.mockRejectedValueOnce(new Error('Execution failed'));
     if (failure === 'ranking') runtime.run.mockResolvedValueOnce({ output: { data: new Float32Array([NaN, 0]), dispose: runtime.disposeOutput } });
     await handle(request);
     expect(postMessage).toHaveBeenLastCalledWith(expect.objectContaining({ type: 'INFERENCE_ERROR', windowIndex: 3 }));
+  });
+
+  it('gives ONNX Runtime fresh session options it can write into', async () => {
+    // Regression: the runtime adds its own settings to the options object, so a frozen one broke every load.
+    await handle(loadRequest);
+    await handle(loadRequest);
+    const [first, second] = runtime.create.mock.calls.map((call) => call[1] as object);
+    expect(first).not.toBe(second);
+    expect(Object.isExtensible(first)).toBe(true);
+  });
+
+  it('sizes the input from the window length the manifest declares', async () => {
+    const windowSamples = 16;
+    await handle({ ...loadRequest, windowSamples });
+    await handle({ ...inferRequest, audioBuffer: new Float32Array(windowSamples) });
+    expect(postMessage).toHaveBeenLastCalledWith(expect.objectContaining({ type: 'INFERENCE_RESULT' }));
   });
 
   it('dispatches worker messages through the installed entry point', async () => {
