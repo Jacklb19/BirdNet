@@ -1,0 +1,84 @@
+.bn-settings-model {
+  --settings-badge-size: calc(var(--icon-size) + var(--space-3));
+
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+}
+
+.bn-settings-model__badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: var(--settings-badge-size);
+  height: var(--settings-badge-size);
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-sunken);
+  color: var(--color-text-secondary);
+}
+
+.bn-settings-model__badge--ready {
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+}
+
+.bn-settings-model__badge--error {
+  color: var(--color-error);
+}
+
+.bn-settings-model__text {
+  display: grid;
+  flex: 1;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.bn-settings-model__title {
+  font-weight: var(--font-weight-semibold);
+}
+
+.bn-settings-model__detail {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-settings-model__progress {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.bn-settings-model__action {
+  display: flex;
+  width: 100%;
+  min-height: var(--control-height);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-top: var(--border-width) solid var(--color-border-subtle);
+  background: transparent;
+  color: var(--color-brand);
+  font-weight: var(--font-weight-semibold);
+  text-align: start;
+}
+
+/* The group body clips its corners, so the focus ring is drawn inside the row. */
+.bn-settings-model__action:focus-visible {
+  outline-offset: calc(-1 * var(--focus-width));
+}
+
+.bn-settings-model__action:disabled,
+.bn-settings-model__action[aria-disabled='true'] {
+  color: var(--color-text-secondary);
+  opacity: var(--state-disabled-opacity);
+}
+
+/* Brand text on the sunken hover fill falls under 4.5:1 in the light theme, so hovering underlines it instead. */
+@media (hover: hover) {
+  .bn-settings-model__action:not(:disabled, [aria-disabled='true']):hover {
+    text-decoration: underline;
+  }
+}

@@ -1,0 +1,39 @@
+/* Icon beside the text; the action goes under the text, so a narrow phone never squeezes the state into a sliver. */
+.bn-account-sync {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.bn-account-sync__icon {
+  display: inline-flex;
+  color: var(--color-text-secondary);
+}
+
+.bn-account-sync__icon--synced {
+  color: var(--color-brand);
+}
+
+.bn-account-sync__icon--failed {
+  color: var(--color-error);
+}
+
+.bn-account-sync__text {
+  display: grid;
+}
+
+.bn-account-sync__action {
+  grid-column: 2;
+  justify-self: start;
+}
+
+.bn-account-sync__title {
+  font-weight: var(--font-weight-semibold);
+}
+
+.bn-account-sync__detail {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}

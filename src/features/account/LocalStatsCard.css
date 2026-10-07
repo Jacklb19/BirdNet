@@ -1,0 +1,59 @@
+.bn-account-stats {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.bn-account-stats__title {
+  padding: 0 var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-small);
+}
+
+.bn-account-stats__card {
+  padding: var(--space-4) var(--space-2);
+  border-radius: var(--radius-l);
+  background: var(--color-bg-surface);
+}
+
+.bn-account-stats__message {
+  padding: 0 var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-account-stats__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+/* The value is read after its label (dt, dd) but shown above it, as in the design's stat tiles. */
+.bn-account-stats__item {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  text-align: center;
+}
+
+.bn-account-stats__item + .bn-account-stats__item {
+  border-inline-start: var(--border-width) solid var(--color-border-subtle);
+}
+
+.bn-account-stats__value {
+  margin: 0;
+  font-size: var(--text-l);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--leading-l);
+  font-variant-numeric: tabular-nums;
+}
+
+.bn-account-stats__label {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
