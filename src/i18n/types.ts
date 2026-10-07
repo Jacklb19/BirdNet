@@ -14,20 +14,17 @@ export interface TranslationSchema {
   };
   field: {
     capture: string;
-    diagnostics: string;
     fieldListening: string;
     sessionStatus: string;
     modelPending: string;
     modelReady: string;
     localProcessing: string;
-    developmentTools: string;
   };
   app: {
     title: string;
     subtitle: string;
     navAria: string;
     navCapture: string;
-    navDiagnostics: string;
     navSettings: string;
     navAccount: string;
     navMap: string;
@@ -87,26 +84,6 @@ export interface TranslationSchema {
     endToEndLatency: string;
     droppedWindows: string;
     sessionOnly: string;
-  };
-  diagnostics: {
-    title: string;
-    description: string;
-    capabilitiesTitle: string;
-    reactivityTitle: string;
-    testsCount: string;
-    runTests: string;
-    statusSupported: string;
-    statusUnsupported: string;
-    capabilities: {
-      crossOriginIsolatedName: string;
-      crossOriginIsolatedDesc: string;
-      webWorkerName: string;
-      webWorkerDesc: string;
-      webAssemblyName: string;
-      webAssemblyDesc: string;
-      sharedArrayBufferName: string;
-      sharedArrayBufferDesc: string;
-    };
   };
   account: {
     title: string; subtitle: string; unavailable: string; email: string; password: string;

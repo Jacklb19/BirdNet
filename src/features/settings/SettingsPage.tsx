@@ -1,7 +1,6 @@
 import { useI18n, type Locale } from '../../i18n';
 import { useTheme, type ThemePreference } from '../../theme';
 import { FieldIcon, type FieldIconName } from '../../shared/FieldIcon';
-import { DiagnosticoPage } from '../diagnostico/DiagnosticoPage';
 import { OfflinePanel } from '../offline/OfflinePanel';
 
 /** Native preference controls preserve keyboard navigation and immediate local persistence. */
@@ -36,10 +35,6 @@ export function SettingsPage(): React.JSX.Element {
       </div>
       <p className="saved-notice"><FieldIcon name="shield" />{s.savedNotice}</p>
       <OfflinePanel />
-      {import.meta.env.DEV && <details className="development-tools">
-        <summary>{dict.field.developmentTools}</summary>
-        <DiagnosticoPage />
-      </details>}
     </section>
   );
 }
