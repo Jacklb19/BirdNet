@@ -508,18 +508,21 @@ La prueba de campo no puede automatizarse y, sin embargo, es la más informativa
 
 **Tabla 22**
 
-*Cronograma por sprints*
+*Plan de sprints*
 
-| **Sprint** | **Semana**     | **Entregable verificable**                                                            |
-|------------|----------------|---------------------------------------------------------------------------------------|
-| S0         | 26 sep – 2 oct | Plantilla común compartida con los otros proyectos                                    |
-| S1         | 3 – 9 oct      | Captura de audio con ventaneo en AudioWorklet y visualización del espectrograma       |
-| S2         | 10 – 16 oct    | Exportación y cuantización del modelo; inferencia en el Worker sobre audio de prueba  |
-| S3         | 17 – 23 oct    | Cadena completa en vivo con política de umbrales y medición de latencia               |
-| S4         | 24 – 30 oct    | Cola local, funcionamiento sin conexión y sincronización idempotente en segundo plano |
-| S5         | 31 oct – 6 nov | Autenticación, registro en la nube, mapa con agrupamiento y filtros                   |
-| S6         | 7 – 13 nov     | Verificación en la nube por cola, corrección manual y fichas divulgativas             |
-| S7         | 14 – 19 nov    | Pruebas de campo, optimización energética, accesibilidad y documentación final        |
+| **Sprint** | **Entregable verificable**                                                                                                                                   |
+|------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| S0         | Plantilla común compartida con los otros proyectos                                                                                                           |
+| S1         | Captura de audio con ventaneo en AudioWorklet y visualización del espectrograma                                                                              |
+| S2         | Exportación y cuantización del modelo; inferencia en el Worker sobre audio de prueba                                                                         |
+| S3         | Cadena completa en vivo con política de umbrales y medición de latencia                                                                                      |
+| S4         | Cola local, funcionamiento sin conexión y sincronización idempotente en segundo plano                                                                        |
+| S5         | Autenticación, registro en la nube, mapa con agrupamiento y filtros; aplicación web y API desplegadas como proyectos separados                                |
+| S6         | Rediseño de la interfaz; sitios de monitoreo y panel del sitio con especies distintas, evolución mensual y cambios (RF-13); nombres comunes y catálogo regional; exportación CSV (RF-16) |
+| S7         | Verificación en la nube por cola (RF-09), corrección manual (RF-11), fichas divulgativas (RF-14) e informe periódico del sitio (RF-15)                        |
+| S8         | Pruebas de campo, optimización energética, accesibilidad y documentación final                                                                               |
+
+*Nota.* El plan se organiza por sprints sin calendario fijo; cada sprint se cierra cuando su entregable está verificado.
 
 # **Definición de terminado**
 
