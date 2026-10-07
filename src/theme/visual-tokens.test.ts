@@ -1,7 +1,29 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const css = readFileSync('src/index.css', 'utf8');
+const css = readFileSync('src/styles/tokens.css', 'utf8');
+
+const THEMES = [['light', ':root {'], ['dark', ":root[data-theme='dark'] {"]] as const;
+
+/** WCAG 2.1 minimum contrast: 4.5:1 for text, 3:1 for icons, borders and other graphical objects. */
+const TEXT_CONTRAST = 4.5;
+const GRAPHIC_CONTRAST = 3;
+
+const PAGE_BACKGROUNDS = ['color-bg-canvas', 'color-bg-surface'];
+
+const TEXT_PAIRS: readonly (readonly [string, string])[] = [
+  ...['color-text-primary', 'color-text-secondary'].flatMap((foreground) =>
+    [...PAGE_BACKGROUNDS, 'color-bg-sunken'].map((background) => [foreground, background] as const)),
+  ...['color-brand', 'color-error', 'color-status-confirmed', 'color-status-provisional', 'color-status-verified', 'color-status-corrected']
+    .flatMap((foreground) => PAGE_BACKGROUNDS.map((background) => [foreground, background] as const)),
+  ['color-on-brand', 'color-brand'], ['color-text-inverse', 'color-bg-inverse'],
+  ['color-status-provisional', 'color-status-provisional-soft'], ['color-text-primary', 'color-highlight-now'],
+];
+
+const GRAPHIC_PAIRS: readonly (readonly [string, string])[] = [
+  'color-brand', 'color-record', 'color-border-strong',
+  'color-status-confirmed', 'color-status-provisional', 'color-status-verified', 'color-status-corrected',
+].flatMap((foreground) => [...PAGE_BACKGROUNDS, 'color-bg-sunken'].map((background) => [foreground, background] as const));
 
 function tokens(selector: string): Record<string, string> {
   const start = css.indexOf(selector);
@@ -26,35 +48,17 @@ function contrast(foreground: string, background: string): number {
   return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
 }
 
-describe('Field visual tokens from the production stylesheet', () => {
-  for (const [name, selector] of [['light', ':root {'], ['dark', '[data-theme="dark"] {']] as const) {
+describe('design token contrast (src/styles/tokens.css)', () => {
+  for (const [name, selector] of THEMES) {
     const theme = tokens(selector);
-    it(`keeps all field text AA in the ${name} theme`, () => {
-      const pairs = [
-        ...['color-bg', 'color-surface', 'color-surface-raised'].flatMap((background) =>
-          ['color-text-primary', 'color-text-secondary', 'color-text-muted', 'color-text-subtle', 'color-primary'].map((foreground) => [foreground, background])),
-        ['color-primary-text', 'color-primary'], ['color-danger-text', 'color-danger'],
-        ['color-success-text', 'color-success-bg'], ['color-error-text', 'color-error-bg'],
-        ['color-badge-active-text', 'color-badge-active-bg'], ['color-badge-inactive-text', 'color-badge-inactive-bg'],
-        ['color-canvas-text', 'color-canvas-bg'], ['color-canvas-text-muted', 'color-canvas-bg'],
-        ['color-swatch-light-text', 'color-swatch-light-bg'], ['color-swatch-dark-text', 'color-swatch-dark-bg'],
-        ['color-warning', 'color-bg'], ['color-success-text', 'color-surface'],
-      ];
-      for (const [foreground = '', background = ''] of pairs) {
+    const check = (pairs: readonly (readonly [string, string])[], minimum: number): void => {
+      for (const [foreground, background] of pairs) {
         expect(theme[foreground], foreground).toBeDefined();
         expect(theme[background], background).toBeDefined();
-        expect(contrast(theme[foreground] ?? '', theme[background] ?? ''), `${foreground} / ${background}`).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(theme[foreground] ?? '', theme[background] ?? ''), `${foreground} / ${background}`).toBeGreaterThanOrEqual(minimum);
       }
-    });
-    it(`keeps controls and readings distinguishable in the ${name} theme`, () => {
-      for (const foreground of ['color-border', 'color-primary', 'color-danger', 'color-warning', 'color-focus']) {
-        for (const background of ['color-bg', 'color-surface', 'color-surface-raised']) {
-          expect(contrast(theme[foreground] ?? '', theme[background] ?? ''), `${foreground} / ${background}`).toBeGreaterThanOrEqual(3);
-        }
-      }
-    });
+    };
+    it(`keeps text AA in the ${name} theme`, () => { check(TEXT_PAIRS, TEXT_CONTRAST); });
+    it(`keeps controls and markers distinguishable in the ${name} theme`, () => { check(GRAPHIC_PAIRS, GRAPHIC_CONTRAST); });
   }
-  it('uses identical dark color tokens for the system fallback', () => {
-    expect(tokens(':root:not([data-theme="light"]):not([data-theme="dark"]) {')).toEqual(tokens('[data-theme="dark"] {'));
-  });
 });

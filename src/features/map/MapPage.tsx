@@ -1,53 +1,84 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Map as MapLibreMap, NavigationControl, Popup, setWorkerUrl, type GeoJSONSource, type MapLayerMouseEvent } from 'maplibre-gl';
+import { Map as MapLibreMap, NavigationControl, Popup, setWorkerUrl, type ExpressionSpecification, type GeoJSONSource, type MapLayerMouseEvent } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
-import { formatDate, formatNumber, formatPercent, useI18n } from '../../i18n';
+import { config } from '../../config/env';
+import { DEFAULT_PERIOD, DETECTION_STATUSES, PERIODS, isPeriod, type Period } from '../../config/contract';
+import { formatDate, formatNumber, formatPercent, useI18n, type TranslationSchema } from '../../i18n';
 import { useTheme } from '../../theme';
 import { FieldIcon } from '../../shared/FieldIcon';
-import { fetchMapDetections, periodStart, speciesOptions, toFeatureCollection, type MapPeriod, type MapResult } from './mapData';
+import { fetchMapDetections, periodStart, speciesOptions, toFeatureCollection, type MapResult } from './mapData';
+import {
+  MAP_CLUSTER, MAP_INTERACTIVE_CURSOR, MAP_INTERACTIVE_LAYERS, MAP_LABEL_FONT, MAP_LAYERS, MAP_LIST_PAGE_SIZE, MAP_NAVIGATION,
+  MAP_RELOAD_DEBOUNCE_MS, MAP_SOURCE_ID, MAP_STYLE_URLS, MAP_TOKENS, MAP_WEBGL_CONTEXT, STATUS_COLOR_TOKEN,
+} from './map.config';
 
 // The bundled module cannot resolve MapLibre's worker next to itself; serve it as a same-origin asset.
 setWorkerUrl(workerUrl);
 
-const STYLES = { light: 'https://tiles.openfreemap.org/styles/liberty', dark: 'https://tiles.openfreemap.org/styles/dark' } as const;
-const INITIAL_CENTER: [number, number] = [-74.08, 4.65];
-const RELOAD_DELAY_MS = 400;
-const LIST_LIMIT = 50;
 const EMPTY: MapResult = { detections: [], truncated: false };
 
+/** Dictionary key of each period label; the map dictionary is restructured in the next phase. */
+const PERIOD_LABEL_KEY = {
+  week: 'period7', month: 'period30', year: 'period365', all: 'periodAll',
+} as const satisfies Record<Period, keyof TranslationSchema['map']>;
+
 function supportsWebGL(): boolean {
-  try { return document.createElement('canvas').getContext('webgl2') !== null; } catch { return false; }
+  try { return document.createElement('canvas').getContext(MAP_WEBGL_CONTEXT) !== null; } catch { return false; }
 }
 
+/** MapLibre paints on a canvas, so colors and sizes are read from the active theme's design tokens. */
 function token(name: string): string {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  if (!value) throw new Error(`Design token ${name} is not defined; src/styles/tokens.css must be loaded.`);
+  return value;
+}
+
+/** Map size tokens are declared in px, the unit MapLibre paint properties use. */
+function pixelToken(name: string): number {
+  const value = token(name);
+  const pixels = Number.parseFloat(value);
+  if (!value.endsWith('px') || !Number.isFinite(pixels)) throw new Error(`Design token ${name} must be a length in px.`);
+  return pixels;
+}
+
+function statusColor(): ExpressionSpecification {
+  const [first, ...others] = DETECTION_STATUSES;
+  return ['match', ['get', 'status'],
+    first, token(STATUS_COLOR_TOKEN[first]),
+    ...others.flatMap((status) => [status, token(STATUS_COLOR_TOKEN[status])]),
+    // Rows are validated against DETECTION_STATUSES, so this never shows; provisional is the cautious reading.
+    token(STATUS_COLOR_TOKEN.provisional)];
 }
 
 /** Layers are re-added on every style load so a theme switch keeps clusters and colors in sync. */
 function addDetectionLayers(map: MapLibreMap, result: MapResult): void {
-  if (map.getSource('detections')) return;
-  map.addSource('detections', { type: 'geojson', data: toFeatureCollection(result.detections), cluster: true, clusterRadius: 48, clusterMaxZoom: 14 });
-  map.addLayer({
-    id: 'clusters', type: 'circle', source: 'detections', filter: ['has', 'point_count'],
-    paint: {
-      'circle-color': token('--color-primary'), 'circle-stroke-color': token('--color-surface'), 'circle-stroke-width': 2,
-      'circle-radius': ['step', ['get', 'point_count'], 16, 10, 21, 50, 27],
-    },
+  if (map.getSource(MAP_SOURCE_ID)) return;
+  // Read every token first: a missing one then fails before anything is added, not with half the layers.
+  const stroke = { color: token(MAP_TOKENS.markerStroke), width: pixelToken(MAP_TOKENS.markerStrokeWidth) };
+  const clusterRadius: ExpressionSpecification = ['step', ['get', 'point_count'],
+    pixelToken(MAP_TOKENS.clusterRadiusSmall),
+    MAP_CLUSTER.sizeBreakpoints.medium, pixelToken(MAP_TOKENS.clusterRadiusMedium),
+    MAP_CLUSTER.sizeBreakpoints.large, pixelToken(MAP_TOKENS.clusterRadiusLarge)];
+  const cluster = { fill: token(MAP_TOKENS.clusterFill), label: token(MAP_TOKENS.clusterLabel), labelSize: pixelToken(MAP_TOKENS.labelSize) };
+  const point = { radius: pixelToken(MAP_TOKENS.pointRadius), color: statusColor() };
+
+  map.addSource(MAP_SOURCE_ID, {
+    type: 'geojson', data: toFeatureCollection(result.detections), cluster: true,
+    clusterRadius: MAP_CLUSTER.radiusPx, clusterMaxZoom: MAP_CLUSTER.maxZoom,
   });
   map.addLayer({
-    id: 'cluster-count', type: 'symbol', source: 'detections', filter: ['has', 'point_count'],
-    layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Noto Sans Bold'], 'text-size': 13 },
-    paint: { 'text-color': token('--color-primary-text') },
+    id: MAP_LAYERS.clusters, type: 'circle', source: MAP_SOURCE_ID, filter: ['has', 'point_count'],
+    paint: { 'circle-color': cluster.fill, 'circle-stroke-color': stroke.color, 'circle-stroke-width': stroke.width, 'circle-radius': clusterRadius },
   });
   map.addLayer({
-    id: 'points', type: 'circle', source: 'detections', filter: ['!', ['has', 'point_count']],
-    paint: {
-      'circle-radius': 8, 'circle-stroke-width': 2, 'circle-stroke-color': token('--color-surface'),
-      'circle-color': ['match', ['get', 'status'],
-        'confirmed', token('--color-success-border'), 'verified', token('--color-focus'), 'corrected', token('--color-text-primary'),
-        token('--color-warning')],
-    },
+    id: MAP_LAYERS.clusterCount, type: 'symbol', source: MAP_SOURCE_ID, filter: ['has', 'point_count'],
+    layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': [...MAP_LABEL_FONT], 'text-size': cluster.labelSize },
+    paint: { 'text-color': cluster.label },
+  });
+  map.addLayer({
+    id: MAP_LAYERS.points, type: 'circle', source: MAP_SOURCE_ID, filter: ['!', ['has', 'point_count']],
+    paint: { 'circle-radius': point.radius, 'circle-stroke-width': stroke.width, 'circle-stroke-color': stroke.color, 'circle-color': point.color },
   });
 }
 
@@ -62,10 +93,10 @@ export function MapPage({ accessToken }: MapPageProps): React.JSX.Element {
   const mapRef = useRef<MapLibreMap | null>(null);
   const resultRef = useRef<MapResult>(EMPTY);
   const textRef = useRef({ dict, locale });
-  const styleRef = useRef(STYLES[resolved]);
+  const styleRef = useRef(MAP_STYLE_URLS[resolved]);
   const [ready, setReady] = useState(false);
   const [species, setSpecies] = useState<string | null>(null);
-  const [period, setPeriod] = useState<MapPeriod>('30');
+  const [period, setPeriod] = useState<Period>(DEFAULT_PERIOD);
   const [options, setOptions] = useState<string[]>([]);
   const [result, setResult] = useState<MapResult>(EMPTY);
   const [state, setState] = useState<'idle' | 'loading' | 'error' | 'unsupported'>(() => supportsWebGL() ? 'idle' : 'unsupported');
@@ -86,7 +117,7 @@ export function MapPage({ accessToken }: MapPageProps): React.JSX.Element {
       resultRef.current = next;
       setResult(next);
       if (!species) setOptions(speciesOptions(next.detections));
-      void map.getSource<GeoJSONSource>('detections')?.setData(toFeatureCollection(next.detections));
+      void map.getSource<GeoJSONSource>(MAP_SOURCE_ID)?.setData(toFeatureCollection(next.detections));
       setState('idle');
     } catch {
       // Aborted requests were superseded by a newer view; only real failures reach the interface.
@@ -96,19 +127,22 @@ export function MapPage({ accessToken }: MapPageProps): React.JSX.Element {
 
   useEffect(() => {
     if (!container.current || !supportsWebGL()) return;
-    const map = new MapLibreMap({ container: container.current, style: styleRef.current, center: INITIAL_CENTER, zoom: 10 });
+    const map = new MapLibreMap({
+      container: container.current, style: styleRef.current,
+      center: [...config.map.initialCenter], zoom: config.map.initialZoom,
+    });
     mapRef.current = map;
-    map.addControl(new NavigationControl({ showCompass: false }), 'top-right');
+    map.addControl(new NavigationControl({ showCompass: MAP_NAVIGATION.showCompass }), MAP_NAVIGATION.position);
     map.on('style.load', () => { addDetectionLayers(map, resultRef.current); });
     map.once('load', () => { setReady(true); });
-    map.on('click', 'clusters', (event: MapLayerMouseEvent) => {
+    map.on('click', MAP_LAYERS.clusters, (event: MapLayerMouseEvent) => {
       const feature = event.features?.[0];
       const clusterId: unknown = feature?.properties.cluster_id;
       if (typeof clusterId !== 'number') return;
       const center = event.lngLat;
-      void map.getSource<GeoJSONSource>('detections')?.getClusterExpansionZoom(clusterId).then((zoom) => { map.easeTo({ center, zoom }); });
+      void map.getSource<GeoJSONSource>(MAP_SOURCE_ID)?.getClusterExpansionZoom(clusterId).then((zoom) => { map.easeTo({ center, zoom }); });
     });
-    map.on('click', 'points', (event: MapLayerMouseEvent) => {
+    map.on('click', MAP_LAYERS.points, (event: MapLayerMouseEvent) => {
       const feature = event.features?.[0];
       if (!feature) return;
       const { dict: text, locale: current } = textRef.current;
@@ -126,8 +160,8 @@ export function MapPage({ accessToken }: MapPageProps): React.JSX.Element {
       body.append(name, details, when);
       new Popup({ closeButton: true }).setLngLat([row.longitude, row.latitude]).setDOMContent(body).addTo(map);
     });
-    for (const layer of ['clusters', 'points']) {
-      map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
+    for (const layer of MAP_INTERACTIVE_LAYERS) {
+      map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = MAP_INTERACTIVE_CURSOR; });
       map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
     }
     return () => { mapRef.current = null; map.remove(); };
@@ -135,8 +169,8 @@ export function MapPage({ accessToken }: MapPageProps): React.JSX.Element {
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || styleRef.current === STYLES[resolved]) return;
-    styleRef.current = STYLES[resolved];
+    if (!map || styleRef.current === MAP_STYLE_URLS[resolved]) return;
+    styleRef.current = MAP_STYLE_URLS[resolved];
     // setStyle drops custom layers; the style.load handler restores them with the new theme colors.
     map.setStyle(styleRef.current);
   }, [resolved]);
@@ -151,7 +185,7 @@ export function MapPage({ accessToken }: MapPageProps): React.JSX.Element {
       controller = new AbortController();
       clearTimeout(timer);
       const signal = controller.signal;
-      timer = setTimeout(() => { void load(signal); }, RELOAD_DELAY_MS);
+      timer = setTimeout(() => { void load(signal); }, MAP_RELOAD_DEBOUNCE_MS);
     };
     schedule();
     map.on('moveend', schedule);
@@ -177,9 +211,8 @@ export function MapPage({ accessToken }: MapPageProps): React.JSX.Element {
           </select>
         </label>
         <label>{m.period}
-          <select value={period} onChange={(event) => { setPeriod(event.target.value as MapPeriod); }}>
-            <option value="7">{m.period7}</option><option value="30">{m.period30}</option>
-            <option value="365">{m.period365}</option><option value="all">{m.periodAll}</option>
+          <select value={period} onChange={(event) => { if (isPeriod(event.target.value)) setPeriod(event.target.value); }}>
+            {PERIODS.map((option) => <option key={option.value} value={option.value}>{m[PERIOD_LABEL_KEY[option.value]]}</option>)}
           </select>
         </label>
       </div>
@@ -193,7 +226,7 @@ export function MapPage({ accessToken }: MapPageProps): React.JSX.Element {
       {result.detections.length > 0 && (
         <details className="map-list">
           <summary>{m.listTitle}</summary>
-          <ol>{result.detections.slice(0, LIST_LIMIT).map((row) => (
+          <ol>{result.detections.slice(0, MAP_LIST_PAGE_SIZE).map((row) => (
             <li key={row.id}>
               <i>{row.species}</i>
               <span>{formatPercent(row.confidence, locale)} · {m.status[row.status]}</span>

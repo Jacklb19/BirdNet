@@ -1,20 +1,23 @@
-import { describe, it, expect } from 'vitest';
+import { act, renderHook } from '@testing-library/react';
+import { afterEach, describe, expect, it } from 'vitest';
+import { STORAGE_KEYS, readPreferences } from '../config/storage';
 import { es } from './es';
 import { en } from './en';
 import {
-  formatDecimal,
-  formatPercent,
-  formatFrequency,
-  formatMilliseconds,
-  formatDecibels,
   formatBytes,
   formatDate,
+  formatDecibels,
+  formatDecimal,
+  formatFrequency,
+  formatMilliseconds,
+  formatPercent,
+  formatSeconds,
 } from './formatters';
-import type { TranslationSchema } from './types';
+import { I18nProvider } from './I18nProvider';
+import { DEFAULT_LOCALE, LOCALES } from './locales';
+import { useI18n } from './useI18n';
 
-/**
- * Validates that all nested string fields in an object are defined and non-empty.
- */
+/** Validates that all nested string fields in an object are defined and non-empty. */
 function assertAllKeysNonEmpty(obj: Record<string, unknown>, prefix = ''): void {
   for (const [key, value] of Object.entries(obj)) {
     const fullPath = prefix ? `${prefix}.${key}` : key;
@@ -27,110 +30,87 @@ function assertAllKeysNonEmpty(obj: Record<string, unknown>, prefix = ''): void 
   }
 }
 
-/**
- * Validates that target has all keys present in reference.
- */
-function assertKeyParity(
-  refObj: Record<string, unknown>,
-  targetObj: Record<string, unknown>,
-  prefix = '',
-): void {
+/** Validates that target has all keys present in reference. */
+function assertKeyParity(refObj: Record<string, unknown>, targetObj: Record<string, unknown>, prefix = ''): void {
   for (const key of Object.keys(refObj)) {
     const fullPath = prefix ? `${prefix}.${key}` : key;
     expect(targetObj, `Missing key in translation: ${fullPath}`).toHaveProperty(key);
     if (typeof refObj[key] === 'object' && refObj[key] !== null) {
-      assertKeyParity(
-        refObj[key] as Record<string, unknown>,
-        targetObj[key] as Record<string, unknown>,
-        fullPath,
-      );
+      assertKeyParity(refObj[key] as Record<string, unknown>, targetObj[key] as Record<string, unknown>, fullPath);
     }
   }
 }
 
-describe('i18n Translation Completeness & Integrity', () => {
-  it('el diccionario en español está completo y no tiene claves vacías', () => {
+describe('dictionaries', () => {
+  it('fills every Spanish key', () => {
     assertAllKeysNonEmpty(es as unknown as Record<string, unknown>);
   });
 
-  it('el diccionario en inglés tiene paridad estructural con el español', () => {
-    assertKeyParity(
-      es as unknown as Record<string, unknown>,
-      en as unknown as Record<string, unknown>,
-    );
+  it('gives English the same keys as Spanish, all filled', () => {
+    assertKeyParity(es as unknown as Record<string, unknown>, en as unknown as Record<string, unknown>);
     assertAllKeysNonEmpty(en as unknown as Record<string, unknown>);
-  });
-
-  it('falla explícitamente si falta alguna clave obligatoria en el esquema', () => {
-    const mockIncompleteDict = { ...es } as Partial<TranslationSchema>;
-    delete (mockIncompleteDict as Record<string, unknown>).privacy;
-
-    expect(() => {
-      if (!mockIncompleteDict.privacy) {
-        throw new Error('Falta clave obligatoria: privacy');
-      }
-    }).toThrow(/falta clave obligatoria/i);
   });
 });
 
-describe('i18n Intl Formatters', () => {
-  it('formatea números decimales respetando la convención de coma en español y punto en inglés', () => {
-    const formattedEs = formatDecimal(48.3, 'es', 1);
-    const formattedEn = formatDecimal(48.3, 'en', 1);
-
-    expect(formattedEs).toBe('48,3');
-    expect(formattedEn).toBe('48.3');
+describe('I18nProvider', () => {
+  afterEach(() => {
+    localStorage.clear();
+    document.documentElement.removeAttribute('lang');
   });
 
-  it('formatea porcentajes con el símbolo y separador adecuado', () => {
-    const formattedEs = formatPercent(0.895, 'es', 1);
-    const formattedEn = formatPercent(0.895, 'en', 1);
-
-    // En español incluye espacio de no separación antes de % o coma decimal
-    expect(formattedEs).toMatch(/89,5\s*%/);
-    expect(formattedEn).toBe('89.5%');
+  it('declares the stored language on mount and follows later changes', () => {
+    // A language other than the default, so the assertion proves the stored value was applied.
+    const stored = LOCALES.find((entry) => entry.code !== DEFAULT_LOCALE)?.code;
+    if (!stored) throw new Error('This test needs a second language.');
+    localStorage.setItem(STORAGE_KEYS.preferences, JSON.stringify({ locale: stored }));
+    const { result } = renderHook(() => useI18n(), { wrapper: I18nProvider });
+    expect(result.current.locale).toBe(stored);
+    expect(document.documentElement.lang).toBe(stored);
+    act(() => { result.current.setLocale(DEFAULT_LOCALE); });
+    expect(document.documentElement.lang).toBe(DEFAULT_LOCALE);
+    expect(readPreferences().locale).toBe(DEFAULT_LOCALE);
   });
 
-  it('formatea frecuencia acústica con unidad Hz', () => {
-    const freqEs = formatFrequency(48000, 'es');
-    const freqEn = formatFrequency(48000, 'en');
+  it('falls back to the default language when the stored one is unknown', () => {
+    localStorage.setItem(STORAGE_KEYS.preferences, JSON.stringify({ locale: 'xx' }));
+    const { result } = renderHook(() => useI18n(), { wrapper: I18nProvider });
+    expect(result.current.locale).toBe(DEFAULT_LOCALE);
+  });
+});
 
-    expect(freqEs).toMatch(/48\.000\s*Hz/);
-    expect(freqEn).toMatch(/48,000\s*Hz/);
+describe('formatters', () => {
+  it('uses each language decimal separator', () => {
+    expect(formatDecimal(48.3, 'es', 1)).toBe('48,3');
+    expect(formatDecimal(48.3, 'en', 1)).toBe('48.3');
   });
 
-  it('formatea latencia y milisegundos con Intl', () => {
-    const msEs = formatMilliseconds(24.6, 'es', 1);
-    const msEn = formatMilliseconds(24.6, 'en', 1);
-
-    expect(msEs).toBe('24,6 ms');
-    expect(msEn).toBe('24.6 ms');
+  it('formats percentages with the locale symbol placement', () => {
+    expect(formatPercent(0.895, 'es', 1)).toMatch(/89,5\s*%/);
+    expect(formatPercent(0.895, 'en', 1)).toBe('89.5%');
   });
 
-  it('formatea decibelios de nivel sonoro (dBFS)', () => {
-    const dbEs = formatDecibels(-14.2, 'es', 1);
-    const dbEn = formatDecibels(-14.2, 'en', 1);
-
-    expect(dbEs).toBe('-14,2 dBFS');
-    expect(dbEn).toBe('-14.2 dBFS');
+  it('formats frequencies and levels with their international symbols', () => {
+    expect(formatFrequency(48000, 'es')).toMatch(/^48\.000\s+Hz$/);
+    expect(formatFrequency(48000, 'en')).toMatch(/^48,000\s+Hz$/);
+    expect(formatDecibels(-14.2, 'es', 1)).toMatch(/^-14,2\s+dBFS$/);
+    expect(formatDecibels(-14.2, 'en', 1)).toMatch(/^-14\.2\s+dBFS$/);
   });
 
-  it('formatea bytes en MB con separador decimal localizado', () => {
-    const bytes = 38727042; // ~36.93 MB
-    const mbEs = formatBytes(bytes, 'es');
-    const mbEn = formatBytes(bytes, 'en');
-
-    expect(mbEs).toMatch(/36,9\s*MB/);
-    expect(mbEn).toMatch(/36\.9\s*MB/);
+  it('formats durations with Intl units', () => {
+    expect(formatMilliseconds(24.6, 'es', 1)).toMatch(/^24,6\s+ms$/);
+    expect(formatMilliseconds(24.6, 'en', 1)).toMatch(/^24\.6\s+ms$/);
+    expect(formatSeconds(3, 'es', 0)).toMatch(/^3\s+s$/);
+    expect(formatSeconds(2.5, 'en')).toMatch(/^2\.5\s+sec$/);
   });
 
-  it('formatea fechas con Intl.DateTimeFormat', () => {
+  it('formats sizes in decimal megabytes', () => {
+    const bytes = 38_727_042;
+    expect(formatBytes(bytes, 'es')).toMatch(/^38,7\s+MB$/);
+    expect(formatBytes(bytes, 'en')).toMatch(/^38\.7\s+MB$/);
+  });
+
+  it('formats dates per language', () => {
     const testDate = new Date('2026-10-12T14:30:00Z');
-    const dateEs = formatDate(testDate, 'es');
-    const dateEn = formatDate(testDate, 'en');
-
-    expect(dateEs).toBeTruthy();
-    expect(dateEn).toBeTruthy();
-    expect(dateEs).not.toEqual(dateEn);
+    expect(formatDate(testDate, 'es')).not.toEqual(formatDate(testDate, 'en'));
   });
 });

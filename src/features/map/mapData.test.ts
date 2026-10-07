@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { API_ROUTES } from '../../config/api';
 import { clampBounds, fetchMapDetections, periodStart, speciesOptions, toFeatureCollection, type MapDetection } from './mapData';
 
 const row: MapDetection = { id: 'a', species: 'Turdus fuscater', confidence: 0.91, status: 'confirmed', recorded_at: '2026-10-06T12:00:00Z', latitude: 4.679, longitude: -74.123 };
@@ -8,7 +9,7 @@ describe('mapData', () => {
 
   it('computes period starts and clamps world-wrapped views', () => {
     const now = new Date('2026-10-31T00:00:00Z');
-    expect(periodStart('7', now)?.toISOString()).toBe('2026-10-24T00:00:00.000Z');
+    expect(periodStart('week', now)?.toISOString()).toBe('2026-10-24T00:00:00.000Z');
     expect(periodStart('all', now)).toBeNull();
     expect(clampBounds({ west: -400, south: -95, east: 400, north: 95 })).toEqual({ west: -180, south: -90, east: 180, north: 90 });
   });
@@ -20,14 +21,15 @@ describe('mapData', () => {
   });
 
   it('sends filters with the session and drops malformed rows', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(Response.json({ detections: [row, { id: 'bad' }], truncated: true }));
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ detections: [row, { id: 'bad' }, { ...row, id: 'b', status: 'unknown' }], truncated: true }));
     vi.stubGlobal('fetch', fetchMock);
     const result = await fetchMapDetections({ west: -75, south: 4, east: -74, north: 5 }, { species: 'Turdus fuscater', since: new Date('2026-10-01T00:00:00Z') }, 'token', new AbortController().signal);
     expect(result).toEqual({ detections: [row], truncated: true });
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain(`${API_ROUTES.detections}?`);
     expect(url).toContain('species=Turdus+fuscater');
     expect(url).toContain('since=2026-10-01T00%3A00%3A00.000Z');
-    expect(init.headers).toEqual({ Authorization: 'Bearer token' });
+    expect(new Headers(init.headers).get('Authorization')).toBe('Bearer token');
   });
 
   it('rejects failed or malformed responses', async () => {
