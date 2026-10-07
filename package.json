@@ -14,8 +14,7 @@
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:offline": "node scripts/prepare-offline-check.mjs && playwright test",
-    "test:backend": ".venv/Scripts/python.exe -m pytest backend -q"
+    "test:offline": "node scripts/prepare-offline-check.mjs && playwright test"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.2",

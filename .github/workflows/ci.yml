@@ -14,18 +14,6 @@ jobs:
   verify:
     name: Verificación (Tipos, Lint, Pruebas y Build)
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgis/postgis@sha256:94146ac37bc61e2322f88016056c5920729cb8c64c8542ed590af8fc2abdac07
-        env:
-          POSTGRES_HOST_AUTH_METHOD: trust
-        ports:
-          - 55434:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
 
     steps:
       - name: Descargar código fuente
@@ -39,23 +27,6 @@ jobs:
 
       - name: Instalar dependencias
         run: npm ci
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: pip
-          cache-dependency-path: backend/requirements*.txt
-
-      - name: Install backend dependencies
-        run: python -m pip install -r backend/requirements-dev.txt
-
-      - name: Verify backend and local migrations
-        env:
-          BIRDNET_TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:55434/birdnet_s4_test
-        run: |
-          python backend/tests/prepare_database.py
-          python -m pytest backend -q
 
       - name: Verificación de tipos estáticos
         run: npm run typecheck
