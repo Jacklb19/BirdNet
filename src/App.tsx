@@ -1,17 +1,25 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { I18nProvider, useI18n } from './i18n';
 import { ThemeProvider } from './theme';
 import { AudioCapturePanel } from './features/audio/components/AudioCapturePanel';
 import { SettingsPage } from './features/settings/SettingsPage';
+import { AccountPage } from './features/account/AccountPage';
+import { useAccount } from './features/account/useAccount';
 import { FieldIcon, type FieldIconName } from './shared/FieldIcon';
 
-type ActiveView = 'capture' | 'settings';
+// MapLibre is large; load it only when the map is opened so capture starts fast.
+const MapPage = lazy(() => import('./features/map/MapPage'));
+
+type ActiveView = 'capture' | 'map' | 'account' | 'settings';
 
 function AppLayout(): React.JSX.Element {
   const [activeView, setActiveView] = useState<ActiveView>('capture');
   const { dict } = useI18n();
+  const account = useAccount();
   const navItems: { id: ActiveView; label: string; shortLabel: string; icon: FieldIconName }[] = [
     { id: 'capture', label: dict.app.navCapture, shortLabel: dict.field.capture, icon: 'mic' },
+    { id: 'map', label: dict.app.navMap, shortLabel: dict.app.navMap, icon: 'map' },
+    { id: 'account', label: dict.app.navAccount, shortLabel: dict.app.navAccount, icon: 'user' },
     { id: 'settings', label: dict.app.navSettings, shortLabel: dict.app.navSettings, icon: 'settings' },
   ];
   return (
@@ -42,6 +50,8 @@ function AppLayout(): React.JSX.Element {
       </header>
       <main className="app-main">
         {activeView === 'capture' && <AudioCapturePanel />}
+        {activeView === 'map' && <Suspense fallback={<p className="page">{dict.map.loading}</p>}><MapPage accessToken={account.session?.access_token ?? null} /></Suspense>}
+        {activeView === 'account' && <AccountPage account={account} />}
         {activeView === 'settings' && <SettingsPage />}
       </main>
     </div>

@@ -82,6 +82,8 @@
   --container-max-width: 1200px;
   --touch-target-size: 80px;
   --touch-target-min: 56px;
+  --map-height: min(62vh, 34rem);
+  --form-width: 28rem;
   --icon-size: 24px;
   --icon-size-large: 36px;
   --brand-size: 40px;
@@ -387,6 +389,32 @@ summary::marker { color: var(--color-primary); }
 .offline-preferences label { display: flex; align-items: center; gap: var(--spacing-3); min-height: var(--touch-target-size); }
 .offline-preferences input[type='checkbox'] { width: var(--radio-size); height: var(--radio-size); flex-shrink: 0; accent-color: var(--color-primary); }
 .offline-preferences input[type='number'] { width: var(--confidence-width); min-height: var(--touch-target-min); padding: var(--spacing-2); background: var(--color-surface); color: var(--color-text-primary); border: var(--border-width) solid var(--color-border); font: inherit; }
+.account-form, .account-panel { display: grid; gap: var(--spacing-4); max-width: var(--form-width); }
+.account-form label { display: grid; gap: var(--spacing-2); font-weight: var(--font-weight-bold); }
+.account-form input, .map-filters select { min-height: var(--touch-target-min); padding: var(--spacing-2) var(--spacing-3); background: var(--color-surface); color: var(--color-text-primary); border: var(--border-width) solid var(--color-border); border-radius: var(--radius-md); font: inherit; max-width: 100%; }
+.account-hint { font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-top: calc(-1 * var(--spacing-2)); }
+.account-link { justify-self: start; min-height: var(--touch-target-min); padding: 0; border: 0; background: transparent; color: var(--color-primary); text-decoration: underline; font-weight: var(--font-weight-bold); }
+.account-secondary { justify-self: start; min-height: var(--touch-target-min); padding: var(--spacing-3) var(--spacing-4); border: var(--border-width) solid var(--color-border); border-radius: var(--radius-md); background: transparent; color: var(--color-text-primary); font-weight: var(--font-weight-bold); }
+.account-identity { display: grid; gap: var(--spacing-1); overflow-wrap: anywhere; }
+.account-identity span { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
+.account-notice, .account-error { display: flex; align-items: flex-start; gap: var(--spacing-3); padding: var(--spacing-4); font-size: var(--font-size-sm); border-block: var(--border-width) solid var(--color-border-subtle); color: var(--color-text-secondary); max-width: 60ch; }
+.account-notice .field-icon, .account-error .field-icon { flex-shrink: 0; }
+.account-error { margin-top: var(--spacing-4); color: var(--color-error-text); background: var(--color-error-bg); border-color: var(--color-error-border); }
+.account-claim { display: grid; gap: var(--spacing-3); padding: var(--spacing-4); border: var(--border-width-strong) solid var(--color-text-primary); }
+.account-claim h3 { font-size: var(--font-size-lg); }
+.account-actions { display: flex; flex-wrap: wrap; gap: var(--spacing-3); }
+.map-filters { display: flex; flex-wrap: wrap; gap: var(--spacing-4); margin-bottom: var(--spacing-4); }
+.map-filters label { display: grid; gap: var(--spacing-2); font-weight: var(--font-weight-bold); min-width: 0; }
+.map-canvas { height: var(--map-height); border: var(--border-width) solid var(--color-border); background: var(--color-canvas-bg); }
+.map-summary { margin-top: var(--spacing-3); font-weight: var(--font-weight-bold); }
+.map-popup { color: var(--color-swatch-light-text); font-family: var(--font-family-sans); }
+.map-popup strong { font-style: italic; }
+.map-list ol { display: grid; gap: var(--spacing-2); padding-left: var(--spacing-6); }
+.map-list li { display: flex; flex-wrap: wrap; gap: var(--spacing-1) var(--spacing-3); overflow-wrap: anywhere; }
+.map-list time, .map-list span { color: var(--color-text-secondary); font-size: var(--font-size-sm); }
+@media (max-width: 767px) {
+  .map-filters label, .map-filters select, .account-actions button { width: 100%; }
+}
 @media (forced-colors: active) {
   .preference-option input { appearance: auto; }
   .listen-button, .level-fill, .confidence-track span { background: Highlight; color: HighlightText; }
