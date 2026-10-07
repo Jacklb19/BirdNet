@@ -17,6 +17,8 @@ import {
 } from '../../build.config.mjs';
 import { APP_SHELL_URL, SERVICE_WORKER_URL } from '../features/offline/offline.constants';
 import { STATIC_MANIFEST_URL } from '../features/inference/modelManifest';
+import { DEFAULT_LOCALE } from '../i18n/locales';
+import { dictionaries } from '../i18n/messages';
 import { API_ROUTES } from './api';
 import { readConfig, type AppConfig } from './env';
 
@@ -69,8 +71,13 @@ function lightToken(name: string): string {
   return value.toUpperCase();
 }
 
+function captured(source: string, pattern: RegExp): string {
+  return pattern.exec(source)?.[1] ?? '';
+}
+
+/** Color attributes, normalized because hex digits may be written in either case. */
 function attribute(source: string, pattern: RegExp): string {
-  return pattern.exec(source)?.[1]?.toUpperCase() ?? '';
+  return captured(source, pattern).toUpperCase();
 }
 
 function externalUrls(config: AppConfig): string[] {
@@ -161,11 +168,18 @@ describe('deployment configuration', () => {
     expect(iconPath.startsWith(`/${ICONS_DIR}/`)).toBe(true);
   });
 
-  it('paints the shell with the light brand tokens', () => {
-    expect(webManifest.theme_color?.toUpperCase()).toBe(lightToken('--color-brand'));
+  it('paints the shell with the light tokens the app applies at runtime', () => {
+    // The runtime copies --color-bg-canvas into theme-color, so the static fallbacks use the same token.
+    expect(webManifest.theme_color?.toUpperCase()).toBe(lightToken('--color-bg-canvas'));
     expect(webManifest.background_color?.toUpperCase()).toBe(lightToken('--color-bg-canvas'));
-    expect(attribute(indexHtml, /<meta name="theme-color" content="([^"]+)"/)).toBe(lightToken('--color-brand'));
+    expect(attribute(indexHtml, /<meta name="theme-color" content="([^"]+)"/)).toBe(lightToken('--color-bg-canvas'));
     expect(attribute(appIcon, /<rect[^>]*fill="([^"]+)"/)).toBe(lightToken('--color-brand'));
     expect(attribute(appIcon, /<path[^>]*fill="([^"]+)"/)).toBe(lightToken('--color-on-brand'));
+  });
+
+  it('shows the default-locale title and description before the app starts', () => {
+    expect(captured(indexHtml, /<title>([^<]+)<\/title>/)).toBe(dictionaries[DEFAULT_LOCALE].app.documentTitle);
+    expect(captured(indexHtml, /<meta name="description" content="([^"]+)"/)).toBe(dictionaries[DEFAULT_LOCALE].app.description);
+    expect(captured(indexHtml, /<html lang="([^"]+)"/)).toBe(DEFAULT_LOCALE);
   });
 });
