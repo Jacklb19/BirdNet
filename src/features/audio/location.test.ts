@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { LOCATION_WATCH_OPTIONS, watchApproximateLocation } from './location';
+import { LOCATION_OPTIONS, watchApproximateLocation } from './location';
 
 /** Constants of `GeolocationPositionError`, which jsdom does not provide. */
 const POSITION_ERROR = { PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 } as const;
@@ -42,8 +42,8 @@ describe('watchApproximateLocation', () => {
     const device = stubGeolocation(7);
     const onChange = vi.fn();
     const stop = watchApproximateLocation(onChange);
-    expect(device.options()).toBe(LOCATION_WATCH_OPTIONS);
-    expect(LOCATION_WATCH_OPTIONS.enableHighAccuracy).toBe(false);
+    expect(device.options()).toBe(LOCATION_OPTIONS);
+    expect(LOCATION_OPTIONS.enableHighAccuracy).toBe(false);
 
     device.report(position(4.6512345, -74.0834567));
     expect(onChange).toHaveBeenLastCalledWith({ latitude: 4.651, longitude: -74.083 });

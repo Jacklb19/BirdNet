@@ -52,7 +52,12 @@ describe('chorus clock', () => {
 
   it('accepts only complete statistics', () => {
     expect(() => parseStats({ hourly: [1] })).toThrow();
-    expect(parseStats({ hourly: emptyDay(), species: [], missing: [], species_count: 0, detections: 0, active_days: 0 }).species_count).toBe(0);
+    const complete = {
+      period: 'all', since: null, until: '2026-10-07T12:00:00Z', species_count: 0, previous_species_count: null,
+      detections: 0, active_days: 0, hourly: emptyDay(), species: [], missing: [],
+    };
+    expect(parseStats(complete).species_count).toBe(0);
+    expect(() => parseStats({ ...complete, until: undefined })).toThrow();
   });
 });
 

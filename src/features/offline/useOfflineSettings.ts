@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { dispatchSettingsChanged, SETTINGS_CHANGED_EVENT, type EditableSettings } from './offline.constants';
+import type { EditableSettings } from './offline.constants';
 import { getSettings, updateSettings } from './queueStore';
 import type { OfflineSettings } from './types';
+import { useQueueVersion } from './useQueueVersion';
 
 export interface OfflineSettingsState {
   /** Null while loading, or when the browser has no IndexedDB (nothing can be stored on the device). */
@@ -11,27 +12,28 @@ export interface OfflineSettingsState {
   readonly update: (changes: EditableSettings) => Promise<boolean>;
 }
 
-/** Preferences stored with the local queue (permissions, capacity, active site), shared by every screen. */
+/**
+ * Preferences stored with the local queue (permissions, capacity, active site, sync session, cached sites), shared
+ * by every screen. They are read again after every settings change, also one made in another tab or by the
+ * service worker, so every open view shows the stored values.
+ */
 export function useOfflineSettings(): OfflineSettingsState {
+  const version = useQueueVersion('settings');
   const [settings, setSettings] = useState<OfflineSettings | null>(null);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     if (typeof indexedDB === 'undefined') return;
     let active = true;
-    const load = (): void => {
-      getSettings().then((loaded) => { if (active) setSettings(loaded); }).catch(() => { if (active) setError(true); });
-    };
-    load();
-    window.addEventListener(SETTINGS_CHANGED_EVENT, load);
-    return () => { active = false; window.removeEventListener(SETTINGS_CHANGED_EVENT, load); };
-  }, []);
+    getSettings().then((loaded) => { if (active) setSettings(loaded); }).catch(() => { if (active) setError(true); });
+    return () => { active = false; };
+  }, [version]);
 
   const update = useCallback(async (changes: EditableSettings): Promise<boolean> => {
     setError(false);
     try {
+      // The queue store announces the committed change, which reloads every view of the settings.
       await updateSettings(changes);
-      dispatchSettingsChanged();
       return true;
     } catch {
       setError(true);

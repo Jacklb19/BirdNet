@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { config } from '../../config/env';
 import { scheduleSynchronization } from '../offline/offlineClient';
-import { bindSyncSession, listDetections } from '../offline/queueStore';
-import { GENERIC_ACCOUNT_FAILURE, type AccountFailure } from './account.constants';
+import { bindSyncSession, keepSitesOf, listDetections } from '../offline/queueStore';
+import { GENERIC_ACCOUNT_FAILURE, SIGNED_OUT_EVENT, type AccountFailure } from './account.constants';
 import { accountFailure, supabase, toSyncSession } from './supabaseClient';
 
 export type AccountError = AccountFailure | null;
@@ -46,12 +46,18 @@ export function useAccount(): AccountState {
   useEffect(() => {
     if (!supabase) return;
     const subscription = { active: true };
-    const { data } = supabase.auth.onAuthStateChange((_event, next) => {
+    const { data } = supabase.auth.onAuthStateChange((event, next) => {
       if (!subscription.active) return;
       setSession(next);
       // Token refreshes must reach IndexedDB too, or background sync stops when the hour-long token expires.
       void (async () => {
-        if (typeof indexedDB !== 'undefined') await bindSyncSession(toSyncSession(next));
+        if (typeof indexedDB !== 'undefined') {
+          await bindSyncSession(toSyncSession(next));
+          // The cached sites belong to one account (privacy on a shared phone): forgotten on sign-out or when another
+          // account signs in. A missing session alone is not a sign-out: a stored session that cannot be renewed
+          // offline also starts without one, and the field still needs the saved sites.
+          if (next || event === SIGNED_OUT_EVENT) await keepSitesOf(next?.user.id ?? null);
+        }
         if (next) await scheduleSynchronization();
         const unowned = next ? await countUnowned() : 0;
         if (subscription.active) setUnownedCount(unowned);

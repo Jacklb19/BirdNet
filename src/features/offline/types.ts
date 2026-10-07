@@ -38,6 +38,8 @@ export interface OfflineSettings {
   activeSiteId?: string | null;
   /** Last site list fetched online, so a site can be chosen while offline. */
   sites?: CachedSite[];
+  /** Account that fetched `sites`; absent on lists cached before it was recorded. */
+  sitesOwner?: string | null;
 }
 export interface QueueStats { count: number; bytes: number; waitingLocation: number; waitingAccount: number }
 export interface PersistenceContext {

@@ -2,13 +2,14 @@ import { approximateLocation } from '../offline/queuePolicy';
 import type { ApproximateLocation } from '../offline/types';
 
 /**
- * Geolocation options of a listening session (ADR-04). Detections keep only a ~100 m cell, so a
- * GPS-grade fix adds no information while draining the battery and exposing a precise position to the
- * page: coarse accuracy is requested. Cached fixes are refused because one could come from a previous
- * place and file detections in the wrong cell. The timeout bounds each acquisition attempt so a
- * device without a fix reports it instead of waiting indefinitely.
+ * Geolocation options of every position request (ADR-04): the listening session's watch and the one-off
+ * fix of a new site. Only a ~100 m cell is ever kept, so a GPS-grade fix adds no information while
+ * draining the battery and exposing a precise position to the page: coarse accuracy is requested.
+ * Cached fixes are refused because one could come from a previous place and file data in the wrong
+ * cell. The timeout bounds each acquisition attempt so a device without a fix reports it instead of
+ * waiting indefinitely.
  */
-export const LOCATION_WATCH_OPTIONS: Readonly<PositionOptions> = Object.freeze({
+export const LOCATION_OPTIONS: Readonly<PositionOptions> = Object.freeze({
   enableHighAccuracy: false,
   maximumAge: 0,
   timeout: 30_000,
@@ -43,7 +44,7 @@ export function watchApproximateLocation(onChange: (location: ApproximateLocatio
     (error) => {
       if (error.code !== error.TIMEOUT) onChange(null);
     },
-    LOCATION_WATCH_OPTIONS,
+    LOCATION_OPTIONS,
   );
   return () => { geolocation.clearWatch(watchId); };
 }

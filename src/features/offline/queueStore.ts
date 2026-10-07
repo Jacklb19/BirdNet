@@ -1,5 +1,6 @@
 import type { ClassifiedDetection } from '../inference/detectionPolicy';
 import { CONFIDENCE_THRESHOLDS, FIELD_LIMITS, isUuid } from '../../config/contract';
+import { announceQueueChange } from './queueChanges';
 import { approximateLocation, assertQueueCapacity, encodeAudio } from './queuePolicy';
 import {
   AUDIO_REVIEW_STATUS, DATABASE_NAME, DATABASE_VERSION, DEFAULT_QUEUE_BYTES, isEditableSettingsKey, QUEUED_STATUS_BY_LOCAL_STATUS,
@@ -69,6 +70,7 @@ export async function updateSettings(changes: EditableSettings): Promise<void> {
     if (typeof next.audioConsent !== 'boolean' || typeof next.locationEnabled !== 'boolean') throw new Error('Invalid preferences.');
     await writeSettings(tx, next);
   });
+  announceQueueChange(['settings']);
 }
 
 /** S5 must call this only after an explicit account association; never silently reassign owners. */
@@ -90,15 +92,37 @@ export async function bindSyncSession(session: SyncSession | null, claimUnowned 
     }
     await writeSettings(tx, { ...settings, session });
   });
+  // Claiming gives records an owner, which changes what the log and the account show as uploadable.
+  announceQueueChange(session && claimUnowned ? ['settings', 'records'] : ['settings']);
 }
-/** Replaces the offline copy of the user's sites; the active site is cleared if it no longer exists. */
-export async function setCachedSites(sites: readonly CachedSite[]): Promise<void> {
-  if (sites.some((site) => !isUuid(site.id) || !site.name || !Number.isFinite(site.latitude) || !Number.isFinite(site.longitude))) throw new Error('Invalid sites.');
+/**
+ * Replaces the offline copy of `ownerId`'s sites; the active site is cleared if it no longer exists. The owner is
+ * stored with the list, so it is shown only to that account (see `keepSitesOf`).
+ */
+export async function setCachedSites(sites: readonly CachedSite[], ownerId: string): Promise<void> {
+  if (!isUuid(ownerId) || sites.some((site) => !isUuid(site.id) || !site.name || !Number.isFinite(site.latitude) || !Number.isFinite(site.longitude))) throw new Error('Invalid sites.');
   await transact([STORES.settings], 'readwrite', async (tx) => {
     const settings = await readSettings(tx);
     const activeSiteId = sites.some((site) => site.id === settings.activeSiteId) ? settings.activeSiteId : null;
-    await writeSettings(tx, { ...settings, sites: [...sites], activeSiteId });
+    await writeSettings(tx, { ...settings, sites: [...sites], sitesOwner: ownerId, activeSiteId });
   });
+  announceQueueChange(['settings']);
+}
+/**
+ * Cached sites belong to the account that fetched them. Unless they belong to `userId`, they are forgotten
+ * together with the active site; null (signed out) always forgets them, so the next person on a shared phone
+ * never sees them. Lists cached before the owner was stored have none and are forgotten too.
+ */
+export async function keepSitesOf(userId: string | null): Promise<void> {
+  if (userId !== null && !isUuid(userId)) throw new Error('Invalid account.');
+  const forgotten = await transact([STORES.settings], 'readwrite', async (tx) => {
+    const settings = await readSettings(tx);
+    const nothingCached = !settings.sites?.length && !settings.activeSiteId && !settings.sitesOwner;
+    if (nothingCached || (userId !== null && settings.sitesOwner === userId)) return false;
+    await writeSettings(tx, { ...settings, sites: [], sitesOwner: null, activeSiteId: null });
+    return true;
+  });
+  if (forgotten) announceQueueChange(['settings']);
 }
 export async function listHistory(): Promise<HistoryEntry[]> {
   const rows = await transact([STORES.history], 'readonly', async (tx) => request(tx.objectStore(STORES.history).getAll()) as Promise<HistoryEntry[]>);
@@ -145,6 +169,7 @@ export async function persistDetections(candidates: readonly ClassifiedDetection
     for (const record of records) await request(tx.objectStore(STORES.detections).add(record));
     if (audioId && audioBlob) await request(tx.objectStore(STORES.audio).add({ id: audioId, blob: audioBlob, bytes: audioBlob.size } satisfies StoredAudio));
   });
+  announceQueueChange(['records']);
 }
 
 /** Metadata acknowledgement is separate from audio delivery; unacknowledged rows stay intact. */
@@ -166,4 +191,6 @@ export async function acknowledge(ids: readonly string[], audioDelivered = false
     const audio = await request(tx.objectStore(STORES.audio).getAll()) as StoredAudio[];
     for (const row of audio) if (!remaining.some((record) => record.audioId === row.id)) await request(tx.objectStore(STORES.audio).delete(row.id));
   });
+  // Also when only `metadataSynced` changed: counts and bytes stay the same, but the record is no longer pending.
+  announceQueueChange(['records']);
 }

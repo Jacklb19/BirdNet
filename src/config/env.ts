@@ -119,7 +119,8 @@ export function readConfig(env: RawEnv): AppConfig {
     photos: {
       lookupApiUrl: url(env, 'VITE_PHOTO_LOOKUP_API_URL', 'https://en.wikipedia.org/w/api.php'),
       metadataApiUrl: url(env, 'VITE_PHOTO_METADATA_API_URL', 'https://commons.wikimedia.org/w/api.php'),
-      allowedImageHosts: hostList(env, 'VITE_PHOTO_IMAGE_HOSTS', ['upload.wikimedia.org']),
+      // Commons serves thumbnails from thumb.wikimedia.org and originals from upload.wikimedia.org.
+      allowedImageHosts: hostList(env, 'VITE_PHOTO_IMAGE_HOSTS', ['thumb.wikimedia.org', 'upload.wikimedia.org']),
       requestTimeoutMs: positiveInteger(env, 'VITE_PHOTO_TIMEOUT_MS', 10_000),
     },
   });

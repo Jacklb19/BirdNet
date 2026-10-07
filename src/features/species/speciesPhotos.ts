@@ -37,8 +37,11 @@ const MEDIAWIKI = Object.freeze({
   fileNamespace: 'File:',
 });
 
-/** Bump when the shape of a cached entry changes; entries written by another version are looked up again. */
-const PHOTO_CACHE_VERSION = 2;
+/**
+ * Bump when the shape or the meaning of a cached entry changes; entries written by another version are looked up
+ * again. Version 2 also stored rejected image hosts as absences, so its null entries must not be trusted.
+ */
+const PHOTO_CACHE_VERSION = 3;
 
 interface CachedPhoto {
   readonly version: number;
@@ -47,6 +50,12 @@ interface CachedPhoto {
   readonly photo: SpeciesPhoto | null;
 }
 
+/**
+ * A lookup that gave no usable answer (unexpected response, image host outside the allowed list). Unlike a
+ * confirmed absence it is never cached, so the photo is looked up again on the next visit.
+ */
+export class PhotoLookupError extends Error {}
+
 const memory = new Map<string, SpeciesPhoto | null>();
 const inflight = new Map<string, Promise<SpeciesPhoto | null>>();
 
@@ -54,25 +63,38 @@ function stripHtml(value: unknown): string {
   return typeof value === 'string' ? value.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim() : '';
 }
 
-/** Lead image file of the Wikipedia article for a scientific name. */
+/**
+ * Lead image file of the Wikipedia article for a scientific name, or null when the article has none (a confirmed
+ * absence). An answer without pages, such as the error object MediaWiki returns with HTTP 200 when it is
+ * rate limited, says nothing about the species, so it throws `PhotoLookupError` and is never cached.
+ */
 export function parsePageImage(body: unknown): string | null {
   const pages = (body as { query?: { pages?: Record<string, { pageimage?: unknown }> } } | null)?.query?.pages;
-  if (!pages) return null;
+  if (!pages) throw new PhotoLookupError('Unexpected page information.');
   for (const page of Object.values(pages)) if (typeof page.pageimage === 'string' && page.pageimage) return page.pageimage;
   return null;
 }
 
+interface ImageInfoPage {
+  readonly missing?: unknown;
+  readonly imageinfo?: readonly { readonly thumburl?: unknown; readonly extmetadata?: Record<string, { readonly value?: unknown } | undefined> }[];
+}
+
 /**
- * Thumbnail plus credit. Images outside `config.photos.allowedImageHosts` are rejected with the same rule the
- * service worker uses to cache photos, so every accepted photo can also be kept for offline use.
+ * Thumbnail plus credit, or null for a confirmed absence: the file is not on Commons, or it has no license to
+ * credit. Images outside `config.photos.allowedImageHosts` (the rule the service worker uses to cache photos, so
+ * every accepted photo can also be kept for offline use) and malformed answers throw `PhotoLookupError` instead:
+ * they say nothing about whether the species has a photo.
  */
 export function parseImageInfo(body: unknown): SpeciesPhoto | null {
-  const pages = (body as { query?: { pages?: Record<string, { imageinfo?: { thumburl?: unknown; extmetadata?: Record<string, { value?: unknown }> }[] }> } } | null)?.query?.pages;
-  const info = pages ? Object.values(pages)[0]?.imageinfo?.[0] : undefined;
-  if (!info || typeof info.thumburl !== 'string') return null;
+  const pages = (body as { query?: { pages?: Record<string, ImageInfoPage | undefined> } } | null)?.query?.pages;
+  const page = pages ? Object.values(pages)[0] : undefined;
+  if (page && 'missing' in page) return null;
+  const info = page?.imageinfo?.[0];
+  if (!info || typeof info.thumburl !== 'string') throw new PhotoLookupError('Unexpected image information.');
   let url: URL;
-  try { url = new URL(info.thumburl); } catch { return null; }
-  if (!isSpeciesPhotoUrl(url)) return null;
+  try { url = new URL(info.thumburl); } catch { throw new PhotoLookupError('Invalid image URL.'); }
+  if (!isSpeciesPhotoUrl(url)) throw new PhotoLookupError(`Image host ${url.hostname} is not allowed.`);
   const license = stripHtml(info.extmetadata?.LicenseShortName?.value);
   const author = stripHtml(info.extmetadata?.Artist?.value);
   if (!license) return null;
@@ -118,7 +140,10 @@ async function getJson(base: string, params: Readonly<Record<string, string>>): 
   return response.json();
 }
 
-/** Looks the photo up once; a confirmed absence is remembered, a network failure is retried later. */
+/**
+ * Looks the photo up once; a confirmed absence (no page image, file not on Commons, no license) is remembered.
+ * Network failures and unusable answers reject without caching anything, so they are retried on the next visit.
+ */
 export function fetchSpeciesPhoto(scientificName: string): Promise<SpeciesPhoto | null> {
   if (memory.has(scientificName)) return Promise.resolve(memory.get(scientificName) ?? null);
   const stored = readStored(scientificName);
@@ -138,14 +163,22 @@ export function fetchSpeciesPhoto(scientificName: string): Promise<SpeciesPhoto 
   return lookup;
 }
 
+interface FoundPhoto {
+  readonly scientificName: string;
+  readonly photo: SpeciesPhoto | null;
+}
+
 export function useSpeciesPhoto(scientificName: string | null): SpeciesPhoto | null {
-  const [photo, setPhoto] = useState<SpeciesPhoto | null>(() => (scientificName ? memory.get(scientificName) ?? null : null));
+  const [found, setFound] = useState<FoundPhoto | null>(null);
   useEffect(() => {
     if (!scientificName) return;
     let active = true;
     // Offline or lookup errors leave the neutral placeholder; nothing else depends on the photo.
-    fetchSpeciesPhoto(scientificName).then((found) => { if (active) setPhoto(found); }).catch(() => undefined);
+    fetchSpeciesPhoto(scientificName).then((photo) => { if (active) setFound({ scientificName, photo }); }).catch(() => undefined);
     return () => { active = false; };
   }, [scientificName]);
-  return photo;
+  if (!scientificName) return null;
+  // A result belongs to the species it was looked up for: when the species changes (the bird singing now, say),
+  // the previous bird's photo and credit never stay under the new name while its own lookup runs.
+  return found?.scientificName === scientificName ? found.photo : memory.get(scientificName) ?? null;
 }

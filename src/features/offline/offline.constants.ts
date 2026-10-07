@@ -102,15 +102,25 @@ export const SECURE_PROTOCOL = 'https:';
 export const JSON_MIME_TYPE = 'application/json';
 export const JSON_HEADERS = Object.freeze({ 'Content-Type': JSON_MIME_TYPE });
 
-/** Dispatched on `window` after the page changes offline preferences, so every open view reloads them. */
-export const SETTINGS_CHANGED_EVENT = 'birdnet-settings-changed';
+/**
+ * BroadcastChannel on which every context that writes the queue database (pages, the inference worker and the
+ * service worker) announces each committed change, so open views re-read what changed instead of polling.
+ */
+export const QUEUE_CHANGED_CHANNEL = 'birdnet-queue-changed';
 
-export function dispatchSettingsChanged(): void {
-  window.dispatchEvent(new Event(SETTINGS_CHANGED_EVENT));
-}
+/**
+ * What a committed write changed: the queued and synchronized records, or the stored settings (preferences,
+ * sync session, cached sites). Views re-read only the part they show.
+ */
+export const QUEUE_CHANGE_PARTS = Object.freeze(['records', 'settings'] as const);
 
-/** Refresh period of the pending-queue counters shown in the interface. */
-export const QUEUE_STATS_POLL_MS = 5_000;
+export type QueueChangePart = (typeof QUEUE_CHANGE_PARTS)[number];
+
+/**
+ * Where BroadcastChannel is missing, changes made by the workers are only found by re-reading at this period
+ * (changes made by the page itself are still seen at once).
+ */
+export const QUEUE_CHANGE_POLL_MS = 5_000;
 
 // ─── Service worker and caches ───────────────────────────────────────────
 

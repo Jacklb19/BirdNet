@@ -1,5 +1,7 @@
 /** Account rules shared by the Supabase client, the account hook and the sign-in form. */
 
+import type { AuthChangeEvent } from '@supabase/supabase-js';
+
 /**
  * Shortest password the form accepts. Keep it at or above "Minimum password length" in the Supabase Auth
  * settings, so the form never lets through a password the server rejects.
@@ -25,6 +27,12 @@ export const AUTH_ERROR_CODES = Object.freeze({
 } as const);
 
 export type AuthErrorCode = keyof typeof AUTH_ERROR_CODES;
+
+/**
+ * Supabase Auth event of an explicit sign-out (or of a session the server revoked). Other events may also carry no
+ * session, for example a stored session that could not be renewed offline, which is not a sign-out.
+ */
+export const SIGNED_OUT_EVENT = 'SIGNED_OUT' satisfies AuthChangeEvent;
 
 /** Failure reported for any error without a specific explanation (network, unmapped codes, local storage). */
 export const GENERIC_ACCOUNT_FAILURE = 'generic';
