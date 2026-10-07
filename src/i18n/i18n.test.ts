@@ -1,8 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { STORAGE_KEYS, readPreferences } from '../config/storage';
-import { es } from './es';
-import { en } from './en';
 import {
   formatBytes,
   formatDate,
@@ -15,40 +13,29 @@ import {
 } from './formatters';
 import { I18nProvider } from './I18nProvider';
 import { DEFAULT_LOCALE, LOCALES } from './locales';
+import { dictionaries } from './messages';
 import { useI18n } from './useI18n';
 
-/** Validates that all nested string fields in an object are defined and non-empty. */
-function assertAllKeysNonEmpty(obj: Record<string, unknown>, prefix = ''): void {
-  for (const [key, value] of Object.entries(obj)) {
-    const fullPath = prefix ? `${prefix}.${key}` : key;
-    if (typeof value === 'object' && value !== null) {
-      assertAllKeysNonEmpty(value as Record<string, unknown>, fullPath);
-    } else {
-      expect(typeof value, `Key ${fullPath} must be a string`).toBe('string');
-      expect((value as string).trim().length, `Key ${fullPath} must not be empty`).toBeGreaterThan(0);
-    }
+/** Every leaf is a non-empty string, or a function that returns one for sample arguments. */
+function assertFilled(value: unknown, path: string): void {
+  if (typeof value === 'function') {
+    const sample = Array.from({ length: value.length }, (_, index) => `arg${String(index)}`);
+    const text: unknown = Reflect.apply(value, undefined, sample);
+    expect(typeof text, `${path} must return a string`).toBe('string');
+    expect(String(text).trim(), `${path} must not be empty`).not.toBe('');
+    return;
   }
-}
-
-/** Validates that target has all keys present in reference. */
-function assertKeyParity(refObj: Record<string, unknown>, targetObj: Record<string, unknown>, prefix = ''): void {
-  for (const key of Object.keys(refObj)) {
-    const fullPath = prefix ? `${prefix}.${key}` : key;
-    expect(targetObj, `Missing key in translation: ${fullPath}`).toHaveProperty(key);
-    if (typeof refObj[key] === 'object' && refObj[key] !== null) {
-      assertKeyParity(refObj[key] as Record<string, unknown>, targetObj[key] as Record<string, unknown>, fullPath);
-    }
+  if (value && typeof value === 'object') {
+    for (const [key, child] of Object.entries(value)) assertFilled(child, `${path}.${key}`);
+    return;
   }
+  expect(typeof value, `${path} must be a string`).toBe('string');
+  expect(String(value).trim(), `${path} must not be empty`).not.toBe('');
 }
 
 describe('dictionaries', () => {
-  it('fills every Spanish key', () => {
-    assertAllKeysNonEmpty(es as unknown as Record<string, unknown>);
-  });
-
-  it('gives English the same keys as Spanish, all filled', () => {
-    assertKeyParity(es as unknown as Record<string, unknown>, en as unknown as Record<string, unknown>);
-    assertAllKeysNonEmpty(en as unknown as Record<string, unknown>);
+  it('fills every text of every language', () => {
+    for (const { code } of LOCALES) assertFilled(dictionaries[code], code);
   });
 });
 

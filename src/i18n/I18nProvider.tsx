@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { readPreferences, writePreference } from '../config/storage';
 import { DEFAULT_LOCALE, isLocale, type Locale } from './locales';
-import { I18nContext, dictionaries, getNestedValue, type I18nContextValue } from './context';
+import { I18nContext, type I18nContextValue } from './context';
+import { dictionaries } from './messages';
 
 function readStoredLocale(): Locale {
   const { locale } = readPreferences();
@@ -26,14 +27,7 @@ export function I18nProvider({ children, initialLocale }: I18nProviderProps): Re
     writePreference('locale', next);
   }, []);
 
-  const t = useCallback(
-    (key: string): string => getNestedValue(dictionaries[locale] as unknown as Record<string, unknown>, key),
-    [locale],
-  );
-
-  const dict = dictionaries[locale];
-
-  const value = useMemo<I18nContextValue>(() => ({ locale, setLocale, t, dict }), [locale, setLocale, t, dict]);
+  const value = useMemo<I18nContextValue>(() => ({ locale, setLocale, dict: dictionaries[locale] }), [locale, setLocale]);
 
   return <I18nContext value={value}>{children}</I18nContext>;
 }
