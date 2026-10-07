@@ -1,0 +1,44 @@
+.bn-listen-hero {
+  display: grid;
+  align-content: start;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-surface);
+}
+
+.bn-listen-hero__body {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-5) var(--space-6) var(--space-6);
+}
+
+.bn-listen-hero__eyebrow {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-small);
+}
+
+.bn-listen-hero__name {
+  font-size: var(--text-l);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--leading-l);
+  letter-spacing: var(--tracking-tight);
+}
+
+.bn-listen-hero__scientific {
+  color: var(--color-text-secondary);
+  font-size: var(--text-title-s);
+  line-height: var(--leading-title-s);
+}
+
+.bn-listen-hero__sentence {
+  margin-top: var(--space-2);
+}
+
+.bn-listen-hero__credit {
+  color: var(--color-text-secondary);
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+}

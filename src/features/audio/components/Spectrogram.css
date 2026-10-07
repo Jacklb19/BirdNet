@@ -1,0 +1,68 @@
+.bn-audio-spectrogram {
+  --spectrogram-plot-height: var(--spectrogram-height);
+
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-3);
+  height: var(--spectrogram-plot-height);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-surface);
+}
+
+/* Frequency labels sit at the height their frequency occupies on the mel axis (set per label from data). */
+.bn-audio-spectrogram__axis {
+  position: relative;
+  color: var(--color-text-secondary);
+  font-size: var(--text-caption);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--leading-caption);
+}
+
+/* Invisible copy of the widest label: gives the label column its width, since the labels are positioned. */
+.bn-audio-spectrogram__sizer {
+  display: block;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  white-space: nowrap;
+}
+
+.bn-audio-spectrogram__tick {
+  position: absolute;
+  bottom: calc(var(--spectrogram-tick-position) * 100%);
+  left: 0;
+  white-space: nowrap;
+  transform: translateY(50%);
+}
+
+.bn-audio-spectrogram__plot {
+  position: relative;
+  min-width: 0;
+}
+
+/* Out of the flow: the bitmap is resized to the box, so its intrinsic size must never grow the box in turn. */
+.bn-audio-spectrogram__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.bn-audio-spectrogram__placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 0 var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+  text-align: center;
+}
+
+@media (min-width: 64rem) {
+  .bn-audio-spectrogram {
+    --spectrogram-plot-height: var(--spectrogram-height-wide);
+  }
+}
