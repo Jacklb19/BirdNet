@@ -1,0 +1,86 @@
+.bn-site-species {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.bn-site-species__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding-inline-start: var(--space-1);
+}
+
+.bn-site-species__heading {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.bn-site-species__note {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-site-species__title {
+  font-size: var(--text-title);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-title);
+}
+
+/* Brand text sits on the canvas or a surface, never on the sunken fill, so it keeps 4.5:1. */
+.bn-site-species__toggle {
+  min-height: var(--touch-min);
+  padding: 0 var(--space-2);
+  margin-inline-end: calc(-1 * var(--space-2));
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--color-brand);
+  font-size: var(--text-small);
+  font-weight: var(--font-weight-semibold);
+}
+
+@media (hover: hover) {
+  .bn-site-species__toggle:hover {
+    text-decoration: underline;
+  }
+}
+
+.bn-site-species__list {
+  display: grid;
+  padding: var(--space-2);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-surface);
+}
+
+.bn-site-species__empty {
+  padding: var(--space-4);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+}
+
+/* On wide screens the heading moves inside the card, as in the desktop design. */
+@media (min-width: 64rem) {
+  .bn-site-species {
+    padding: var(--space-5) var(--space-4) var(--space-4);
+    border-radius: var(--radius-xl);
+    background: var(--color-bg-surface);
+  }
+
+  .bn-site-species__head {
+    padding-inline: var(--space-3) var(--space-2);
+  }
+
+  .bn-site-species__list,
+  .bn-site-species__empty {
+    padding: 0;
+    background: transparent;
+  }
+
+  .bn-site-species__empty {
+    padding: 0 var(--space-3);
+  }
+}

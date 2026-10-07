@@ -1,0 +1,74 @@
+.bn-site {
+  --site-aside-width: 25rem;
+  --site-sticky-top: calc(var(--topbar-height) + var(--space-8));
+  --site-skeleton-chorus-height: calc(var(--chorus-size) + 2 * var(--space-8));
+  --site-skeleton-stats-height: calc(var(--leading-l) + 2 * var(--leading-small) + 2 * var(--space-4));
+  --site-skeleton-pulse: calc(4 * var(--duration-medium));
+}
+
+.bn-site__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.bn-site__hint {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-site__grid {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.bn-site__aside,
+.bn-site__main {
+  display: grid;
+  align-content: start;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.bn-site__skeleton {
+  display: block;
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-surface);
+  animation: bn-site-pulse var(--site-skeleton-pulse) var(--ease-standard) infinite alternate;
+}
+
+.bn-site__skeleton--chorus {
+  height: var(--site-skeleton-chorus-height);
+}
+
+.bn-site__skeleton--stats {
+  height: var(--site-skeleton-stats-height);
+}
+
+@keyframes bn-site-pulse {
+  to {
+    opacity: var(--state-disabled-opacity);
+  }
+}
+
+.bn-site__export {
+  display: grid;
+  gap: var(--space-3);
+  padding-bottom: var(--space-6);
+}
+
+@media (min-width: 64rem) {
+  .bn-site__grid {
+    grid-template-columns: var(--site-aside-width) minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-6);
+    padding-bottom: var(--space-8);
+  }
+
+  /* The clock stays in view while the species list scrolls beside it. */
+  .bn-site__aside {
+    position: sticky;
+    top: var(--site-sticky-top);
+  }
+}

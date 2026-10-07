@@ -1,0 +1,30 @@
+.bn-site-chorus {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-7) var(--space-5) var(--space-6);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-surface);
+  text-align: center;
+}
+
+.bn-site-chorus__clock {
+  order: -1;
+}
+
+.bn-site-chorus__text {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.bn-site-chorus__title {
+  font-size: var(--text-title-s);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-title-s);
+}
+
+.bn-site-chorus__caption {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}

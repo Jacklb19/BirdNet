@@ -1,0 +1,37 @@
+.bn-sites {
+  --sites-card-min: 20rem;
+}
+
+.bn-sites .bn-sites__new {
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-soft);
+}
+
+/* Brand text on the soft brand fill is below 4.5:1 in the light theme, so only the icon carries the brand color. */
+.bn-sites .bn-sites__new .bn-icon {
+  color: var(--color-brand);
+}
+
+.bn-sites__intro {
+  display: grid;
+  gap: var(--space-1);
+  max-width: var(--content-narrow);
+  color: var(--color-text-secondary);
+}
+
+.bn-sites__why {
+  margin-top: var(--space-1);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-sites__status {
+  color: var(--color-text-secondary);
+}
+
+.bn-sites__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--sites-card-min)), 1fr));
+  gap: var(--space-4);
+  padding-bottom: var(--space-6);
+}
