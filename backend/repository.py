@@ -9,7 +9,10 @@ import psycopg
 from fastapi import HTTPException
 from psycopg.rows import dict_row
 
-from .contracts import BatchResponse, DetectionInput
+from .contracts import BatchResponse, DetectionInput, MapDetection, MapQuery, MapResponse
+
+MAP_LIMIT = 2000
+STATUS = {"confirmada": "confirmed", "provisional": "provisional", "verificada": "verified", "corregida": "corrected"}
 
 
 class DetectionRepository:
@@ -19,7 +22,8 @@ class DetectionRepository:
         if not url:
             raise HTTPException(503, "Database is not configured")
         try:
-            with psycopg.connect(url, connect_timeout=10, row_factory=dict_row) as connection:
+            # Supabase's transaction pooler cannot keep server-side prepared statements.
+            with psycopg.connect(url, connect_timeout=10, row_factory=dict_row, prepare_threshold=None) as connection:
                 connection.execute("SET LOCAL ROLE authenticated")
                 connection.execute("SELECT set_config('request.jwt.claims', %s, true)", (json.dumps({"sub": str(owner), "role": "authenticated"}),))
                 yield connection
@@ -51,3 +55,25 @@ class DetectionRepository:
                     connection.execute("INSERT INTO public.verification_jobs(detection_id) VALUES (%s) ON CONFLICT (detection_id) DO NOTHING", (row.id,))
                 (accepted if inserted else existing).append(row.id)
         return BatchResponse(accepted_ids=accepted, existing_ids=existing)
+
+    def map(self, viewer: UUID, query: MapQuery) -> MapResponse:
+        # Discarded detections stay private to their author; the map only shows usable indications.
+        with self.transaction(viewer) as connection:
+            rows = connection.execute(
+                """SELECT id, especie, confianza, estado, momento,
+                    ST_Y(ubicacion::geometry) AS latitude, ST_X(ubicacion::geometry) AS longitude
+                FROM public.detections
+                WHERE estado <> 'descartada'
+                  AND ST_Intersects(ubicacion::geometry, ST_MakeEnvelope(%s, %s, %s, %s, 4326))
+                  AND (%s::text IS NULL OR especie = %s)
+                  AND (%s::timestamptz IS NULL OR momento >= %s)
+                  AND (%s::timestamptz IS NULL OR momento < %s)
+                ORDER BY momento DESC LIMIT %s""",
+                (query.west, query.south, query.east, query.north, query.species, query.species, query.since, query.since, query.until, query.until, MAP_LIMIT + 1),
+            ).fetchall()
+        detections = [
+            MapDetection(id=row["id"], species=row["especie"], confidence=row["confianza"], status=STATUS[row["estado"]],
+                         recorded_at=row["momento"], latitude=row["latitude"], longitude=row["longitude"])
+            for row in rows[:MAP_LIMIT]
+        ]
+        return MapResponse(detections=detections, truncated=len(rows) > MAP_LIMIT)

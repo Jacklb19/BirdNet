@@ -1,4 +1,4 @@
-"""The S4 API implements synchronization only; login UI and verification are later sprints."""
+"""Synchronization, collective map queries and the model manifest; verification arrives in S6."""
 import json
 import os
 from pathlib import Path
@@ -7,11 +7,13 @@ from urllib.parse import urlparse
 
 import httpx
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from typing import Annotated
+
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 
 from .auth import authenticate
-from .contracts import AudioInput, BatchInput, BatchResponse
+from .contracts import AudioInput, BatchInput, BatchResponse, MapQuery, MapResponse
 from .repository import DetectionRepository
 from .storage import AudioStorage
 
@@ -61,6 +63,15 @@ def audio_url(detection_id: UUID, payload: AudioInput, owner: UUID = Depends(aut
     if row["estado"] != "provisional":
         raise HTTPException(422, "Only provisional audio may be uploaded")
     return audio.sign(owner, detection_id)
+
+
+@app.get("/v1/detections", response_model=MapResponse)
+def detections(query: Annotated[MapQuery, Query()], viewer: UUID = Depends(authenticate), repo: DetectionRepository = Depends(repository)) -> MapResponse:
+    if query.west > query.east or query.south > query.north:
+        raise HTTPException(422, "Invalid map bounds")
+    if query.since and query.until and query.since >= query.until:
+        raise HTTPException(422, "Invalid period")
+    return repo.map(viewer, query)
 
 
 @app.get("/v1/model/latest")

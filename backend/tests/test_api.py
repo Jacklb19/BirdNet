@@ -12,7 +12,7 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from backend.app import app, repository, storage
-from backend.contracts import BatchResponse
+from backend.contracts import BatchResponse, MapResponse
 
 
 class MemoryRepository:
@@ -26,6 +26,10 @@ class MemoryRepository:
         if not row or row["owner"] != owner:
             return None
         return {"id": detection, "estado": "provisional" if row["status"] == "provisional" else "confirmada"}
+
+    def map(self, viewer, query):
+        self.last_query = query
+        return MapResponse(detections=[], truncated=False)
 
     def batch(self, owner, detections):
         with self.lock:
@@ -152,3 +156,14 @@ def test_limits_and_public_model_contract(api):
     assert response.status_code == 200
     assert response.json()["model_file"] == "/models/birdnet_model.onnx"
     assert len(response.json()["sha256"]) == 64
+
+
+def test_map_query_requires_session_and_valid_bounds(api):
+    client, repo, _, headers, _ = api
+    area = {"west": -74.2, "south": 4.5, "east": -74.0, "north": 4.8}
+    assert client.get("/v1/detections", params=area).status_code == 401
+    assert client.get("/v1/detections", params={**area, "west": -73.0}, headers=headers()).status_code == 422
+    assert client.get("/v1/detections", params={**area, "since": "2026-10-01T00:00:00"}, headers=headers()).status_code == 422
+    response = client.get("/v1/detections", params={**area, "species": "Turdus fuscater", "since": "2026-10-01T00:00:00Z"}, headers=headers())
+    assert response.status_code == 200 and response.json() == {"detections": [], "truncated": False}
+    assert repo.last_query.species == "Turdus fuscater"

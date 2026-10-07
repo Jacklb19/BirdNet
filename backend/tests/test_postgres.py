@@ -7,7 +7,7 @@ import psycopg
 import pytest
 from fastapi import HTTPException
 
-from backend.contracts import DetectionInput
+from backend.contracts import DetectionInput, MapQuery
 from backend.repository import DetectionRepository
 from backend.tests.prepare_database import TEST_DATABASE_URL
 from backend.tests.test_api import detection
@@ -71,3 +71,20 @@ def test_audio_job_is_created_once(database):
         repo.batch(owner, [row])
     with psycopg.connect(TEST_DATABASE_URL) as connection:
         assert connection.execute("SELECT count(*) FROM public.verification_jobs WHERE detection_id=%s", (row.id,)).fetchone()[0] == 1
+
+
+def test_map_is_collective_filtered_and_hides_discarded(database):
+    repo, owner, other = database
+    bogota = DetectionInput.model_validate(detection(species="Turdus fuscater"))
+    hidden = DetectionInput.model_validate(detection(species="Zonotrichia capensis"))
+    repo.batch(owner, [bogota, hidden])
+    with repo.transaction(owner) as connection:
+        connection.execute("UPDATE public.detections SET estado='descartada' WHERE id=%s", (hidden.id,))
+    area = {"west": bogota.location.longitude - 0.01, "south": bogota.location.latitude - 0.01, "east": bogota.location.longitude + 0.01, "north": bogota.location.latitude + 0.01}
+    visible = repo.map(other, MapQuery(**area))
+    ids = {row.id for row in visible.detections}
+    assert bogota.id in ids and hidden.id not in ids
+    assert "user_id" not in visible.detections[0].model_dump()
+    assert repo.map(other, MapQuery(**area, species="Other species")).detections == []
+    elsewhere = repo.map(other, MapQuery(west=10, south=10, east=11, north=11))
+    assert bogota.id not in {row.id for row in elsewhere.detections}
