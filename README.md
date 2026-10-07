@@ -1,71 +1,44 @@
 # BirdNet Local
 
-Aplicación web progresiva (PWA) para el monitoreo continuo de biodiversidad mediante identificación acústica de aves con inferencia híbrida y enfoque local-first.
+Aplicación web progresiva para el monitoreo continuo de aves por sonido. Identifica especies con un modelo acústico que corre en el navegador, funciona sin conexión y registra las detecciones con ubicación aproximada en un mapa colectivo.
 
-## Propósito
+- **Aplicación web**: https://birdnet-nu.vercel.app (este repositorio)
+- **API**: https://bird-back.vercel.app ([Jacklb19/Bird_Back](https://github.com/Jacklb19/Bird_Back))
 
-BirdNet Local permite a observadores ciudadanos, investigadores y estudiantes registrar y monitorear la avifauna en campo utilizando únicamente el navegador web del dispositivo móvil o de escritorio, operando sin conexión a internet y preservando la privacidad del usuario y de las especies sensibles.
+## Funciones
 
-## Características Principales
+- Escucha continua con el micrófono, segmentada en ventanas de 3 s en un AudioWorklet, con espectrograma en vivo.
+- Identificación en el dispositivo con BirdNET v2.4 (ONNX cuantizado, 6.522 especies) dentro de un Web Worker. El audio no sale del dispositivo.
+- Política de confianza: ≥ 0,80 confirmada por el modelo local; 0,45–0,80 provisional; < 0,45 descartada. Toda detección muestra su confianza y estado.
+- Funcionamiento sin conexión: modelo en caché con verificación SHA-256 y cola local de detecciones que se sincroniza sola, sin duplicados.
+- Cuenta con Supabase Auth y mapa colectivo (MapLibre + OpenFreeMap) con agrupamiento y filtros por especie y periodo.
+- Ubicación siempre aproximada (celdas de unos 100 m).
 
-- **Captura continua en cliente**: Captura de audio continuo y segmentación en ventanas de duración fija mediante `AudioWorklet` en el hilo de audio sin bloquear la interfaz.
-- **Inferencia local en el navegador**: Cálculo de mel-espectrogramas y ejecución de modelo acústico exportado a ONNX (cuantizado a 8 bits) dentro de un `Web Worker` con aceleración WebGPU o WebAssembly.
-- **Política de decisión híbrida**:
-  - Confianza alta ($\ge 0.80$): aceptación y registro local directo.
-  - Confianza intermedia ($0.45 - 0.80$): registro provisional y encolado de fragmento de audio para verificación diferida en la nube con modelo de alta fidelidad.
-  - Confianza baja ($< 0.45$): descarte automático para optimizar almacenamiento.
-- **Local-first y funcionamiento sin conexión**: Almacenamiento local persistente con cola de sincronización diferida e idempotente hacia la nube.
-- **Privacidad y geolocalización aproximada**: Las ubicaciones se truncan automáticamente mediante trigger en base de datos a una cuadrícula de ~100 metros (PostGIS), protegiendo el domicilio del usuario y la ubicación exacta de especies vulnerables. El audio solo se transmite en casos de duda razonable con consentimiento.
-- **Arquitectura de costo cero**: Diseñado para operar íntegramente dentro de los límites de los planes gratuitos de Vercel (Hobby) y Supabase (Free tier) con Row Level Security (RLS) estricto.
+## Tecnología
 
-## Requisitos del Entorno
+React 19, TypeScript, Vite, ONNX Runtime Web, Workbox, MapLibre GL y Supabase. Despliegue en Vercel (plan Hobby) y Supabase (plan Free).
 
-- **Node.js**: $\ge 24.0.0$ (definido en `.nvmrc` y `engines`)
-- **Navegador**: Soporte para Web Audio API, Web Workers, WebAssembly y aislamiento de origen cruzado (`crossOriginIsolated`).
+## Desarrollo
 
-## Puesta en Marcha
+Requiere Node.js 24 o superior.
 
-1. Clonar el repositorio y verificar la versión de Node.js:
-   ```bash
-   node -v # debe ser >= 24
-   ```
+```bash
+npm ci
+cp .env.example .env.local
+npm run dev
+```
 
-2. Instalar dependencias:
-   ```bash
-   npm ci
-   ```
+El servidor de desarrollo reenvía `/api` a la API local en `http://127.0.0.1:8000` (ver el repositorio de la API).
 
-3. Configurar variables de entorno:
-   ```bash
-   cp .env.example .env.local
-   ```
+| Comando | Uso |
+|---|---|
+| `npm run lint` / `npm run typecheck` | Análisis estático y tipos |
+| `npm run test` | Pruebas unitarias (Vitest) |
+| `npm run build` | Build de producción y precaché sin conexión |
+| `npm run test:offline` | E2E sin conexión (Playwright; requiere `../backend`) |
 
-4. Iniciar el servidor de desarrollo local:
-   ```bash
-   npm run dev
-   ```
+## Documentación
 
-## Verificación de Calidad
-
-El proyecto cuenta con un flujo estricto de verificación estática, pruebas unitarias y cobertura:
-
-- **Verificación de tipos estáticos**:
-  ```bash
-  npm run typecheck
-  ```
-- **Análisis de código estático (Lint)**:
-  ```bash
-  npm run lint
-  ```
-- **Pruebas unitarias (Vitest)**:
-  ```bash
-  npm test
-  ```
-- **Cobertura de pruebas**:
-  ```bash
-  npm run test:coverage
-  ```
-- **Compilación de producción**:
-  ```bash
-  npm run build
-  ```
+- `docs/definicion-proyecto.md`: especificación (requisitos, arquitectura y plan de sprints).
+- `docs/decisiones.md`: decisiones de arquitectura adicionales.
+- `docs/despliegue.md`: configuración de Supabase y Vercel.

@@ -18,7 +18,7 @@ Este documento registra los Registros de Decisión de Arquitectura (ADR) adicion
     - Mensajes de commit (formato Conventional Commits en imperativo en inglés).
   - Se mantienen en **español**:
     - Todos los textos visibles por el usuario final en la interfaz gráfica (UI), centralizados en un módulo de internacionalización (`src/i18n/es.ts`).
-    - Toda la documentación dentro del directorio `docs/` (`PROGRESS.md`, `definicion-proyecto.md`, `decisiones.md`, `propuestas.md`).
+    - Toda la documentación dentro del directorio `docs/`.
 
 ---
 
@@ -77,3 +77,33 @@ El monitoreo acústico de aves se realiza tanto a plena luz solar (donde los ref
 2. **Cumplimiento estricto WCAG 2.1 AA**: Todos los pares de contraste texto/fondo superan 4,5:1 (ratio verificado automáticamente mediante pruebas automatizadas con el algoritmo de luminancia relativa estándar).
 3. **Reactivación de elementos Canvas**: Los elementos dibujados sobre `<canvas>` (como `SpectrogramCanvas`) leen dinámicamente los estilos calculados (`getComputedStyle`) y se suscriben al cambio de tema en `useTheme()`, redibujando inmediatamente la interfaz sin dejar colores fijos.
 4. **Selector accesible en `/settings`**: Opciones `Sistema`, `Claro` y `Oscuro` con áreas táctiles mínimas de 44 px, accesibles por teclado y persistidas en `localStorage`.
+
+---
+
+## ADR-10. El modelo recibe audio crudo; el mel-espectrograma propio es solo visual
+
+### Contexto
+La especificación preveía calcular el mel-espectrograma en TypeScript y pasarlo como tensor al clasificador. BirdNET v2.4 recibe directamente audio normalizado `[1, 144000]` a 48 kHz y calcula sus propias características dentro del grafo ONNX.
+
+### Decisión
+El Worker de inferencia entrega el audio crudo al modelo. El mel-espectrograma de 64 bandas calculado en otro Worker se usa únicamente para la visualización en vivo.
+
+### Consecuencias
+RF-04 se cumple fuera del hilo principal (el grafo corre en un Worker) y se evitan diferencias numéricas con el preprocesamiento con el que se entrenó el modelo.
+
+---
+
+## ADR-11. Aplicación web y API en repositorios y despliegues separados
+
+### Contexto
+Se requieren dos direcciones públicas independientes: una para la aplicación web y otra para la API.
+
+### Decisión
+- **Aplicación web**: repositorio `Jacklb19/BirdNet`, proyecto de Vercel `birdnet-nu.vercel.app`.
+- **API (FastAPI)**: repositorio `Jacklb19/Bird_Back`, proyecto de Vercel `bird-back.vercel.app` (preset *Other*), con las migraciones de Supabase.
+- La aplicación web reenvía `/api/*` a la API mediante una reescritura de `vercel.json`. El navegador sigue llamando al mismo origen, de modo que no se necesitan CORS ni cambios en la CSP, el Service Worker o el cliente.
+- Ramas: `main` (producción) y `dev` (trabajo) en ambos repositorios.
+
+### Consecuencias
+Cada parte se despliega y versiona por separado. Las variables del servidor (`DATABASE_URL`, `SUPABASE_AUTH_ISSUER`, `MODEL_RESOURCE_BASE_URL`) viven solo en el proyecto de la API. El manifiesto del modelo existe en ambos repositorios y debe actualizarse a la vez. La prueba E2E sin conexión necesita el repositorio de la API clonado al lado (`../backend`).
+
