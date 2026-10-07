@@ -1,0 +1,208 @@
+/*
+ * MapLibre ships its own control and popup styles with fixed colors and pixel sizes; they are restyled here
+ * with the design tokens so both themes match the rest of the app and every button meets --touch-min.
+ */
+.bn-map-view {
+  --map-view-control-size: var(--control-height);
+  --map-view-popup-width: 16rem; /* fits a long common name and the date line without crowding the map */
+
+  position: relative;
+  display: grid;
+  min-height: 0;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  isolation: isolate;
+  background: var(--color-bg-sunken);
+}
+
+.bn-map-view__canvas {
+  grid-area: 1 / 1;
+  font-family: var(--font-family);
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+}
+
+.bn-map-view .bn-map-view__pointer {
+  cursor: pointer;
+}
+
+/* Controls — the corners' children are MapLibre's controls plus the slot of the locate button. */
+.bn-map-view .maplibregl-ctrl-bottom-right > :is(.maplibregl-ctrl, .bn-map-view__slot) {
+  margin: 0 var(--space-4) var(--space-3) 0;
+}
+
+.bn-map-view .maplibregl-ctrl-bottom-left > .maplibregl-ctrl {
+  margin: 0 0 var(--space-3) var(--space-4);
+}
+
+.bn-map-view__slot {
+  float: right;
+  clear: both;
+  pointer-events: auto;
+}
+
+.bn-map-view .maplibregl-ctrl-group,
+.bn-map-view .maplibregl-ctrl-group:not(:empty) {
+  overflow: hidden;
+  border-radius: var(--radius-l);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-float);
+}
+
+.bn-map-view .maplibregl-ctrl-group button {
+  width: var(--map-view-control-size);
+  height: var(--map-view-control-size);
+}
+
+.bn-map-view .maplibregl-ctrl-group button + button {
+  border-top: var(--border-width) solid var(--color-border-subtle);
+}
+
+/* MapLibre removes the outline and draws its own blue ring; the app's focus ring is used instead. */
+.bn-map-view .maplibregl-ctrl-group button:focus:focus-visible,
+.bn-map-view .maplibregl-ctrl-attrib-button:focus:focus-visible {
+  box-shadow: none;
+  outline: var(--focus-width) solid var(--color-brand);
+  outline-offset: calc(-1 * var(--focus-width));
+}
+
+/* The zoom icons are dark data-URI drawings; inverted they stay legible on the dark surface. */
+:root[data-theme='dark'] .bn-map-view .maplibregl-ctrl-group .maplibregl-ctrl-icon {
+  filter: invert(1);
+}
+
+@media (hover: hover) {
+  .bn-map-view .maplibregl-ctrl-group button:not(:disabled):hover {
+    background-color: var(--color-bg-sunken);
+  }
+}
+
+/*
+ * Credits: the basemap licence requires them on screen. MapLibre draws a white pill with a 24 px toggle; here it
+ * follows the theme and the toggle grows to --touch-min (its icon is centred instead of tiled).
+ */
+.bn-map-view .maplibregl-ctrl-attrib {
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+}
+
+.bn-map-view .maplibregl-ctrl-attrib.maplibregl-compact {
+  box-sizing: border-box;
+  min-height: var(--touch-min);
+  padding: 0 var(--touch-min) 0 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  box-shadow: var(--shadow-raised);
+}
+
+/* Opened, one line of credits is as tall as the toggle beside it; longer credits wrap below. */
+.bn-map-view .maplibregl-ctrl-attrib.maplibregl-compact-show {
+  padding: calc((var(--touch-min) - var(--leading-caption)) / 2) var(--space-4) calc((var(--touch-min) - var(--leading-caption)) / 2) var(--touch-min);
+  border-radius: var(--radius-l);
+}
+
+/* The credits wrap before they reach the zoom and locate column on the right. */
+.bn-map-view .maplibregl-ctrl-bottom-left {
+  max-width: calc(100% - var(--map-view-control-size) - 3 * var(--space-4));
+}
+
+.bn-map-view .maplibregl-ctrl-attrib a {
+  color: var(--color-text-primary);
+}
+
+.bn-map-view .maplibregl-ctrl-attrib-button {
+  width: var(--touch-min);
+  height: var(--touch-min);
+  border-radius: var(--radius-pill);
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/*
+ * The info icon is a dark data-URI drawing, like the zoom icons. Inverting the button itself would also invert
+ * its focus ring, so in the dark theme the icon is redrawn by a pseudo-element and only that is inverted.
+ */
+:root[data-theme='dark'] .bn-map-view .maplibregl-ctrl-attrib-button {
+  background-size: 0 0;
+}
+
+:root[data-theme='dark'] .bn-map-view .maplibregl-ctrl-attrib-button::before {
+  position: absolute;
+  inset: 0;
+  background-image: inherit;
+  background-position: center;
+  background-repeat: no-repeat;
+  content: '';
+  filter: invert(1);
+}
+
+/* Popups */
+.bn-map-view__popup .maplibregl-popup-content {
+  max-width: var(--map-view-popup-width);
+  padding: var(--space-3) var(--touch-min) var(--space-3) var(--space-4);
+  border-radius: var(--radius-m);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-float);
+}
+
+.bn-map-view__popup .maplibregl-popup-close-button {
+  width: var(--touch-min);
+  height: var(--touch-min);
+  border-radius: var(--radius-m);
+  color: var(--color-text-secondary);
+  font-size: var(--text-title);
+}
+
+.bn-map-view__popup .maplibregl-popup-close-button:focus-visible {
+  outline: var(--focus-width) solid var(--color-brand);
+  outline-offset: calc(-1 * var(--focus-width));
+}
+
+.bn-map-view__popup.maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.bn-map-view__popup.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.bn-map-view__popup.maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
+  border-bottom-color: var(--color-bg-surface);
+}
+
+.bn-map-view__popup.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.bn-map-view__popup.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.bn-map-view__popup.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
+  border-top-color: var(--color-bg-surface);
+}
+
+.bn-map-view__popup.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: var(--color-bg-surface);
+}
+
+.bn-map-view__popup.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: var(--color-bg-surface);
+}
+
+.bn-map-popup {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.bn-map-popup__name {
+  font-size: var(--text-title-s);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-title-s);
+}
+
+.bn-map-popup__scientific,
+.bn-map-popup__note {
+  color: var(--color-text-secondary);
+}
+
+.bn-map-popup__scientific,
+.bn-map-popup__line {
+  display: block;
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-map-popup__note {
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+}

@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { API_ROUTES } from '../../config/api';
-import { clampBounds, fetchMapDetections, periodStart, speciesOptions, toFeatureCollection, type MapDetection } from './mapData';
+import {
+  clampBounds, fetchMapDetections, mapFailure, periodStart, speciesOptions, toFeatureCollection, type MapDetection, type MapFailure,
+} from './mapData';
 
 const row: MapDetection = { id: 'a', species: 'Turdus fuscater', confidence: 0.91, status: 'confirmed', recorded_at: '2026-10-06T12:00:00Z', latitude: 4.679, longitude: -74.123 };
 
@@ -21,7 +23,11 @@ describe('mapData', () => {
   });
 
   it('sends filters with the session and drops malformed rows', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(Response.json({ detections: [row, { id: 'bad' }, { ...row, id: 'b', status: 'unknown' }], truncated: true }));
+    const malformed = [
+      { id: 'bad' }, { ...row, id: 'b', status: 'unknown' }, { ...row, id: 'c', recorded_at: 'yesterday' },
+      { ...row, id: 'd', confidence: 1.4 }, { ...row, id: 'e', latitude: 91 },
+    ];
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ detections: [row, ...malformed], truncated: true }));
     vi.stubGlobal('fetch', fetchMock);
     const result = await fetchMapDetections({ west: -75, south: 4, east: -74, north: 5 }, { species: 'Turdus fuscater', since: new Date('2026-10-01T00:00:00Z') }, 'token', new AbortController().signal);
     expect(result).toEqual({ detections: [row], truncated: true });
@@ -37,5 +43,22 @@ describe('mapData', () => {
     await expect(fetchMapDetections({ west: 0, south: 0, east: 1, north: 1 }, { species: null, since: null }, 't', new AbortController().signal)).rejects.toThrow();
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ rows: [] })));
     await expect(fetchMapDetections({ west: 0, south: 0, east: 1, north: 1 }, { species: null, since: null }, 't', new AbortController().signal)).rejects.toThrow();
+  });
+
+  // Regression: a server error was reported as "the server did not answer, check the connection".
+  it('tells an unusable answer from no answer at all', async () => {
+    const failureOf = async (answer: () => Promise<Response>): Promise<MapFailure> => {
+      vi.stubGlobal('fetch', vi.fn().mockImplementation(answer));
+      try {
+        await fetchMapDetections({ west: 0, south: 0, east: 1, north: 1 }, { species: null, since: null }, 't', new AbortController().signal);
+      } catch (error) {
+        return mapFailure(error);
+      }
+      throw new Error('The request was expected to fail.');
+    };
+    expect(await failureOf(() => Promise.resolve(new Response(null, { status: 500 })))).toBe('server');
+    expect(await failureOf(() => Promise.resolve(Response.json(null)))).toBe('server');
+    expect(await failureOf(() => Promise.resolve(new Response('<html>', { status: 200 })))).toBe('server');
+    expect(await failureOf(() => Promise.reject(new TypeError('Failed to fetch')))).toBe('network');
   });
 });

@@ -1,4 +1,4 @@
-import { API_ROUTES, apiFetch } from '../../config/api';
+import { API_ROUTES, ApiError, apiFetch } from '../../config/api';
 import { isDetectionStatus, periodDays, type DetectionStatus, type Period } from '../../config/contract';
 
 export interface MapDetection {
@@ -38,12 +38,25 @@ export function clampBounds(bounds: MapBounds): MapBounds {
   };
 }
 
+const inRange = (value: unknown, minimum: number, maximum: number): boolean =>
+  typeof value === 'number' && Number.isFinite(value) && value >= minimum && value <= maximum;
+
+/** Rows the interface could not show truthfully (no date to order by, a score outside 0-1, no place) are dropped. */
 function isDetection(value: unknown): value is MapDetection {
   if (!value || typeof value !== 'object') return false;
   const row = value as Record<string, unknown>;
-  return typeof row.id === 'string' && typeof row.species === 'string' && typeof row.confidence === 'number' &&
-    typeof row.recorded_at === 'string' && typeof row.latitude === 'number' && typeof row.longitude === 'number' &&
+  return typeof row.id === 'string' && typeof row.species === 'string' && inRange(row.confidence, 0, 1) &&
+    typeof row.recorded_at === 'string' && Number.isFinite(Date.parse(row.recorded_at)) &&
+    inRange(row.latitude, -MAX_LATITUDE, MAX_LATITUDE) && inRange(row.longitude, -MAX_LONGITUDE, MAX_LONGITUDE) &&
     isDetectionStatus(row.status);
+}
+
+/** The server answered with a body that does not follow the map contract. */
+export class MapResponseError extends Error {
+  constructor() {
+    super('Invalid map response.');
+    this.name = 'MapResponseError';
+  }
 }
 
 /** Query the collective map; the response is validated because it crosses a trust boundary. */
@@ -54,9 +67,18 @@ export async function fetchMapDetections(bounds: MapBounds, filters: { species: 
   if (filters.since) params.set('since', filters.since.toISOString());
   const response = await apiFetch(API_ROUTES.detections, { token: accessToken, params, signal });
   const body: unknown = await response.json();
-  const rows = (body as { detections?: unknown }).detections;
-  if (!Array.isArray(rows) || typeof (body as { truncated?: unknown }).truncated !== 'boolean') throw new Error('Invalid map response.');
-  return { detections: rows.filter(isDetection), truncated: (body as { truncated: boolean }).truncated };
+  // A null or scalar body is a broken contract too, not a crash while reading its fields.
+  const { detections: rows, truncated } = (typeof body === 'object' && body !== null ? body : {}) as { detections?: unknown; truncated?: unknown };
+  if (!Array.isArray(rows) || typeof truncated !== 'boolean') throw new MapResponseError();
+  return { detections: rows.filter(isDetection), truncated };
+}
+
+/** Why a request failed: no answer at all (connection, timeout) or an answer that cannot be used. */
+export type MapFailure = 'network' | 'server';
+
+/** Tells the two apart, so a server error is not reported as a connection problem. */
+export function mapFailure(error: unknown): MapFailure {
+  return error instanceof ApiError || error instanceof MapResponseError || error instanceof SyntaxError ? 'server' : 'network';
 }
 
 /** GeoJSON for MapLibre's native clustering; coordinates are [longitude, latitude]. */

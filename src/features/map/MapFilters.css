@@ -1,0 +1,56 @@
+.bn-map-filters {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.bn-map-filters__species {
+  position: relative;
+  display: flex;
+  align-items: center;
+  color: var(--color-text-primary);
+}
+
+/* The icons sit over the native select, which keeps its own keyboard and screen-reader behaviour. */
+.bn-map-filters__icon {
+  position: absolute;
+  display: inline-flex;
+  pointer-events: none;
+}
+
+.bn-map-filters__icon--lead {
+  left: var(--space-4);
+}
+
+.bn-map-filters__icon--trail {
+  right: var(--space-4);
+  color: var(--color-text-secondary);
+}
+
+.bn-map-filters__select {
+  width: 100%;
+  min-height: var(--control-height);
+  padding: 0 calc(var(--space-4) + var(--icon-size-s) + var(--space-3));
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-pill);
+  appearance: none;
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-float);
+  font-size: var(--text-body);
+  font-weight: var(--font-weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 64rem) {
+  .bn-map-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .bn-map-filters__species {
+    flex: 0 1 var(--map-filter-width);
+    min-width: 0;
+  }
+}

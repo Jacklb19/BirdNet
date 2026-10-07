@@ -26,8 +26,8 @@ export const MAP_LAYERS = Object.freeze({
 /** Layers that react to the pointer: a cluster zooms in, a point opens its details. */
 export const MAP_INTERACTIVE_LAYERS = Object.freeze([MAP_LAYERS.clusters, MAP_LAYERS.points] as const);
 
-/** Cursor over the interactive layers. MapLibre draws every marker on one canvas, so CSS cannot target them. */
-export const MAP_INTERACTIVE_CURSOR = 'pointer';
+/** Canvas class while the pointer is over a marker. MapLibre draws every marker on one canvas, so CSS cannot target them. */
+export const MAP_POINTER_CLASS = 'bn-map-view__pointer';
 
 /** Canvas context MapLibre GL needs (version 5 on renders only with WebGL 2); without it a notice replaces the map. */
 export const MAP_WEBGL_CONTEXT = 'webgl2';
@@ -41,14 +41,37 @@ export const MAP_CLUSTER = Object.freeze({
   sizeBreakpoints: Object.freeze({ medium: 10, large: 50 }),
 });
 
-/** Zoom buttons only: the map is never rotated, so a compass would be a control without a purpose. */
-export const MAP_NAVIGATION = Object.freeze({ position: 'top-right', showCompass: false } as const);
+/**
+ * Corners of the map controls. Zoom buttons and the locate button share the bottom-right corner, next to the
+ * thumb on a phone; the credits stay bottom-left, away from the list. There is no compass: rotation is
+ * disabled, so north is always up and a compass would be a control without a purpose.
+ */
+export const MAP_CONTROLS = Object.freeze({ navigation: 'bottom-right', attribution: 'bottom-left' } as const);
+
+/** Point popups: their width comes from the stylesheet (component token), not from MapLibre's pixel default. */
+export const MAP_POPUP = Object.freeze({ closeButton: true, maxWidth: 'none', className: 'bn-map-view__popup' } as const);
 
 /** Quiet time after the last pan or zoom before querying, so one drag sends one request. */
 export const MAP_RELOAD_DEBOUNCE_MS = 400;
 
-/** Rows in the accessible text list; the map itself draws every detection the API returned. */
-export const MAP_LIST_PAGE_SIZE = 50;
+/** Most recent detections listed when a species row is opened; the count above it always covers them all. */
+export const MAP_SPECIES_RECENT_LIMIT = 10;
+
+/** Confidence is shown in whole percent, as in the log: the model's scores carry no meaning below that. */
+export const MAP_CONFIDENCE_FRACTION_DIGITS = 0;
+
+/** Refresh of the relative times in the list ("2 min ago"); a minute is the finest unit they show. */
+export const MAP_CLOCK_TICK_MS = 60_000;
+
+export const MAP_LOCATE = Object.freeze({
+  /** Neighbourhood scale: approximate cells are distinguishable and a few kilometres of context remain. */
+  zoom: 14,
+  /**
+   * Only an approximate cell is ever used, so the coarse fix (network, no GPS) is enough and saves battery; a
+   * fix up to five minutes old answers at once, and the timeout ends a hopeless search with a message.
+   */
+  position: Object.freeze({ enableHighAccuracy: false, maximumAge: 300_000, timeout: 15_000 }),
+});
 
 /**
  * Font stack of the cluster counts. MapLibre draws text with the glyphs served by the active style, not with

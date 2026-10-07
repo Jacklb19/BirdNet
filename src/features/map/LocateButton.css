@@ -1,0 +1,23 @@
+.bn-map-locate {
+  display: inline-flex;
+  width: var(--control-height);
+  height: var(--control-height);
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-surface);
+  color: var(--color-brand);
+  box-shadow: var(--shadow-float);
+}
+
+.bn-map-locate[aria-busy='true'] {
+  color: var(--color-text-secondary);
+  cursor: progress;
+}
+
+@media (hover: hover) {
+  .bn-map-locate:not([aria-busy='true']):hover {
+    background: var(--color-bg-sunken);
+  }
+}

@@ -1,0 +1,132 @@
+.bn-map-row {
+  --map-row-mark-size: var(--live-dot-size); /* state marks share the size of the live dot */
+}
+
+.bn-map-row__toggle {
+  display: flex;
+  width: 100%;
+  min-height: var(--touch-min);
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-l);
+  background: transparent;
+  color: var(--color-text-primary);
+  text-align: start;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .bn-map-row__toggle:hover {
+    background: var(--color-bg-sunken);
+  }
+}
+
+.bn-map-row__names {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.bn-map-row__name {
+  font-size: var(--text-title-s);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-title-s);
+  overflow-wrap: anywhere;
+}
+
+.bn-map-row__scientific {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+  overflow-wrap: anywhere;
+}
+
+.bn-map-row__meta {
+  display: grid;
+  flex-shrink: 0;
+  justify-items: end;
+  text-align: end;
+}
+
+.bn-map-row__count {
+  font-size: var(--text-small);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-small);
+}
+
+.bn-map-row__when,
+.bn-map-row__pending {
+  color: var(--color-text-secondary);
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+}
+
+/* The state colour is a mark beside the text, as on the map's points; the line itself stays as quiet as the time. */
+.bn-map-row__pending {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.bn-map-row__pending::before {
+  width: var(--map-row-mark-size);
+  height: var(--map-row-mark-size);
+  border-radius: var(--radius-pill);
+  background: var(--color-status-provisional);
+  content: '';
+}
+
+.bn-map-row__chevron {
+  display: inline-flex;
+  color: var(--color-text-secondary);
+  transition: transform var(--duration-medium) var(--ease-standard);
+}
+
+.bn-map-row--open .bn-map-row__chevron {
+  transform: rotate(180deg);
+}
+
+.bn-map-row__panel {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2) var(--space-3) calc(var(--space-2) + var(--photo-row) + var(--space-3));
+}
+
+.bn-map-row__panel[hidden] {
+  display: none;
+}
+
+.bn-map-row__detections {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.bn-map-row__detection {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-2);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-map-row__status {
+  font-weight: var(--font-weight-semibold);
+}
+
+.bn-map-row__status--confirmed { color: var(--color-status-confirmed); }
+.bn-map-row__status--provisional { color: var(--color-status-provisional); }
+.bn-map-row__status--verified { color: var(--color-status-verified); }
+.bn-map-row__status--corrected { color: var(--color-status-corrected); }
+
+.bn-map-row__detail,
+.bn-map-row__note {
+  color: var(--color-text-secondary);
+}
+
+.bn-map-row__note {
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+}
