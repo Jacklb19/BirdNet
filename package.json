@@ -14,10 +14,11 @@
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:offline": "node scripts/prepare-offline-check.mjs && playwright test",
-    "test:backend": ".venv/Scripts/python.exe -m pytest backend/tests -q"
+    "test:offline": "node scripts/prepare-offline-check.mjs && playwright test"
   },
   "dependencies": {
+    "@supabase/supabase-js": "2.117.2",
+    "maplibre-gl": "6.13.0",
     "onnxruntime-web": "^1.30.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",

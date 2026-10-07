@@ -29,6 +29,8 @@ export interface TranslationSchema {
     navCapture: string;
     navDiagnostics: string;
     navSettings: string;
+    navAccount: string;
+    navMap: string;
   };
   privacy: {
     title: string;
@@ -105,6 +107,19 @@ export interface TranslationSchema {
       sharedArrayBufferName: string;
       sharedArrayBufferDesc: string;
     };
+  };
+  account: {
+    title: string; subtitle: string; unavailable: string; email: string; password: string;
+    signIn: string; signUp: string; signOut: string; switchToSignUp: string; switchToSignIn: string;
+    signedInAs: string; syncNotice: string; checkEmail: string; invalidCredentials: string; genericError: string;
+    claimTitle: string; claimDescription: string; claimAccept: string; claimDecline: string; claimed: string;
+    passwordHint: string; working: string;
+  };
+  map: {
+    title: string; subtitle: string; signInRequired: string; offline: string; loading: string; error: string;
+    species: string; allSpecies: string; period: string; period7: string; period30: string; period365: string; periodAll: string;
+    count: string; truncated: string; absenceNotice: string; listTitle: string; mapAria: string;
+    confidence: string; recordedAt: string; status: Record<'confirmed' | 'provisional' | 'verified' | 'corrected', string>;
   };
   settings: {
     title: string;
