@@ -1,11 +1,16 @@
 <!doctype html>
 <html lang="es">
   <head>
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#a63817" />
     <meta charset="UTF-8" />
+    <!--
+      lang, title and description are the default locale (es): the fallback shown before JavaScript runs.
+      At runtime src/i18n sets the active locale on the document. theme-color is the light --color-brand
+      token of src/styles/tokens.css, like the manifest's theme_color; src/config/config.test.ts keeps them equal.
+    -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Aplicación web progresiva para el monitoreo continuo de biodiversidad mediante identificación acústica de aves con inferencia híbrida" />
+    <meta name="theme-color" content="#2E7D4F" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <title>BirdNet Local — Monitoreo Acústico de Aves</title>
   </head>
   <body>

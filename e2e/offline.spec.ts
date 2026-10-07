@@ -1,7 +1,21 @@
 import { expect, test, type Page } from '@playwright/test';
 import fs from 'node:fs';
+import { API_PROXY_PREFIX, OFFLINE_CHECK_BUNDLE, TMP_DIR } from '../build.config.mjs';
+import { OFFLINE_OPERATIONS, type OfflineRequestMessage } from '../src/features/offline/offline.constants';
 
-const bridge = fs.readFileSync('tmp/offline-check/offline-check.js', 'utf8');
+/** Widths every screen is reviewed at (phone and desktop). */
+const REVIEW_WIDTHS = [360, 1280] as const;
+const REVIEW_HEIGHT = 900;
+const THEMES = ['light', 'dark'] as const;
+/** The first model download fetches about 37 MiB, far beyond the default expectation timeout. */
+const MODEL_DOWNLOAD_TIMEOUT_MS = 90_000;
+/** Fault-injection routes of the backend fixture (tests/local_server.py), reached through the preview proxy. */
+const FIXTURE_ROUTES = {
+  counts: `${API_PROXY_PREFIX}/test/counts`,
+  loseAck: `${API_PROXY_PREFIX}/test/lose-ack`,
+} as const;
+
+const bridge = fs.readFileSync(OFFLINE_CHECK_BUNDLE, 'utf8');
 async function ready(page: Page): Promise<void> {
   await page.goto('/');
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
@@ -34,8 +48,8 @@ test('500 detections survive closing and offline reopening; quota rejects new wr
 test('response loss after commit retains queue; retry against PostgreSQL produces no duplicates', async ({ page }) => {
   await ready(page);
   await page.evaluate(async () => { await window.offlineChecks.bind(); await window.offlineChecks.seed(3); });
-  const before = await (await page.request.get('/api/test/counts')).json() as { detections: number };
-  await page.request.post('/api/test/lose-ack');
+  const before = await (await page.request.get(FIXTURE_ROUTES.counts)).json() as { detections: number };
+  await page.request.post(FIXTURE_ROUTES.loseAck);
   const failed = await page.evaluate(async () => {
     try { await window.offlineChecks.synchronizeQueue(); return false; } catch { return true; }
   });
@@ -43,21 +57,22 @@ test('response loss after commit retains queue; retry against PostgreSQL produce
   expect((await page.evaluate(() => window.offlineChecks.queueStats())).count).toBe(3);
   await page.evaluate(() => window.offlineChecks.synchronizeQueue());
   expect((await page.evaluate(() => window.offlineChecks.queueStats())).count).toBe(0);
-  const after = await (await page.request.get('/api/test/counts')).json() as { detections: number };
+  const after = await (await page.request.get(FIXTURE_ROUTES.counts)).json() as { detections: number };
   expect(after.detections - before.detections).toBe(3);
 });
 
 test('service worker finishes a synchronization after the initiating page closes', async ({ page, context }) => {
   await ready(page);
-  const before = await (await page.request.get('/api/test/counts')).json() as { detections: number };
-  await page.evaluate(async () => {
+  const before = await (await page.request.get(FIXTURE_ROUTES.counts)).json() as { detections: number };
+  const syncRequest: OfflineRequestMessage<typeof OFFLINE_OPERATIONS.sync> = { type: OFFLINE_OPERATIONS.sync };
+  await page.evaluate(async (request) => {
     await window.offlineChecks.bind(); await window.offlineChecks.seed(2);
     const channel = new MessageChannel();
-    navigator.serviceWorker.controller?.postMessage({ type: 'SYNC' }, [channel.port2]);
-  });
+    navigator.serviceWorker.controller?.postMessage(request, [channel.port2]);
+  }, syncRequest);
   await page.close();
   await expect.poll(async () => {
-    const current = await (await context.request.get('/api/test/counts')).json() as { detections: number };
+    const current = await (await context.request.get(FIXTURE_ROUTES.counts)).json() as { detections: number };
     return current.detections - before.detections;
   }).toBe(2);
   const reopened = await context.newPage();
@@ -67,18 +82,18 @@ test('service worker finishes a synchronization after the initiating page closes
 
 test('audio remains queued after metadata; revocation prevents uploads until permission returns', async ({ page }) => {
   await ready(page);
-  const before = await (await page.request.get('/api/test/counts')).json() as { uploads: number; jobs: number };
+  const before = await (await page.request.get(FIXTURE_ROUTES.counts)).json() as { uploads: number; jobs: number };
   await page.evaluate(async () => {
     await window.offlineChecks.bind(); await window.offlineChecks.updateSettings({ audioConsent: true });
     await window.offlineChecks.seed(1, 0.6); await window.offlineChecks.updateSettings({ audioConsent: false });
     await window.offlineChecks.synchronizeQueue();
   });
   expect((await page.evaluate(() => window.offlineChecks.queueStats())).count).toBe(1);
-  const revoked = await (await page.request.get('/api/test/counts')).json() as { uploads: number };
+  const revoked = await (await page.request.get(FIXTURE_ROUTES.counts)).json() as { uploads: number };
   expect(revoked.uploads).toBe(before.uploads);
   await page.evaluate(async () => { await window.offlineChecks.updateSettings({ audioConsent: true }); await window.offlineChecks.synchronizeQueue(); });
   expect((await page.evaluate(() => window.offlineChecks.queueStats())).count).toBe(0);
-  const delivered = await (await page.request.get('/api/test/counts')).json() as { uploads: number; jobs: number };
+  const delivered = await (await page.request.get(FIXTURE_ROUTES.counts)).json() as { uploads: number; jobs: number };
   expect(delivered.uploads - before.uploads).toBe(1);
   expect(delivered.jobs - before.jobs).toBe(1);
 });
@@ -99,7 +114,7 @@ test('real model survives closing, identifies recorded audio offline and detects
   await ready(page);
   await page.getByRole('button', { name: 'Configuración', exact: true }).click();
   await page.getByRole('button', { name: 'Descargar modelo para usar sin conexión' }).click();
-  await expect(page.getByRole('button', { name: 'Comprobar y descargar versión del modelo' })).toBeVisible({ timeout: 90000 });
+  await expect(page.getByRole('button', { name: 'Comprobar y descargar versión del modelo' })).toBeVisible({ timeout: MODEL_DOWNLOAD_TIMEOUT_MS });
   const failedUpdate = await page.evaluate(async () => {
     try { await window.offlineChecks.invalidUpdate(); return false; } catch { return true; }
   });
@@ -116,16 +131,16 @@ test('real model survives closing, identifies recorded audio offline and detects
   expect(await reopened.evaluate(() => window.offlineChecks.cachedModel())).toBeNull();
 });
 
-for (const width of [360, 1280]) {
-  for (const theme of ['light', 'dark'] as const) {
+for (const width of REVIEW_WIDTHS) {
+  for (const theme of THEMES) {
     test(`offline controls remain usable at ${String(width)}px in ${theme} theme`, async ({ page }) => {
-      await page.setViewportSize({ width, height: 900 });
+      await page.setViewportSize({ width, height: REVIEW_HEIGHT });
       await page.emulateMedia({ colorScheme: theme });
       await ready(page);
       await page.getByRole('button', { name: 'Configuración', exact: true }).click();
       await expect(page.getByRole('checkbox', { name: 'Autorizar el envío de fragmentos dudosos para verificación' })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-      await page.screenshot({ path: `tmp/sprint4-${String(width)}-${theme}.png`, fullPage: true });
+      await page.screenshot({ path: `${TMP_DIR}/offline-${String(width)}-${theme}.png`, fullPage: true });
     });
   }
 }

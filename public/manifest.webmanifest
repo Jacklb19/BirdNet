@@ -6,7 +6,7 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#f7f4ed",
-  "theme_color": "#a63817",
+  "background_color": "#F5F6F4",
+  "theme_color": "#2E7D4F",
   "icons": [{ "src": "/icons/birdnet.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
 }

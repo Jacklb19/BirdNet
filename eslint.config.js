@@ -2,9 +2,10 @@ import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
+import { IGNORED_DIRS } from './build.config.mjs';
 
 export default tseslint.config(
-  { ignores: ['dist', 'coverage', 'node_modules', '.venv', 'venv', 'tmp', 'playwright-report', 'test-results'] },
+  { ignores: [...IGNORED_DIRS] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.strictTypeChecked],
     files: ['**/*.{ts,tsx}'],
