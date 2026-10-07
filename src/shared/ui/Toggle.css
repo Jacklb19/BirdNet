@@ -9,7 +9,8 @@
   height: var(--toggle-height);
   border: 0;
   border-radius: var(--radius-pill);
-  background: var(--color-border-subtle);
+  /* The off rail must reach 3:1 against the surface (WCAG 1.4.11), so it uses the secondary text color. */
+  background: var(--color-text-secondary);
   transition: background-color var(--duration-fast) var(--ease-standard);
 }
 

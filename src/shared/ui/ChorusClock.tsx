@@ -1,30 +1,39 @@
+import { HOURS_PER_DAY } from '../../config/contract';
+import { formatNumber, useI18n } from '../../i18n';
 import { chorusBars } from '../../features/sites/chorus';
 import './ChorusClock.css';
 
 /** Drawing geometry in SVG user units (viewBox 260 × 260); colors and type come from tokens via CSS. */
 const GEOMETRY = { size: 260, center: 130, ring: 70, tickLong: 14, tickShort: 9, tickInset: 6, barGap: 6, barMin: 4, barMax: 40, labelRadius: 46 } as const;
-const HOURS_PER_DAY = 24;
 const LABELLED_HOURS = [0, 6, 12, 18] as const;
+/** The dial reads as a 24-hour clock face: 00, 06, 12, 18. */
+const HOUR_LABEL_FORMAT: Intl.NumberFormatOptions = Object.freeze({ minimumIntegerDigits: 2 });
 
-export interface ChorusClockProps {
+/** `compact` (small cards) draws only the number in the middle: hour labels and unit would be too small to read. */
+type ChorusClockSize =
+  | { readonly variant?: 'full'; readonly unit: string }
+  | { readonly variant: 'compact'; readonly unit?: undefined };
+
+export type ChorusClockProps = ChorusClockSize & {
   /** Detections per local hour, index 0 = midnight. */
   readonly hourly: readonly number[];
   readonly value: string;
-  readonly unit: string;
-  /** Full sentence describing the chart for screen readers. */
+  /** Full sentence describing the chart for screen readers, including what the value counts. */
   readonly description: string;
   readonly className?: string;
-}
+};
 
 const angle = (hour: number): number => (hour / HOURS_PER_DAY) * Math.PI * 2 - Math.PI / 2;
 const point = (hour: number, radius: number): [number, number] => [GEOMETRY.center + radius * Math.cos(angle(hour)), GEOMETRY.center + radius * Math.sin(angle(hour))];
 
 /** The signature chart: one radial bar per hour; the busiest hour is drawn in ink. */
-export function ChorusClock({ hourly, value, unit, description, className }: ChorusClockProps): React.JSX.Element {
+export function ChorusClock({ hourly, value, unit, description, variant = 'full', className }: ChorusClockProps): React.JSX.Element {
+  const { locale } = useI18n();
   const bars = chorusBars(hourly);
   const { size, center, ring } = GEOMETRY;
+  const full = variant === 'full';
   return (
-    <figure className={['bn-chorus', className ?? ''].filter(Boolean).join(' ')}>
+    <figure className={['bn-chorus', `bn-chorus--${variant}`, className ?? ''].filter(Boolean).join(' ')}>
       <svg viewBox={`0 0 ${String(size)} ${String(size)}`} role="img" aria-label={description}>
         <circle className="bn-chorus__ring" cx={center} cy={center} r={ring} />
         {bars.map((bar) => {
@@ -38,12 +47,12 @@ export function ChorusClock({ hourly, value, unit, description, className }: Cho
           const [bx2, by2] = point(bar.hour, start + GEOMETRY.barMin + bar.length * GEOMETRY.barMax);
           return [tick, <line key={`b${String(bar.hour)}`} className={bar.peak ? 'bn-chorus__bar bn-chorus__bar--peak' : 'bn-chorus__bar'} x1={bx1} y1={by1} x2={bx2} y2={by2} />];
         })}
-        {LABELLED_HOURS.map((hour) => {
+        {full && LABELLED_HOURS.map((hour) => {
           const [x, y] = point(hour, GEOMETRY.labelRadius);
-          return <text key={hour} className="bn-chorus__hour" x={x} y={y} textAnchor="middle" dominantBaseline="central">{String(hour).padStart(2, '0')}</text>;
+          return <text key={hour} className="bn-chorus__hour" x={x} y={y} textAnchor="middle" dominantBaseline="central">{formatNumber(hour, locale, HOUR_LABEL_FORMAT)}</text>;
         })}
         <text className="bn-chorus__value" x={center} y={center} textAnchor="middle" dominantBaseline="central">{value}</text>
-        <text className="bn-chorus__unit" x={center} y={center + GEOMETRY.labelRadius / 2} textAnchor="middle" dominantBaseline="central">{unit}</text>
+        {full && <text className="bn-chorus__unit" x={center} y={center + GEOMETRY.labelRadius / 2} textAnchor="middle" dominantBaseline="central">{unit}</text>}
       </svg>
     </figure>
   );

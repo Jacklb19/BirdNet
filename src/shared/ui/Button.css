@@ -10,6 +10,7 @@
   font-size: var(--text-body);
   font-weight: var(--font-weight-semibold);
   line-height: var(--leading-body);
+  text-decoration: none;
   transition: background-color var(--duration-fast) var(--ease-standard), opacity var(--duration-fast) var(--ease-standard);
 }
 
@@ -33,17 +34,23 @@
   color: var(--color-text-primary);
 }
 
-.bn-button:disabled {
+/* aria-disabled: a button that waits for its own action keeps the focus, so it is not `disabled`, but looks it. */
+.bn-button:disabled,
+.bn-button[aria-disabled='true'] {
   opacity: var(--state-disabled-opacity);
 }
 
 @media (hover: hover) {
-  .bn-button--primary:not(:disabled):hover {
+  .bn-button--primary:not(:disabled, [aria-disabled='true']):hover {
     filter: brightness(var(--state-hover-brightness));
   }
 
-  .bn-button--secondary:not(:disabled):hover,
-  .bn-button--quiet:not(:disabled):hover {
+  .bn-button--secondary:not(:disabled, [aria-disabled='true']):hover {
     background: var(--color-bg-sunken);
+  }
+
+  /* The quiet button already rests on the sunken fill, so its hover steps one shade further. */
+  .bn-button--quiet:not(:disabled, [aria-disabled='true']):hover {
+    background: var(--color-border-subtle);
   }
 }

@@ -47,6 +47,10 @@
   font-weight: var(--font-weight-bold);
 }
 
+.bn-chorus--compact .bn-chorus__value {
+  font-size: var(--chorus-value-size-compact);
+}
+
 .bn-chorus__unit {
   fill: var(--color-text-secondary);
   font-size: var(--chorus-unit-size);

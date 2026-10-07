@@ -24,3 +24,25 @@
   color: var(--color-text-primary);
   box-shadow: var(--shadow-raised);
 }
+
+/* Chips wrap instead of squeezing, and each carries its own surface so it reads over any background. */
+.bn-segmented--chips {
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: 0;
+  background: transparent;
+}
+
+.bn-segmented--chips .bn-segmented__option {
+  flex: none;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-raised);
+}
+
+.bn-segmented--chips .bn-segmented__option[aria-checked='true'] {
+  background: var(--color-bg-inverse);
+  color: var(--color-text-inverse);
+}

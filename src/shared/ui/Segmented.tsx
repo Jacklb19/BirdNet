@@ -11,10 +11,12 @@ export interface SegmentedProps<T extends string> {
   readonly value: T;
   readonly onChange: (value: T) => void;
   readonly label: string;
+  /** `track`: options inside one sunken bar. `chips`: separate raised pills, for controls floating over a map or photo. */
+  readonly variant?: 'track' | 'chips';
 }
 
 /** Radio group with roving focus: arrows move and select, as in native segmented controls. */
-export function Segmented<T extends string>({ options, value, onChange, label }: SegmentedProps<T>): React.JSX.Element {
+export function Segmented<T extends string>({ options, value, onChange, label, variant = 'track' }: SegmentedProps<T>): React.JSX.Element {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const move = (event: KeyboardEvent, index: number): void => {
     const step = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 0;
@@ -27,7 +29,7 @@ export function Segmented<T extends string>({ options, value, onChange, label }:
     refs.current[next]?.focus();
   };
   return (
-    <div className="bn-segmented" role="radiogroup" aria-label={label}>
+    <div className={`bn-segmented bn-segmented--${variant}`} role="radiogroup" aria-label={label}>
       {options.map((option, index) => {
         const selected = option.value === value;
         return (

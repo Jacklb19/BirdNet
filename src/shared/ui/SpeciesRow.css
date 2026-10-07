@@ -9,6 +9,7 @@
   background: transparent;
   color: var(--color-text-primary);
   text-align: start;
+  text-decoration: none;
   transition: background-color var(--duration-medium) var(--ease-standard);
 }
 
@@ -36,6 +37,7 @@
   font-size: var(--text-title-s);
   font-weight: var(--font-weight-semibold);
   line-height: var(--leading-title-s);
+  overflow-wrap: anywhere;
 }
 
 .bn-species__scientific {

@@ -11,13 +11,18 @@ const GRAPHIC_CONTRAST = 3;
 
 const PAGE_BACKGROUNDS = ['color-bg-canvas', 'color-bg-surface'];
 
+/** Species rows: their text sits on the page, on the hover fill (sunken) and on the singing-now highlight. */
+const ROW_BACKGROUNDS = [...PAGE_BACKGROUNDS, 'color-bg-sunken', 'color-highlight-now'];
+
+const STATUS_COLORS = ['color-status-confirmed', 'color-status-provisional', 'color-status-verified', 'color-status-corrected'];
+
 const TEXT_PAIRS: readonly (readonly [string, string])[] = [
-  ...['color-text-primary', 'color-text-secondary'].flatMap((foreground) =>
-    [...PAGE_BACKGROUNDS, 'color-bg-sunken'].map((background) => [foreground, background] as const)),
-  ...['color-brand', 'color-error', 'color-status-confirmed', 'color-status-provisional', 'color-status-verified', 'color-status-corrected']
-    .flatMap((foreground) => PAGE_BACKGROUNDS.map((background) => [foreground, background] as const)),
+  ...['color-text-primary', 'color-text-secondary', ...STATUS_COLORS].flatMap((foreground) =>
+    ROW_BACKGROUNDS.map((background) => [foreground, background] as const)),
+  ...['color-brand', 'color-error'].flatMap((foreground) => PAGE_BACKGROUNDS.map((background) => [foreground, background] as const)),
   ['color-on-brand', 'color-brand'], ['color-text-inverse', 'color-bg-inverse'],
-  ['color-status-provisional', 'color-status-provisional-soft'], ['color-text-primary', 'color-highlight-now'],
+  // Caution notices: the state color and the secondary body text on the soft fill.
+  ['color-status-provisional', 'color-status-provisional-soft'], ['color-text-secondary', 'color-status-provisional-soft'],
 ];
 
 const GRAPHIC_PAIRS: readonly (readonly [string, string])[] = [

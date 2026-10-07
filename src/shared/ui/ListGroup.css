@@ -28,6 +28,7 @@
   background: transparent;
   color: var(--color-text-primary);
   text-align: start;
+  text-decoration: none;
 }
 
 .bn-row + .bn-row {
@@ -38,8 +39,18 @@
   cursor: pointer;
 }
 
+/* The group body clips its corners, so the focus ring is drawn inside the row. */
+.bn-row--action:focus-visible {
+  outline-offset: calc(-1 * var(--focus-width));
+}
+
+.bn-row--action[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: var(--state-disabled-opacity);
+}
+
 @media (hover: hover) {
-  .bn-row--action:hover {
+  .bn-row--action:not([aria-disabled='true']):hover {
     background: var(--color-bg-sunken);
   }
 }

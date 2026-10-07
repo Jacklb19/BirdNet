@@ -3,16 +3,22 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { STORAGE_KEYS, readPreferences } from '../config/storage';
 import {
   formatBytes,
+  formatCount,
   formatDate,
   formatDecibels,
   formatDecimal,
   formatFrequency,
+  formatKilohertz,
+  formatMeters,
   formatMilliseconds,
   formatPercent,
+  formatRelativeTime,
   formatSeconds,
+  relativeTime,
+  selectPlural,
 } from './formatters';
 import { I18nProvider } from './I18nProvider';
-import { DEFAULT_LOCALE, LOCALES } from './locales';
+import { DEFAULT_LOCALE, LOCALES, intlTag } from './locales';
 import { dictionaries } from './messages';
 import { useI18n } from './useI18n';
 
@@ -99,5 +105,74 @@ describe('formatters', () => {
   it('formats dates per language', () => {
     const testDate = new Date('2026-10-12T14:30:00Z');
     expect(formatDate(testDate, 'es')).not.toEqual(formatDate(testDate, 'en'));
+  });
+
+  it('formats kilohertz with the shared symbol, or bare for axis labels', () => {
+    expect(formatKilohertz(15_000, 'es')).toMatch(/^15\s+kHz$/);
+    expect(formatKilohertz(1_500, 'es')).toMatch(/^1,5\s+kHz$/);
+    expect(formatKilohertz(1_500, 'en')).toMatch(/^1\.5\s+kHz$/);
+    expect(formatKilohertz(8_000, 'en', { withSymbol: false })).toBe('8');
+  });
+
+  it('formats distances in metres', () => {
+    expect(formatMeters(100, 'es')).toMatch(/^100\s+m$/);
+    expect(formatMeters(1_500, 'en')).toMatch(/^1,500\s+m$/);
+  });
+});
+
+describe('counted phrases', () => {
+  const songs = { one: (count: string) => `${count} canto`, other: (count: string) => `${count} cantos` };
+
+  it('picks the form with each language plural rules', () => {
+    expect(selectPlural(songs, 1, 'es')).toBe(songs.one);
+    expect(selectPlural(songs, 0, 'es')).toBe(songs.other);
+    expect(selectPlural({ one: 'song', other: 'songs' }, 1, 'en')).toBe('song');
+    expect(selectPlural({ one: 'song', other: 'songs' }, 2, 'en')).toBe('songs');
+  });
+
+  it('falls back to the "other" form for categories a translation does not list', () => {
+    // Spanish uses the "many" category for exact millions.
+    expect(new Intl.PluralRules(intlTag('es')).select(1_000_000)).toBe('many');
+    expect(formatCount(songs, 1_000_000, 'es')).toBe('1.000.000 cantos');
+    expect(formatCount({ ...songs, many: (count: string) => `${count} de cantos` }, 1_000_000, 'es')).toBe('1.000.000 de cantos');
+  });
+
+  it('formats the number for the locale inside the phrase', () => {
+    expect(formatCount(songs, 1, 'es')).toBe('1 canto');
+    expect(formatCount(songs, 24, 'es')).toBe('24 cantos');
+    expect(formatCount(songs, 1500, 'en')).toBe('1,500 cantos');
+  });
+});
+
+describe('relative time', () => {
+  // Local wall-clock dates keep the calendar-day cases independent of the machine's time zone.
+  const now = new Date(2026, 9, 7, 1, 30);
+  const minutesAgo = (minutes: number): Date => new Date(now.getTime() - minutes * 60_000);
+
+  it('uses elapsed minutes and hours during the first day', () => {
+    expect(relativeTime(minutesAgo(0.5), now)).toEqual({ value: 0, unit: 'second' });
+    expect(relativeTime(minutesAgo(5), now)).toEqual({ value: -5, unit: 'minute' });
+    expect(relativeTime(minutesAgo(170), now)).toEqual({ value: -2, unit: 'hour' });
+  });
+
+  it('counts calendar days after the first day, so yesterday is the previous date', () => {
+    expect(relativeTime(new Date(2026, 9, 6, 0, 30), now)).toEqual({ value: -1, unit: 'day' });
+    expect(relativeTime(new Date(2026, 9, 5, 19, 0), now)).toEqual({ value: -2, unit: 'day' });
+  });
+
+  it('switches to weeks, months and years for older moments, rounding down', () => {
+    expect(relativeTime(new Date(2026, 8, 27, 12, 0), now)).toEqual({ value: -1, unit: 'week' });
+    expect(relativeTime(new Date(2026, 7, 1, 12, 0), now)).toEqual({ value: -2, unit: 'month' });
+    expect(relativeTime(new Date(2024, 9, 1, 12, 0), now)).toEqual({ value: -2, unit: 'year' });
+  });
+
+  it('reads a time ahead of this device as now', () => {
+    expect(relativeTime(minutesAgo(-10), now)).toEqual({ value: 0, unit: 'second' });
+  });
+
+  it('uses the language words for adjacent days and the short units', () => {
+    expect(formatRelativeTime(new Date(2026, 9, 6, 0, 0), now, 'es')).toBe('ayer');
+    expect(formatRelativeTime(new Date(2026, 9, 6, 0, 0), now, 'en')).toBe('yesterday');
+    expect(formatRelativeTime(minutesAgo(125), now, 'es')).toBe('hace 2 h');
   });
 });

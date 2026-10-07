@@ -24,6 +24,8 @@ const paths = {
   close: 'M6 6l12 12 M18 6 6 18',
   plus: 'M12 5v14 M5 12h14',
   bird: 'M4 17c5 0 7-3 7-6V9a4 4 0 0 1 8 0l2 1.5-3 .8c-.8 5.6-5 8.7-14 5.7Z M15 8.5h.01',
+  play: 'M8 5.5v13l10.5-6.5Z',
+  pause: 'M7.5 5.5h3v13h-3Z M13.5 5.5h3v13h-3Z',
 } as const;
 
 export type IconName = keyof typeof paths;

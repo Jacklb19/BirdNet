@@ -22,8 +22,9 @@
   --color-record: #E5372B;
   --color-on-record: #FFFFFF;
   --color-highlight-now: #FFF1A8;
-  --color-status-confirmed: #2E7D4F;
-  --color-status-provisional: #A15C00;
+  /* State text sits on the page, the hover fill (sunken) and the singing highlight: darker than the brand to keep 4.5:1 on all */
+  --color-status-confirmed: #2D794D;
+  --color-status-provisional: #A05B00;
   --color-status-provisional-soft: #FFF4D6;
   --color-status-verified: #2459C4;
   --color-status-corrected: #6A43B5;
@@ -117,6 +118,8 @@
   --chorus-bar-width: 7;
   --chorus-hour-size: 11px;
   --chorus-value-size: 34px;
+  /* Small cards draw only the number: about 18 CSS px on a 5.5rem clock, three digits still clear of the inner ticks */
+  --chorus-value-size-compact: 52px;
   --chorus-unit-size: 12px;
 
   /* Elevation */
@@ -165,7 +168,7 @@
   --color-on-brand: #0F1311;
   --color-record: #FF6B5E;
   --color-on-record: #0F1311;
-  --color-highlight-now: #4A4116;
+  --color-highlight-now: #483F15;
   --color-status-confirmed: #5CC98A;
   --color-status-provisional: #F2B45A;
   --color-status-provisional-soft: #3A2E12;

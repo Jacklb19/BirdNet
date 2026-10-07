@@ -11,15 +11,18 @@ export interface NoticeProps {
   readonly children: ReactNode;
   /** Optional action rendered after the text (normally a quiet Button). */
   readonly action?: ReactNode;
+  /**
+   * Announced politely when it appears or changes: the result of something the person did, or a change of
+   * connection. Permanent notes (caveats, explanations) stay silent, so they are not read out on every update.
+   */
+  readonly live?: boolean;
 }
 
-/**
- * Inline message tied to the content around it. Errors are announced immediately (role="alert");
- * every other tone is a polite status so screen readers are not interrupted.
- */
-export function Notice({ tone = 'info', icon, title, children, action }: NoticeProps): React.JSX.Element {
+/** Inline message tied to the content around it. Errors are always announced immediately (role="alert"). */
+export function Notice({ tone = 'info', icon, title, children, action, live = false }: NoticeProps): React.JSX.Element {
+  const role = tone === 'error' ? 'alert' : live ? 'status' : undefined;
   return (
-    <div className={`bn-notice bn-notice--${tone}`} role={tone === 'error' ? 'alert' : 'status'}>
+    <div className={`bn-notice bn-notice--${tone}`} role={role}>
       {icon && <Icon name={icon} size="s" />}
       <div className="bn-notice__body">
         {title && <p className="bn-notice__title">{title}</p>}
