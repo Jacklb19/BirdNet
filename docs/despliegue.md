@@ -25,6 +25,8 @@ Ambos se despliegan solos en Vercel al fusionar en `main`. El trabajo diario va 
 | `VITE_SUPABASE_URL` | `https://tugzxyleoidiimhbnwde.supabase.co` |
 | `VITE_SUPABASE_ANON_KEY` | Clave `anon` / *publishable* (pública por diseño; todas las tablas tienen RLS) |
 
+Variables opcionales de la web (proveedor de mapas, centro inicial, zona horaria por defecto, fuentes de fotos, tiempos de espera): ver `.env.example`. Todo origen externo que se cambie debe añadirse también a la CSP de `vercel.json` (la prueba `src/config/config.test.ts` lo comprueba para los valores por defecto).
+
 **API** (preset *Other*, Root Directory `.`):
 
 | Variable | Valor |
@@ -34,14 +36,19 @@ Ambos se despliegan solos en Vercel al fusionar en `main`. El trabajo diario va 
 | `MODEL_RESOURCE_BASE_URL` | `https://tugzxyleoidiimhbnwde.supabase.co/storage/v1/object/public/models/birdnet-v2.4` |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_AUDIO_BUCKET` | Solo para la subida de audio dudoso |
 
+Ajustes opcionales de la API (tiempos de espera, límites de resultados y exportación, zona horaria por defecto, `MODEL_MANIFEST_ALLOWED_HOSTS`): ver el README y `.env.example` del repositorio de la API. Si se define `MODEL_MANIFEST_URL`, su host debe coincidir con el de `SUPABASE_URL` o figurar en `MODEL_MANIFEST_ALLOWED_HOSTS`.
+
+**Supabase Auth**: la longitud mínima de contraseña (*Authentication → Providers → Email*) debe ser 8, igual que `PASSWORD_MIN_LENGTH` del formulario.
+
 ## Comprobación rápida
 
 - `https://bird-back.vercel.app/v1/health` y `https://birdnet-nu.vercel.app/api/v1/health` responden `{"status":"ok"}`.
-- Configuración → descargar el modelo; Captura → iniciar escucha.
-- Cuenta → crear cuenta, confirmar el correo, iniciar sesión. Con la ubicación activada, las detecciones se sincronizan y aparecen en Mapa.
+- Primera visita → Empezar (descarga el modelo); Escuchar → iniciar la escucha.
+- Cuenta → crear cuenta, confirmar el correo, iniciar sesión. Con «Guardar dónde escuchas» activado en Ajustes, las detecciones se sincronizan y aparecen en Mapa.
+- Sitios → crear un sitio, elegirlo como activo, escuchar y abrir su panel; exportar CSV.
 
 ## Desarrollo local
 
-- Web: `npm ci`, `npm run dev` (Vite reenvía `/api` a `http://127.0.0.1:8000`).
+- Web: `npm ci`, `npm run dev` (Vite reenvía `/api` a `API_PROXY_TARGET`, por defecto `http://127.0.0.1:8000`). En desarrollo no hay Service Worker: el modelo se carga directamente al empezar a escuchar.
 - API: ver el README del repositorio de la API (`uvicorn birdnet_api.app:app --port 8000`).
 - Verificación: `npm run lint`, `npm run typecheck`, `npm run test`, `npm run build`.

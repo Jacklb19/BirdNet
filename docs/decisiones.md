@@ -17,7 +17,7 @@ Este documento registra los Registros de Decisión de Arquitectura (ADR) adicion
     - Comentarios en el código y documentación de interfaces (JSDoc/TSDoc).
     - Mensajes de commit (formato Conventional Commits en imperativo en inglés).
   - Se mantienen en **español**:
-    - Todos los textos visibles por el usuario final en la interfaz gráfica (UI), centralizados en un módulo de internacionalización (`src/i18n/es.ts`).
+    - Todos los textos visibles por el usuario final en la interfaz gráfica (UI). Cada funcionalidad los declara en su propio módulo `src/features/<funcionalidad>/i18n.ts` (español e inglés) y `src/i18n/messages.ts` los compone (ver ADR-08).
     - Toda la documentación dentro del directorio `docs/`.
 
 ---
@@ -57,9 +57,9 @@ La aplicación requiere soporte multi-idioma (español nativo e inglés internac
 ### Decisión
 Se implementa un proveedor propio y ultraligero de internacionalización en `src/i18n/` basado en Context API nativa de React y la API estándar `Intl` de ECMAScript:
 1. **Peso despreciable**: Menos de 0,5 KB de código de lógica (`src/i18n/index.tsx`), sin dependencias externas adicionales en `package.json`.
-2. **Tipado estricto**: Esquema TypeScript (`TranslationSchema`) que valida en tiempo de compilación y en pruebas unitarias que no falten claves ni existan valores vacíos.
+2. **Tipado estricto y modular** (actualizado en el Sprint 6): cada funcionalidad declara sus textos con `defineMessages({ es, en })`; el español define la forma y el inglés debe tener exactamente las mismas claves, así que una traducción faltante es un error de compilación. Los textos con datos son funciones de valores ya formateados, de modo que el orden de las palabras queda en la traducción. Una prueba comprueba que ningún texto quede vacío.
 3. **Formateo nativo con `Intl`**: Se centralizan en `src/i18n/formatters.ts` los formateadores para decimales (coma en español `48,3` vs punto en inglés `48.3`), porcentajes, frecuencias (`Hz`), latencias (`ms`), decibelios (`dBFS`), bytes (`MB`) y fechas, sin formateos artesanales (`toFixed`, etc.).
-4. **Persistencia local**: La preferencia se almacena en `localStorage` bajo `birdnet_settings` con tolerancia a fallos por cuota o modo incógnito (`try/catch`).
+4. **Persistencia local**: La preferencia se guarda en `localStorage` mediante `src/config/storage.ts` (clave `STORAGE_KEYS.preferences`), con tolerancia a fallos por cuota o modo incógnito. Los idiomas disponibles y su región de formato viven en `src/i18n/locales.ts`.
 
 ### Consecuencias
 - **Positivas**: Cero impacto en el tiempo de carga del bundle principal, cero dependencias adicionales, soporte estricto de tipos de TypeScript y cumplimiento de la política de cero costo en dependencias.
@@ -73,9 +73,9 @@ Se implementa un proveedor propio y ultraligero de internacionalización en `src
 El monitoreo acústico de aves se realiza tanto a plena luz solar (donde los reflejos en pantalla exigen alto contraste y fondos claros) como al amanecer, anochecer o noche (donde fondos oscuros evitan deslumbrar al observador y reducen el consumo en pantallas OLED).
 
 ### Decisión
-1. **Tokens centralizados en CSS variables**: Definición en `src/index.css` de tokens semánticos tanto en `:root` (tema claro) como en `[data-theme="dark"]` y `@media (prefers-color-scheme: dark)`.
+1. **Tokens centralizados en CSS variables** (actualizado en el Sprint 6): `src/styles/tokens.css` define los tokens del diseño aprobado en Figma, el tema claro en `:root` y un único bloque oscuro en `:root[data-theme='dark']`. El tema resuelto (incluido «Automático») se escribe siempre en `data-theme` antes del primer render, por lo que no hace falta repetir la paleta en una media query.
 2. **Cumplimiento estricto WCAG 2.1 AA**: Todos los pares de contraste texto/fondo superan 4,5:1 (ratio verificado automáticamente mediante pruebas automatizadas con el algoritmo de luminancia relativa estándar).
-3. **Reactivación de elementos Canvas**: Los elementos dibujados sobre `<canvas>` (como `SpectrogramCanvas`) leen dinámicamente los estilos calculados (`getComputedStyle`) y se suscriben al cambio de tema en `useTheme()`, redibujando inmediatamente la interfaz sin dejar colores fijos.
+3. **Reactivación de elementos Canvas**: Los elementos dibujados sobre `<canvas>` (espectrograma) y el mapa leen dinámicamente los estilos calculados (`getComputedStyle`) y se suscriben al cambio de tema en `useTheme()`, redibujando inmediatamente la interfaz sin dejar colores fijos.
 4. **Selector accesible en `/settings`**: Opciones `Sistema`, `Claro` y `Oscuro` con áreas táctiles mínimas de 44 px, accesibles por teclado y persistidas en `localStorage`.
 
 ---
@@ -106,4 +106,37 @@ Se requieren dos direcciones públicas independientes: una para la aplicación w
 
 ### Consecuencias
 Cada parte se despliega y versiona por separado. Las variables del servidor (`DATABASE_URL`, `SUPABASE_AUTH_ISSUER`, `MODEL_RESOURCE_BASE_URL`) viven solo en el proyecto de la API. El manifiesto del modelo existe en ambos repositorios y debe actualizarse a la vez. La prueba E2E sin conexión necesita el repositorio de la API clonado al lado (`../backend`).
+
+---
+
+## ADR-12. Configuración centralizada: ningún valor cambiable queda escrito en el código
+
+### Contexto
+Al empezar el Sprint 6 había URL, límites, tiempos de espera, umbrales, listas de opciones, claves de almacenamiento y nombres de protocolo repetidos en muchos módulos de ambos repositorios, y algunos ya se habían desincronizado.
+
+### Decisión
+- **Web**: `src/config/env.ts` es el único módulo que lee `import.meta.env`; valida cada variable y documenta su valor por defecto (`.env.example`). `src/config/api.ts` tiene las rutas de la API y un cliente común con tiempo de espera; `src/config/contract.ts` refleja las reglas de dominio de la API (umbrales, celda de ubicación, límites, periodos, estados); `src/config/storage.ts`, las claves del navegador; `build.config.mjs`, las constantes del build. Los estilos usan solo tokens y los textos solo i18n.
+- **API**: `birdnet_api/settings.py` (variables de entorno leídas una vez y validadas), `birdnet_api/domain.py` (reglas de dominio y formato WAV derivado) y `birdnet_api/errors.py` (cada error con su código HTTP y mensaje).
+- Pruebas que mantienen sincronizado lo que no puede compartir código: la CSP de `vercel.json` debe permitir los orígenes externos de la configuración, las cabeceras de Vite y Vercel deben coincidir, y los colores y textos estáticos de `index.html` y del manifiesto deben coincidir con los tokens y el idioma por defecto.
+
+### Consecuencias
+Cambiar un proveedor de mapas, un límite o un umbral es un cambio en un solo lugar. `vercel.json` sigue fijando el destino de `/api/*` porque Vercel no lee variables en ese archivo.
+
+---
+
+## ADR-13. Nombres comunes y fotos de especies
+
+### Decisión
+- **Nombres comunes**: instantánea versionada de la taxonomía de eBird (español internacional) en `public/models/species-names.json`, regenerable con `npm run data:species-names`. Se precachea para que funcione sin conexión. Si una especie no tiene nombre en español se usa el inglés y, en último caso, el nombre científico: nunca se inventan traducciones.
+- **Fotos**: imagen principal del artículo de Wikipedia de la especie, servida desde Wikimedia Commons con autor y licencia visibles. El Service Worker guarda las fotos vistas para usarlas sin conexión. Sin foto se muestra un marcador neutro.
+
+---
+
+## ADR-14. Rediseño de la interfaz (Sprint 6)
+
+### Decisión
+Dirección «clara y tranquila» aprobada en Figma: fondo neutro, verde de marca, amarillo solo para «canta ahora» y rojo solo al grabar; una sola familia tipográfica (Radio Canada, autoalojada para funcionar sin conexión) con cursiva solo en nombres científicos. En teléfonos, barra inferior de pestañas y un mini reproductor sobre ella mientras se escucha fuera de la pantalla Escuchar; en pantallas anchas, barra superior flotante que integra el mini reproductor. La escucha vive por encima del enrutador, de modo que sigue activa al navegar.
+
+### Consecuencias
+Los sitios de monitoreo se crean solo con conexión y cuenta; la lista se guarda en el teléfono para poder elegir el sitio activo sin señal.
 
