@@ -6,7 +6,7 @@ import httpx
 import pytest
 from fastapi import HTTPException
 
-from backend.storage import AudioStorage
+from birdnet_api.storage import AudioStorage
 
 
 def wav():

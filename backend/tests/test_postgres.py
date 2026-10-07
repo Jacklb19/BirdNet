@@ -7,10 +7,10 @@ import psycopg
 import pytest
 from fastapi import HTTPException
 
-from backend.contracts import DetectionInput, MapQuery
-from backend.repository import DetectionRepository
-from backend.tests.prepare_database import TEST_DATABASE_URL
-from backend.tests.test_api import detection
+from birdnet_api.contracts import DetectionInput, MapQuery
+from birdnet_api.repository import DetectionRepository
+from tests.prepare_database import TEST_DATABASE_URL
+from tests.test_api import detection
 
 pytestmark = pytest.mark.skipif(os.environ.get("BIRDNET_TEST_DATABASE_URL") != TEST_DATABASE_URL, reason="Isolated local PostgreSQL fixture not enabled")
 

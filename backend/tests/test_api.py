@@ -11,8 +11,8 @@ import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from backend.app import app, repository, storage
-from backend.contracts import BatchResponse, MapResponse
+from birdnet_api.app import app, repository, storage
+from birdnet_api.contracts import BatchResponse, MapResponse
 
 
 class MemoryRepository:

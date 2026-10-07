@@ -11,9 +11,9 @@ import psycopg
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-from backend.app import app, storage
-from backend.storage import AudioStorage
-from backend.tests.prepare_database import TEST_DATABASE_URL
+from birdnet_api.app import app, storage
+from birdnet_api.storage import AudioStorage
+from tests.prepare_database import TEST_DATABASE_URL
 
 os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 os.environ["SUPABASE_AUTH_ISSUER"] = "http://127.0.0.1:8000/auth/v1"
@@ -57,7 +57,7 @@ def session():
 
 @app.get("/test/invalid-manifest")
 def invalid_manifest():
-    manifest = json.loads(Path("public/models/manifest.json").read_text(encoding="utf-8-sig"))
+    manifest = json.loads((Path(__file__).resolve().parents[1] / "birdnet_api" / "model_manifest.json").read_text(encoding="utf-8-sig"))
     return {**manifest, "sha256": "0" * 64, "model_file": "/models/birdnet_model.onnx", "labels_file": "/models/labels.txt"}
 
 

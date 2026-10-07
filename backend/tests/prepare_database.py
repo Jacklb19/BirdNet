@@ -24,7 +24,7 @@ def prepare():
             GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated, anon, service_role;
             ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT,INSERT,UPDATE,DELETE ON TABLES TO authenticated, service_role;
             ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO anon;""")
-        for migration in sorted(Path("supabase/migrations").glob("*.sql")):
+        for migration in sorted((Path(__file__).resolve().parents[2] / "supabase" / "migrations").glob("*.sql")):
             connection.execute(migration.read_text(encoding="utf-8-sig"))
 
 

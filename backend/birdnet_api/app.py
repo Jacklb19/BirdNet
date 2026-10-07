@@ -17,7 +17,9 @@ from .contracts import AudioInput, BatchInput, BatchResponse, MapQuery, MapRespo
 from .repository import DetectionRepository
 from .storage import AudioStorage
 
-app = FastAPI(title="BirdNet Local", root_path="/api", docs_url=None, redoc_url=None)
+# Deployed as its own project: routes live at the root and the web app proxies /api/* here.
+app = FastAPI(title="BirdNet Local API", docs_url=None, redoc_url=None)
+MANIFEST = Path(__file__).with_name("model_manifest.json")
 
 
 def repository() -> DetectionRepository:
@@ -74,9 +76,14 @@ def detections(query: Annotated[MapQuery, Query()], viewer: UUID = Depends(authe
     return repo.map(viewer, query)
 
 
+@app.get("/v1/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
 @app.get("/v1/model/latest")
 def latest_model() -> dict:
-    manifest_file = Path(os.environ.get("MODEL_MANIFEST_PATH", "public/models/manifest.json"))
+    manifest_file = Path(os.environ.get("MODEL_MANIFEST_PATH", MANIFEST))
     try:
         remote = os.environ.get("MODEL_MANIFEST_URL")
         if remote:
