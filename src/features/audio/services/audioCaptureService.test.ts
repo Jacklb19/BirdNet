@@ -61,8 +61,6 @@ describe('AudioCaptureService', () => {
     globalThis.AudioWorkletNode = vi.fn(function () {
       return mockWorkletNode;
     }) as unknown as typeof AudioWorkletNode;
-    globalThis.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-worklet');
-    globalThis.URL.revokeObjectURL = vi.fn();
 
     Object.defineProperty(globalThis.navigator, 'mediaDevices', {
       value: {
@@ -94,6 +92,14 @@ describe('AudioCaptureService', () => {
     expect(onStateChange).toHaveBeenCalledWith('requesting_permission');
     expect(onStateChange).toHaveBeenCalledWith('listening');
     expect(mockAudioContextInstance.resume).toHaveBeenCalled();
+  });
+
+  it('loads the worklet from a same-origin file that the CSP script-src allows', async () => {
+    await service.start();
+
+    const [url] = mockAudioContextInstance.audioWorklet.addModule.mock.calls[0] as [string];
+    expect(url).not.toMatch(/^(blob|data):/);
+    expect(url).toMatch(/audio-window-processor\.worklet.*\.js/);
   });
 
   it('no vuelve a iniciar si ya está listening', async () => {

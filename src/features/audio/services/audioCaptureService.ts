@@ -1,4 +1,6 @@
-import { AUDIO_WORKLET_PROCESSOR_CODE, type WorkletOutboundMessage } from '../worklet/audio-window-processor';
+import type { WorkletOutboundMessage } from '../worklet/audio-window-processor';
+// Same-origin URL: the CSP script-src, which governs worklets, does not allow blob: modules.
+import workletUrl from '../worklet/audio-window-processor.worklet.js?url';
 import type { MelSpectrogramResponse, MelWorkerOutboundMessage } from '../worker/mel-spectrogram.worker';
 import { LatestWindowQueue } from './latestWindowQueue';
 
@@ -107,17 +109,7 @@ export class AudioCaptureService {
         void this.stop();
       };
 
-      // Cargar el procesador en AudioWorklet
-      const blob = new Blob([AUDIO_WORKLET_PROCESSOR_CODE], {
-        type: 'application/javascript',
-      });
-      const workletUrl = URL.createObjectURL(blob);
-
-      try {
-        await audioCtx.audioWorklet.addModule(workletUrl);
-      } finally {
-        URL.revokeObjectURL(workletUrl);
-      }
+      await audioCtx.audioWorklet.addModule(workletUrl);
       if (generation !== this.generation) return;
 
       const workletNode = new AudioWorkletNode(audioCtx, 'audio-window-processor');

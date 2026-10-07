@@ -1,10 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { runInNewContext } from 'node:vm';
 import type { AudioWindowMessage, WorkletOutboundMessage } from './audio-window-processor';
-import {
-  AudioWindowAccumulator,
-  AUDIO_WORKLET_PROCESSOR_CODE,
-} from './audio-window-processor';
+import { AudioWindowAccumulator } from './audio-window-processor';
+import { AUDIO_CONSTANTS } from '../dsp/audio.constants';
+import WORKLET_SOURCE from './audio-window-processor.worklet.js?raw';
 
 describe('AudioWindowAccumulator', () => {
   it('preserves the hop remainder across 128-sample audio blocks', () => {
@@ -64,10 +63,10 @@ describe('AudioWindowAccumulator', () => {
     expect(metrics?.rms).toBeCloseTo(0.5, 4);
   });
 
-  it('AUDIO_WORKLET_PROCESSOR_CODE contiene el registro del procesador', () => {
-    expect(AUDIO_WORKLET_PROCESSOR_CODE).toContain('registerProcessor');
-    expect(AUDIO_WORKLET_PROCESSOR_CODE).toContain('audio-window-processor');
-    expect(AUDIO_WORKLET_PROCESSOR_CODE).toContain('WINDOW_READY');
+  it('worklet source registers the processor', () => {
+    expect(WORKLET_SOURCE).toContain('registerProcessor');
+    expect(WORKLET_SOURCE).toContain('audio-window-processor');
+    expect(WORKLET_SOURCE).toContain('WINDOW_READY');
   });
 
   it('una entrada a 44.1 kHz produce ventanas de exactamente 144.000 muestras a 48 kHz y conserva la frecuencia de un tono de 1 kHz (RF-03)', () => {
@@ -152,10 +151,13 @@ describe('AudioWindowProcessor runtime', () => {
     interface Processor {
       process(inputs: Float32Array[][]): boolean;
       port: { onmessage: (event: { data: { type: string } }) => void };
+      targetSampleRate: number;
+      windowSamples: number;
+      hopSamples: number;
     }
     let ProcessorClass: (new () => Processor) | undefined;
     const messages: AudioWindowMessage[] = [];
-    runInNewContext(AUDIO_WORKLET_PROCESSOR_CODE, {
+    runInNewContext(WORKLET_SOURCE, {
       sampleRate: 48000,
       currentTime: 3,
       Float32Array,
@@ -168,6 +170,8 @@ describe('AudioWindowProcessor runtime', () => {
     });
     if (!ProcessorClass) throw new Error('Worklet did not register.');
     const processor = new ProcessorClass();
+    expect([processor.targetSampleRate, processor.windowSamples, processor.hopSamples])
+      .toEqual([AUDIO_CONSTANTS.TARGET_SAMPLE_RATE, AUDIO_CONSTANTS.WINDOW_SAMPLES, AUDIO_CONSTANTS.HOP_SAMPLES]);
     processor.process([[new Float32Array(144000).fill(0.2)]]);
     for (let index = 0; index < 3; index++) processor.process([[new Float32Array(72000).fill(0.3)]]);
     expect(messages.map((message) => message.windowIndex)).toEqual([0]);
