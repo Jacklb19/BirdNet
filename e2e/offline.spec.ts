@@ -2,6 +2,13 @@ import { expect, test, type Page } from '@playwright/test';
 import fs from 'node:fs';
 import { API_PROXY_PREFIX, OFFLINE_CHECK_BUNDLE, TMP_DIR } from '../build.config.mjs';
 import { OFFLINE_OPERATIONS, type OfflineRequestMessage } from '../src/features/offline/offline.constants';
+import { STORAGE_KEYS } from '../src/config/storage';
+import { routeHash } from '../src/app/routes';
+import { DEFAULT_LOCALE } from '../src/i18n/locales';
+import { dictionaries } from '../src/i18n/messages';
+
+/** Labels come from the interface dictionaries, so copy changes do not break the suite. */
+const texts = dictionaries[DEFAULT_LOCALE];
 
 /** Widths every screen is reviewed at (phone and desktop). */
 const REVIEW_WIDTHS = [360, 1280] as const;
@@ -16,8 +23,10 @@ const FIXTURE_ROUTES = {
 } as const;
 
 const bridge = fs.readFileSync(OFFLINE_CHECK_BUNDLE, 'utf8');
-async function ready(page: Page): Promise<void> {
-  await page.goto('/');
+async function ready(page: Page, hash = ''): Promise<void> {
+  // Skip the first-run introduction: these checks start from an already welcomed installation.
+  await page.addInitScript(([key, value]) => { localStorage.setItem(key, value); }, [STORAGE_KEYS.preferences, JSON.stringify({ welcomed: true })] as const);
+  await page.goto(`/${hash}`);
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
   await page.addScriptTag({ content: bridge, type: 'module' });
@@ -111,10 +120,9 @@ test('unassociated records and records without location stay local', async ({ pa
 });
 
 test('real model survives closing, identifies recorded audio offline and detects corrupt cache', async ({ context, page }) => {
-  await ready(page);
-  await page.getByRole('button', { name: 'Configuración', exact: true }).click();
-  await page.getByRole('button', { name: 'Descargar modelo para usar sin conexión' }).click();
-  await expect(page.getByRole('button', { name: 'Comprobar y descargar versión del modelo' })).toBeVisible({ timeout: MODEL_DOWNLOAD_TIMEOUT_MS });
+  await ready(page, routeHash({ name: 'settings' }));
+  await page.getByRole('button', { name: texts.settings.model.download }).click();
+  await expect(page.getByRole('button', { name: texts.settings.model.checkUpdate })).toBeVisible({ timeout: MODEL_DOWNLOAD_TIMEOUT_MS });
   const failedUpdate = await page.evaluate(async () => {
     try { await window.offlineChecks.invalidUpdate(); return false; } catch { return true; }
   });
@@ -136,9 +144,8 @@ for (const width of REVIEW_WIDTHS) {
     test(`offline controls remain usable at ${String(width)}px in ${theme} theme`, async ({ page }) => {
       await page.setViewportSize({ width, height: REVIEW_HEIGHT });
       await page.emulateMedia({ colorScheme: theme });
-      await ready(page);
-      await page.getByRole('button', { name: 'Configuración', exact: true }).click();
-      await expect(page.getByRole('checkbox', { name: 'Autorizar el envío de fragmentos dudosos para verificación' })).toBeVisible();
+      await ready(page, routeHash({ name: 'settings' }));
+      await expect(page.getByRole('switch', { name: texts.settings.permissions.audio })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await page.screenshot({ path: `${TMP_DIR}/offline-${String(width)}-${theme}.png`, fullPage: true });
     });

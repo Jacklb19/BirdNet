@@ -43,7 +43,8 @@ export default defineConfig({
       command: `node node_modules/vite/bin/vite.js preview --host ${E2E_HOST} --port ${String(E2E_PORT)} --strictPort`,
       url: APP_ORIGIN, reuseExistingServer: false, timeout: SERVER_START_TIMEOUT_MS,
       // The preview proxy must reach the API started above, whatever API_PROXY_TARGET says locally.
-      env: { [BUILD_ENV.apiProxyTarget]: API_ORIGIN },
+      // Playwright passes only these variables when env is set, so the current environment (PATH) is kept.
+      env: { ...process.env, [BUILD_ENV.apiProxyTarget]: API_ORIGIN },
     },
   ],
 });
