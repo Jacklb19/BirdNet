@@ -1,0 +1,49 @@
+.bn-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  padding: 0 var(--space-5);
+  border: var(--border-width-strong) solid transparent;
+  border-radius: var(--radius-m);
+  font-size: var(--text-body);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-body);
+  transition: background-color var(--duration-fast) var(--ease-standard), opacity var(--duration-fast) var(--ease-standard);
+}
+
+.bn-button--block {
+  width: 100%;
+}
+
+.bn-button--primary {
+  background: var(--color-brand);
+  color: var(--color-on-brand);
+}
+
+.bn-button--secondary {
+  background: transparent;
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
+}
+
+.bn-button--quiet {
+  background: var(--color-bg-sunken);
+  color: var(--color-text-primary);
+}
+
+.bn-button:disabled {
+  opacity: var(--state-disabled-opacity);
+}
+
+@media (hover: hover) {
+  .bn-button--primary:not(:disabled):hover {
+    filter: brightness(var(--state-hover-brightness));
+  }
+
+  .bn-button--secondary:not(:disabled):hover,
+  .bn-button--quiet:not(:disabled):hover {
+    background: var(--color-bg-sunken);
+  }
+}

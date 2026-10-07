@@ -1,0 +1,42 @@
+.bn-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-primary);
+}
+
+.bn-brand__mark {
+  width: var(--brand-mark-size);
+  height: auto;
+}
+
+.bn-brand__tick {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: var(--brand-tick-width);
+  stroke-linecap: round;
+}
+
+.bn-brand__sun {
+  fill: var(--color-status-provisional);
+}
+
+.bn-brand__bird {
+  fill: var(--color-brand);
+}
+
+.bn-brand__text {
+  display: grid;
+}
+
+.bn-brand__name {
+  font-size: var(--text-title-s);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--leading-title-s);
+}
+
+.bn-brand__edition {
+  color: var(--color-text-secondary);
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+}

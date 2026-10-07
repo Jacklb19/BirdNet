@@ -1,0 +1,54 @@
+.bn-chorus {
+  width: min(100%, var(--chorus-size));
+  aspect-ratio: 1;
+  margin: 0 auto;
+}
+
+.bn-chorus svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.bn-chorus__ring {
+  fill: none;
+  stroke: var(--color-border-subtle);
+  stroke-width: var(--chorus-ring-width);
+}
+
+.bn-chorus__tick {
+  stroke: var(--color-text-secondary);
+  stroke-width: var(--chorus-tick-width);
+  stroke-linecap: round;
+}
+
+.bn-chorus__tick--major {
+  stroke-width: var(--chorus-tick-major-width);
+}
+
+.bn-chorus__bar {
+  stroke: var(--color-brand);
+  stroke-width: var(--chorus-bar-width);
+  stroke-linecap: round;
+}
+
+.bn-chorus__bar--peak {
+  stroke: var(--color-text-primary);
+}
+
+.bn-chorus__hour {
+  fill: var(--color-text-secondary);
+  font-size: var(--chorus-hour-size);
+}
+
+.bn-chorus__value {
+  fill: var(--color-text-primary);
+  font-size: var(--chorus-value-size);
+  font-weight: var(--font-weight-bold);
+}
+
+.bn-chorus__unit {
+  fill: var(--color-text-secondary);
+  font-size: var(--chorus-unit-size);
+  font-weight: var(--font-weight-semibold);
+}

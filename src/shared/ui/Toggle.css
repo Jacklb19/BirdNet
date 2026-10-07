@@ -1,0 +1,38 @@
+.bn-toggle {
+  --toggle-width: 3.125rem;
+  --toggle-height: 1.875rem;
+  --toggle-gap: 0.1875rem;
+
+  position: relative;
+  flex-shrink: 0;
+  width: var(--toggle-width);
+  height: var(--toggle-height);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-border-subtle);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.bn-toggle[aria-checked='true'] {
+  background: var(--color-brand);
+}
+
+.bn-toggle__knob {
+  position: absolute;
+  top: var(--toggle-gap);
+  left: var(--toggle-gap);
+  width: calc(var(--toggle-height) - 2 * var(--toggle-gap));
+  height: calc(var(--toggle-height) - 2 * var(--toggle-gap));
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-raised);
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.bn-toggle[aria-checked='true'] .bn-toggle__knob {
+  transform: translateX(calc(var(--toggle-width) - var(--toggle-height)));
+}
+
+.bn-toggle:disabled {
+  opacity: var(--state-disabled-opacity);
+}

@@ -1,0 +1,29 @@
+.bn-photo {
+  flex-shrink: 0;
+  object-fit: cover;
+  background: var(--color-bg-sunken);
+}
+
+.bn-photo--row {
+  width: var(--photo-row);
+  height: var(--photo-row);
+  border-radius: var(--radius-m);
+}
+
+.bn-photo--round {
+  width: var(--avatar);
+  height: var(--avatar);
+  border-radius: var(--radius-pill);
+}
+
+.bn-photo--hero {
+  width: 100%;
+  height: var(--photo-hero);
+}
+
+.bn-photo--empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+}
