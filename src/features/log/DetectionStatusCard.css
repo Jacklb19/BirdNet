@@ -1,0 +1,38 @@
+.bn-log-status {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border-radius: var(--radius-l);
+}
+
+.bn-log-status--confirmed {
+  background: var(--color-brand-soft);
+}
+
+.bn-log-status--provisional {
+  background: var(--color-status-provisional-soft);
+}
+
+/*
+ * Title size and bold weight make this large text (WCAG: 3:1), which the status colors meet on their soft
+ * backgrounds in both themes; at body size the confirmed green would fall short.
+ */
+.bn-log-status__title {
+  font-size: var(--text-title);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--leading-title);
+}
+
+.bn-log-status--confirmed .bn-log-status__title {
+  color: var(--color-status-confirmed);
+}
+
+.bn-log-status--provisional .bn-log-status__title {
+  color: var(--color-status-provisional);
+}
+
+.bn-log-status__text {
+  color: var(--color-text-primary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}

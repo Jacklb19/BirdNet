@@ -1,0 +1,38 @@
+.bn-log-day {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.bn-log-day__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--space-2);
+  padding: 0 var(--space-1);
+  font-size: var(--text-title-s);
+  line-height: var(--leading-title-s);
+}
+
+.bn-log-day__label {
+  font-weight: var(--font-weight-bold);
+}
+
+/* Weekday names are lowercase in Spanish dates, but this one starts a heading. */
+.bn-log-day__label::first-letter {
+  text-transform: uppercase;
+}
+
+.bn-log-day__date {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--leading-small);
+}
+
+.bn-log-day__list {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-surface);
+}
