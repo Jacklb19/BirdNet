@@ -3,6 +3,7 @@
  * (ADR-05), sends audio windows with back-pressure and reports detections through callbacks.
  */
 
+import { config } from '../../config/env';
 import {
   INFERENCE_ERROR_REASONS,
   INFERENCE_WORKER_MESSAGES,
@@ -94,7 +95,7 @@ export class InferenceService {
       // Base that the manifest's resource paths resolve against.
       let resourceBase = manifestUrl;
       const serviceWorkerSupported = 'serviceWorker' in navigator;
-      if ((import.meta.env.PROD && serviceWorkerSupported) || (serviceWorkerSupported && navigator.serviceWorker.controller)) {
+      if ((config.offlineEnabled && serviceWorkerSupported) || (serviceWorkerSupported && navigator.serviceWorker.controller)) {
         const cached = await offlineOperation(OFFLINE_OPERATIONS.modelStatus);
         if (!cached) throw new Error('Download and verify the model before listening.');
         candidate = cached;

@@ -85,6 +85,11 @@ export interface AppConfig {
   };
   /** Fallback when the device does not report its own time zone. */
   readonly defaultTimeZone: string;
+  /**
+   * Service worker, verified model cache and background sync. Only production builds register them, so the
+   * development server keeps Vite's module graph and loads the model straight from `modelAssetsBaseUrl`.
+   */
+  readonly offlineEnabled: boolean;
   readonly photos: {
     readonly lookupApiUrl: string;
     readonly metadataApiUrl: string;
@@ -110,6 +115,7 @@ export function readConfig(env: RawEnv): AppConfig {
       initialZoom: zoom(env, 'VITE_MAP_INITIAL_ZOOM', 10),
     },
     defaultTimeZone: timeZone(env, 'VITE_DEFAULT_TIME_ZONE', 'America/Bogota'),
+    offlineEnabled: env.PROD === true,
     photos: {
       lookupApiUrl: url(env, 'VITE_PHOTO_LOOKUP_API_URL', 'https://en.wikipedia.org/w/api.php'),
       metadataApiUrl: url(env, 'VITE_PHOTO_METADATA_API_URL', 'https://commons.wikimedia.org/w/api.php'),

@@ -98,6 +98,17 @@
   --spectrogram-height-wide: 12.5rem;
   --map-height: 100dvh;
 
+  /* Shell — brand mark, tab indicator, live player and the fade behind the floating top bar */
+  --brand-mark-size: 2.25rem;
+  --brand-tick-width: 2;
+  --tab-indicator-height: 0.125rem;
+  --live-player-height: 3.5rem;
+  --live-photo-size: 2.5rem;
+  --live-dot-size: 0.4375rem;
+  --stop-icon-size: 0.8125rem;
+  --radius-stop-icon: 0.125rem;
+  --topbar-backdrop: linear-gradient(var(--color-bg-canvas) 70%, transparent);
+
   /* Chorus clock — lengths in SVG user units of its 260 × 260 viewBox */
   --chorus-size: 17rem;
   --chorus-ring-width: 1.5;

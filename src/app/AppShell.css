@@ -1,0 +1,50 @@
+.bn-shell {
+  min-height: 100dvh;
+}
+
+.bn-shell__skip {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: var(--layer-sheet);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-m);
+  background: var(--color-bg-inverse);
+  color: var(--color-text-inverse);
+  transform: translateY(calc(-100% - var(--space-4)));
+}
+
+.bn-shell__skip:focus-visible {
+  transform: none;
+}
+
+/*
+ * Pages lay out their own content width; the shell only keeps them clear of the fixed tab bar and,
+ * while listening elsewhere, of the live player strip above it.
+ */
+.bn-shell__main {
+  padding-bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom) + var(--space-6));
+}
+
+.bn-shell--with-player .bn-shell__main {
+  padding-bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom) + var(--live-player-height) + var(--space-8));
+}
+
+.bn-shell__main:focus {
+  outline: none;
+}
+
+.bn-shell__loading,
+.bn-shell__error {
+  max-width: var(--content-narrow);
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-4);
+  color: var(--color-text-secondary);
+}
+
+@media (min-width: 64rem) {
+  .bn-shell__main,
+  .bn-shell--with-player .bn-shell__main {
+    padding-bottom: var(--space-8);
+  }
+}

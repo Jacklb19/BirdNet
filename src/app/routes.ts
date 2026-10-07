@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { isUuid } from '../config/contract';
 
 export type Route =
@@ -36,6 +36,11 @@ export function sectionOf(route: Route): 'listen' | 'log' | 'map' | 'sites' | 'a
   return route.name;
 }
 
+/** Programmatic navigation (after a form or a first-run step); links use `href={routeHash(...)}` instead. */
+export function navigateTo(route: Route): void {
+  window.location.hash = routeHash(route);
+}
+
 export function useRoute(): [Route, (route: Route) => void] {
   const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash));
   useEffect(() => {
@@ -43,6 +48,5 @@ export function useRoute(): [Route, (route: Route) => void] {
     window.addEventListener('hashchange', changed);
     return () => { window.removeEventListener('hashchange', changed); };
   }, []);
-  const navigate = useCallback((next: Route) => { window.location.hash = routeHash(next); }, []);
-  return [route, navigate];
+  return [route, navigateTo];
 }

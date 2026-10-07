@@ -102,6 +102,13 @@ export const SECURE_PROTOCOL = 'https:';
 export const JSON_MIME_TYPE = 'application/json';
 export const JSON_HEADERS = Object.freeze({ 'Content-Type': JSON_MIME_TYPE });
 
+/** Dispatched on `window` after the page changes offline preferences, so every open view reloads them. */
+export const SETTINGS_CHANGED_EVENT = 'birdnet-settings-changed';
+
+export function dispatchSettingsChanged(): void {
+  window.dispatchEvent(new Event(SETTINGS_CHANGED_EVENT));
+}
+
 /** Refresh period of the pending-queue counters shown in the interface. */
 export const QUEUE_STATS_POLL_MS = 5_000;
 
