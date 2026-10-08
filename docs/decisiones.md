@@ -140,3 +140,87 @@ Dirección «clara y tranquila» aprobada en Figma: fondo neutro, verde de marca
 ### Consecuencias
 Los sitios de monitoreo se crean solo con conexión y cuenta; la lista se guarda en el teléfono para poder elegir el sitio activo sin señal.
 
+
+---
+
+## ADR-15. Página de inicio en lugar de la Bienvenida (Sprint 7)
+
+### Decisión
+La primera visita (y `#/home`) muestra una página de inicio tipo web: qué es BirdNet Local, cómo funciona (escucha, reconoce, registra), qué se puede hacer (álbum, fichas, mapa, sitios), la privacidad y los créditos, con dos entradas: «Empezar a escuchar» e «Iniciar sesión o crear cuenta». Sustituye a la pantalla de Bienvenida de S6; los enlaces antiguos `#/welcome` llevan a ella. La política de privacidad completa es una página estática (`public/privacy.html`), legible sin JavaScript y enlazable desde la pantalla de consentimiento de Google; el Service Worker no la reemplaza por la aplicación.
+
+### Consecuencias
+Amplía la especificación (no hay un RF para ella); apoya RF-17 y RNF-08 al explicar desde el inicio qué datos salen del teléfono.
+
+---
+
+## ADR-16. La ubicación de un canto sale del sitio activo; los cantos sin ubicación se asignan después (Sprint 7)
+
+### Contexto
+En la prueba real de S6 los cantos quedaban «sin ubicación» aunque hubiera un sitio activo: la ubicación solo salía del GPS con «Guardar dónde escuchas» activado, y sin ubicación nunca se sincronizan (RF-10, RF-08).
+
+### Decisión
+- Cada canto se archiva en la celda del sitio activo (su centro ya está redondeado a ~100 m, ADR-04). Sin sitio activo se usa la celda del GPS si está permitido; sin ninguno, el canto queda sin ubicación. El sitio manda sobre el GPS para que todo lo que se oye en un sitio cuente en sus estadísticas.
+- Escuchar avisa antes de empezar cuando no habrá ubicación.
+- La Bitácora ofrece asignar a un sitio los cantos sin ubicación del teléfono (solo los de la cuenta o los aún sin dueño, nunca los que tienen GPS) y los sincroniza enseguida.
+
+### Consecuencias
+La regla vive en `recordingLocation` y `unlocatedAssignment` (`queuePolicy.ts`), con pruebas de regresión. Si se escucha lejos del sitio activo, el canto queda en la zona del sitio: es la elección de quien escucha.
+
+---
+
+## ADR-17. Ficha de especie con Wikipedia, álbum y guía regional opcional (Sprint 7)
+
+### Decisión
+- **Ficha de especie** (`#/species/<nombre científico>`, primera fase de RF-14 sin modelo de lenguaje): foto, resumen de Wikipedia (API REST, en el idioma de la interfaz o en inglés si no existe) con su fuente y licencia CC BY-SA, y lo que la persona registró: cuándo (reloj de 24 horas), dónde (sitios) y sus registros con confianza y estado (RNF-09). Con cuenta y conexión usa el registro de la nube (`GET /v1/me/species/{especie}`); si no, el del teléfono. Se abre desde Escuchar, la Bitácora, el álbum, el mapa y los sitios.
+- **Álbum** (`#/log/album`): una calcomanía por especie registrada (teléfono y nube unidos) y, como espacios por llenar, las especies probables de la zona según el modelo geográfico (ADR-18).
+- **Guía regional**: lo que se ve se guarda solo (el Service Worker conserva fotos y resúmenes); un único botón opcional guarda la foto y el resumen de las especies más probables de la zona para usarlas sin conexión, con su tamaño a la vista.
+- Las fichas que redacta el modelo de lenguaje (RF-14 completo) quedan para un sprint posterior; el texto de Wikipedia nunca se presenta como generado.
+
+---
+
+## ADR-18. Modelo geográfico de BirdNET como filtro de especies (Sprint 7)
+
+### Contexto
+La especificación prevé restringir el catálogo a la región (sección del modelo acústico local); el catálogo fijo `species_bogota.json` nunca llegó a aplicarse.
+
+### Decisión
+- Se usa el modelo geográfico de BirdNET v2.4 (meta-modelo de Zenodo 10.5281/zenodo.15050749, CC BY-NC-SA 4.0) convertido a ONNX por `scripts/prepare-geo-model.py`. Sus 6522 salidas están alineadas una a una con las etiquetas del modelo acústico, por eso se prefiere al geo-modelo 3.0 (unas 14 000 etiquetas de otra taxonomía). La matriz del clasificador se guarda en float16 (15,4 MB) y el resto en float32; la validación exige diferencias ≤ 1e-3 y los mismos conjuntos de especies que el original en nueve lugares de prueba.
+- En el Worker de inferencia, para la celda del canto (ADR-16) y la semana BirdNET de su fecha (48 semanas, cuatro por mes), las especies con probabilidad menor que 0,03 (umbral por defecto de BirdNET-Analyzer, comparado en float32) se descartan antes de clasificar la ventana. Sin ubicación no se filtra nada y Escuchar lo indica.
+- Se distribuye con el modelo acústico en la misma descarga verificada (ADR-19); un manifiesto sin modelo geográfico sigue siendo válido.
+
+### Consecuencias
+Menos confusiones con especies que no viven en la zona (mejora la precisión efectiva sin entrenar nada). Reemplaza a `species_bogota.json`.
+
+---
+
+## ADR-19. Una sola descarga obligatoria, automática; todo lo demás opcional (Sprint 7, modifica ADR-07)
+
+### Decisión
+- La única descarga obligatoria es el modelo (acústico y geográfico juntos), una vez: empieza sola al pulsar «Empezar a escuchar» en la página de inicio, que informa su tamaño, y se verifica con SHA-256 como en ADR-07. Ya no hay que pulsar un botón de descarga.
+- Si se publica otra versión, se descarga en segundo plano y la instalada sigue funcionando mientras tanto.
+- Fotos y fichas se guardan solas al verlas; la guía regional (ADR-17) es el único botón opcional.
+
+---
+
+## ADR-20. Dirección visual «Plumaje» con el cielo de la hora (Sprint 7, reemplaza a ADR-14)
+
+### Decisión
+Elegida por el dueño entre dos propuestas (`diseno-s7/` en la carpeta de trabajo):
+- Cada ave pinta su lámina con el color de su plumaje. El color se elige de una paleta de diez láminas cuyo par texto/fondo cumple AA (probado); se deduce del tono dominante en el centro de la foto, con una tabla curada para las aves más comunes de Bogotá.
+- Las fotos son calcomanías troqueladas (borde blanco, contorno irregular, inclinación propia de cada especie), y la Bitácora tiene un álbum.
+- Anotaciones de cuaderno de campo en DM Mono; nombres y títulos en Fraunces (suave), texto en Radio Canada; todo autoalojado.
+- De la otra propuesta se toma el cielo: el fondo de la parte superior sigue la hora local (alba, día, atardecer, noche) en ambos temas.
+- Animaciones con sentido: la calcomanía cae con un pequeño rebote, la lámina se inunda del color del ave que canta, las muestras de la sesión entran en fila; «reducir movimiento» las desactiva.
+
+---
+
+## ADR-21. Cuenta completa: confirmar y recuperar contraseña, Google y perfil (Sprint 7)
+
+### Decisión
+- Al crear la cuenta la contraseña se escribe dos veces; «¿Olvidaste tu contraseña?» envía el enlace de Supabase y, al abrirlo, la app pide la nueva.
+- Inicio de sesión con Google mediante Supabase Auth (sin costo). Solo se piden `openid`, `email` y `profile`.
+- Se desactiva «Confirm email» en Supabase. Para que los correos de recuperación lleguen a cualquiera se configura un SMTP propio (el integrado solo entrega al equipo del proyecto).
+- Perfil con nombre para mostrar y foto. La foto se reduce en el teléfono a 256 px WebP y se sube por URL firmada a un bucket privado; se lee con URL firmada. No se usa la foto de Google, para no abrir otro origen en la CSP.
+- Totales propios en Cuenta (`GET /v1/me/summary`) y lista de especies para el álbum (`GET /v1/me/species`).
+- En el mapa colectivo, el nombre del sitio solo aparece en las detecciones propias (`own`, `site_name`).
+- La verificación en dos pasos queda pendiente.
