@@ -1,7 +1,7 @@
 import { AUDIO_CONSTANTS } from '../audio/dsp/audio.constants';
 import { AUDIO_UPLOAD_MIME_TYPE, LOCATION_GRID_DECIMALS } from '../../config/contract';
 import { MIN_QUEUE_BYTES } from './offline.constants';
-import type { ApproximateLocation } from './types';
+import type { ApproximateLocation, CachedSite, OfflineSettings, StoredDetection } from './types';
 
 const MAX_ABS_LATITUDE = 90;
 const MAX_ABS_LONGITUDE = 180;
@@ -13,6 +13,31 @@ export function approximateLocation(latitude: number, longitude: number): Approx
     throw new Error('Invalid location.');
   }
   return { latitude: Math.round(latitude * GRID_FACTOR) / GRID_FACTOR, longitude: Math.round(longitude * GRID_FACTOR) / GRID_FACTOR };
+}
+
+/**
+ * Cell a new detection is filed under (ADR-16). The active site wins over the device position, so everything
+ * heard while a site is chosen counts in that site's statistics even when the GPS drifts into a neighbouring cell;
+ * without a site the device cell is used, and with neither the record waits for a site to be assigned.
+ */
+export function recordingLocation(settings: Pick<OfflineSettings, 'activeSiteId' | 'sites'>, device: ApproximateLocation | null): ApproximateLocation | null {
+  const site = settings.activeSiteId ? settings.sites?.find((candidate) => candidate.id === settings.activeSiteId) : undefined;
+  if (site) return approximateLocation(site.latitude, site.longitude);
+  return device ? approximateLocation(device.latitude, device.longitude) : null;
+}
+
+/**
+ * Records that `assignSiteToUnlocated` may file under `site`: those still without a location that belong to
+ * `accountId` or to nobody yet (they are claimed when the person signs in). A record with a device location keeps
+ * it, and another account's records are never touched, because the site belongs to `accountId`.
+ */
+export function unlocatedAssignment<T extends Pick<StoredDetection, 'location' | 'owner' | 'siteId'>>(
+  records: readonly T[], site: CachedSite, accountId: string,
+): (T & { location: ApproximateLocation; siteId: string })[] {
+  const location = approximateLocation(site.latitude, site.longitude);
+  return records
+    .filter((record) => record.location === null && (record.owner === null || record.owner === accountId))
+    .map((record) => ({ ...record, location, siteId: site.id }));
 }
 
 /** Preserve every pending record by rejecting overflow before the transaction commits. */
