@@ -239,6 +239,7 @@ describe('InferenceService', () => {
       windowIndex: 1,
       timestamp: 123456,
       latencyMs: 15.2,
+      regionSpecies: 529,
     });
 
     expect(onInferenceResult).toHaveBeenCalledWith(
@@ -249,6 +250,7 @@ describe('InferenceService', () => {
       123456,
       15.2,
       expect.any(Number),
+      529,
     );
   });
 
@@ -276,8 +278,8 @@ describe('InferenceService', () => {
     for (let index = 0; index < 1000; index++) service.infer(new Float32Array(AUDIO_CONSTANTS.WINDOW_SAMPLES), index, 100);
     expect(mockWorkerInstance.postMessage).toHaveBeenCalledTimes(2);
     expect(onWindowDropped).toHaveBeenCalledTimes(998);
-    mockWorkerInstance.simulateMessage({ type: 'INFERENCE_RESULT', detections: [], windowIndex: 0, timestamp: 100, latencyMs: 20 });
-    expect(onInferenceResult).toHaveBeenCalledWith([], 0, 100, 20, 100);
+    mockWorkerInstance.simulateMessage({ type: 'INFERENCE_RESULT', detections: [], windowIndex: 0, timestamp: 100, latencyMs: 20, regionSpecies: null });
+    expect(onInferenceResult).toHaveBeenCalledWith([], 0, 100, 20, 100, null);
     expect(mockWorkerInstance.postMessage).toHaveBeenLastCalledWith(
       expect.objectContaining({ windowIndex: 999 }), [expect.any(ArrayBuffer)],
     );

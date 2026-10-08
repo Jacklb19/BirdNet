@@ -1,5 +1,6 @@
 import { config } from '../../config/env';
 import type { ModelManifest } from '../inference/inference.types';
+import { downloadBytes, sameInstallation } from '../inference/modelManifest';
 import { offlineOperation } from './offlineClient';
 import { OFFLINE_OPERATIONS } from './offline.constants';
 
@@ -54,6 +55,8 @@ let snapshot: ModelSnapshot = {
 };
 const listeners = new Set<() => void>();
 let initialCheckStarted = false;
+/** Set once the person entered the app: from then on the model installs and updates itself (ADR-19). */
+let automatic = false;
 let downloading: Promise<void> | null = null;
 /** Counts downloads started, so a check that began before one never overwrites what the download installed. */
 let downloadsStarted = 0;
@@ -94,8 +97,20 @@ async function check(explicit: boolean): Promise<void> {
     return;
   }
   // A different content hash is a different model, whatever its name says.
-  const newer = !installed || published.sha256 !== installed.sha256;
+  const newer = !installed || !sameInstallation(published, installed);
   settle({ installed, available: published, state: installed ? 'ready' : 'missing' }, newer ? 'available' : 'current');
+  // A new version replaces the installed one in the background; the installed model keeps working meanwhile.
+  if (automatic && newer) void downloadModel();
+}
+
+/**
+ * Called when the person has entered the app: a missing model downloads now (the one download the app needs) and
+ * any later version is fetched in the background, so nobody is asked to download again.
+ */
+export function enableAutomaticModel(): void {
+  if (automatic || !managed()) return;
+  automatic = true;
+  if (snapshot.state === 'missing' || snapshot.state === 'error') void downloadModel();
 }
 
 /**
@@ -108,7 +123,7 @@ export function checkModel(): Promise<void> {
 
 async function download(): Promise<void> {
   downloadsStarted += 1;
-  update({ state: 'downloading', updateFailed: false, progress: { received: 0, total: snapshot.available?.size_bytes ?? 0 } });
+  update({ state: 'downloading', updateFailed: false, progress: { received: 0, total: snapshot.available ? downloadBytes(snapshot.available) : 0 } });
   try {
     // Ask before the large download, so the browser can keep the model instead of evicting it.
     if ('persist' in navigator.storage) update({ evictable: !await navigator.storage.persist() });

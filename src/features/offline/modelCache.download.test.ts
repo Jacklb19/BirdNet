@@ -9,7 +9,10 @@ import productionManifest from '../../../public/models/manifest.json';
 const origin = 'https://birdnet.example';
 const bytes = new Uint8Array([0, 1, 2, 3]);
 const obsoleteModel = `${MODEL_CACHE_PATH_PREFIX}obsolete.onnx`;
-const manifest = { ...productionManifest, num_classes: 2, size_bytes: 4, sha256: createHash('sha256').update(bytes).digest('hex') };
+const sha256 = createHash('sha256').update(bytes).digest('hex');
+// The acoustic model alone, as before S7 (undefined fields are dropped from the JSON); the geographic model is
+// added by the test that covers it.
+const manifest = { ...productionManifest, num_classes: 2, size_bytes: 4, sha256, geo_model_file: undefined, geo_sha256: undefined, geo_size_bytes: undefined };
 let stored: Map<string, Response>;
 let failPut: boolean;
 let failDelete: boolean;
@@ -41,6 +44,23 @@ describe('verified model download and recovery', () => {
     expect(installed.model_file).toBe(modelResource(manifest.sha256, 'model'));
     expect(await activeModel()).toEqual(installed);
     stored.delete(installed.labels_file);
+    expect(await activeModel()).toBeNull();
+  });
+  it('downloads the geographic model in the same verified installation and progress (ADR-18)', async () => {
+    const withGeo = { ...manifest, geo_model_file: 'birdnet_geo_model.onnx', geo_sha256: sha256, geo_size_bytes: bytes.length };
+    vi.mocked(fetch).mockImplementation((url) => {
+      const path = typeof url === 'string' ? url : url instanceof URL ? url.href : url.url;
+      if (path.endsWith('.onnx')) return Promise.resolve(new Response(bytes));
+      if (path.endsWith('labels.txt')) return Promise.resolve(new Response('Turdus fuscater_Great Thrush\nZonotrichia capensis_Sparrow'));
+      return Promise.resolve(Response.json(withGeo));
+    });
+    const progress = vi.fn();
+    const installed = await downloadModel(STATIC_MANIFEST_URL, progress);
+    expect(progress).toHaveBeenLastCalledWith(bytes.length * 2, bytes.length * 2);
+    expect(installed.geo_model_file).toBe(modelResource(sha256, 'geo'));
+    expect(await activeModel()).toEqual(installed);
+    // A missing or altered geographic file invalidates the installation, like the acoustic one.
+    stored.set(modelResource(sha256, 'geo'), new Response(new Uint8Array([9, 9, 9, 9])));
     expect(await activeModel()).toBeNull();
   });
   it.each(['oversize', 'truncated', 'hash', 'labels', 'missing-labels', 'http', 'quota'])('retains the active version after a failed update: %s', async (failure) => {

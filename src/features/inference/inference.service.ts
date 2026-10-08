@@ -26,7 +26,10 @@ import type { PersistenceContext } from '../offline/types';
 export interface InferenceCallbacks {
   onStatusChange?: (status: ModelStatus) => void;
   onModelLoaded?: (numClasses: number) => void;
-  onInferenceResult?: (detections: readonly Detection[], windowIndex: number, timestamp: number, latencyMs: number, endToEndLatencyMs: number) => void;
+  onInferenceResult?: (
+    detections: readonly Detection[], windowIndex: number, timestamp: number, latencyMs: number, endToEndLatencyMs: number,
+    regionSpecies: number | null,
+  ) => void;
   onWindowDropped?: () => void;
   onError?: (error: string) => void;
   onStorageError?: () => void;
@@ -116,6 +119,7 @@ export class InferenceService {
         labelsUrl: resolveManifestResource(manifest.labels_file, resourceBase, origin),
         windowSamples: manifest.window_samples,
         modelSizeBytes: manifest.size_bytes,
+        ...(manifest.geo_model_file ? { geoModelUrl: resolveManifestResource(manifest.geo_model_file, resourceBase, origin) } : {}),
       };
 
       this.worker = new Worker(
@@ -217,6 +221,7 @@ export class InferenceService {
           msg.timestamp,
           msg.latencyMs,
           Math.max(0, performance.now() - msg.timestamp),
+          msg.regionSpecies,
         );
         this.activeWindowIndex = null;
         this.queue.complete();

@@ -26,6 +26,8 @@ export interface UseAudioCaptureReturn {
   inferenceLatencyMs: number;
   endToEndLatencyMs: number;
   droppedWindows: number;
+  /** Species likely at the place and week of the latest window (geographic filter); null when nothing was filtered. */
+  regionSpecies: number | null;
   sessionError: 'model' | 'audio' | 'inference' | 'storage' | null;
   startListening: () => Promise<void>;
   stopListening: () => Promise<void>;
@@ -49,6 +51,7 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
   const [inferenceLatencyMs, setInferenceLatencyMs] = useState(0);
   const [endToEndLatencyMs, setEndToEndLatencyMs] = useState(0);
   const [droppedWindows, setDroppedWindows] = useState(0);
+  const [regionSpecies, setRegionSpecies] = useState<number | null>(null);
   const [sessionError, setSessionError] = useState<UseAudioCaptureReturn['sessionError']>(null);
   const serviceRef = useRef<AudioCaptureService | null>(null);
   const inferenceRef = useRef<InferenceService | null>(null);
@@ -101,7 +104,7 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
     const inference = new InferenceService({
       onStatusChange: (status) => { if (mounted) setModelStatus(status); },
       onModelLoaded: () => { void startCapture(); },
-      onInferenceResult: (candidates, _windowIndex, _timestamp, latencyMs, totalMs) => {
+      onInferenceResult: (candidates, _windowIndex, _timestamp, latencyMs, totalMs, likely) => {
         if (!requestedRef.current || !mounted) return;
         try {
           const classified = applyDetectionPolicy(candidates);
@@ -110,6 +113,7 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
           onWindowAnalysedRef.current?.(classified, Date.now());
           setInferenceLatencyMs(latencyMs);
           setEndToEndLatencyMs(totalMs);
+          setRegionSpecies(likely);
           void scheduleSynchronization().catch(dispatchSyncError);
         } catch {
           failSession('inference');
@@ -168,7 +172,7 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
   return {
     state, rmsLevel, peakLevel, windowCount, latestSpectrogram,
     spectrogramLatencyMs, sampleRate: AUDIO_CONSTANTS.TARGET_SAMPLE_RATE,
-    modelStatus, detections, inferenceLatencyMs, endToEndLatencyMs, droppedWindows,
+    modelStatus, detections, inferenceLatencyMs, endToEndLatencyMs, droppedWindows, regionSpecies,
     sessionError, startListening, stopListening,
   };
 }

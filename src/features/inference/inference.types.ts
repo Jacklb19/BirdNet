@@ -20,6 +20,13 @@ export interface ModelManifest {
   readonly labels_file: string;
   readonly model_file: string;
   readonly updated_at: string;
+  /**
+   * BirdNET's geographic model (ADR-18): species likely at a place and week, aligned 1:1 with the labels. Optional, so
+   * an older manifest (or a deployment without it) still installs the acoustic model and simply filters nothing.
+   */
+  readonly geo_model_file?: string;
+  readonly geo_sha256?: string;
+  readonly geo_size_bytes?: number;
 }
 
 /** One ranked species candidate of a window. */
@@ -66,6 +73,8 @@ export interface LoadModelRequest {
   readonly windowSamples: number;
   /** Model file size in bytes (`manifest.size_bytes`, verified with its hash when the model is cached). */
   readonly modelSizeBytes: number;
+  /** Geographic model, when the installation has one; without it no species is filtered by place and week. */
+  readonly geoModelUrl?: string;
 }
 
 export interface InferRequest {
@@ -115,6 +124,8 @@ export interface InferenceResultMessage {
   readonly timestamp: number;
   /** Inference latency in milliseconds. */
   readonly latencyMs: number;
+  /** Species the geographic model considers likely for the place and week of this window; null when nothing was filtered. */
+  readonly regionSpecies: number | null;
 }
 
 export interface InferenceErrorMessage {

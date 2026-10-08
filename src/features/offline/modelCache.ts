@@ -1,7 +1,7 @@
 import { API_ROUTES, apiUrl } from '../../config/api';
 import { MODEL_LABELS_LINE_SEPARATOR } from '../inference/inference.constants';
 import type { ModelManifest } from '../inference/inference.types';
-import { resolveManifestResource, STATIC_MANIFEST_URL, validateManifest } from '../inference/modelManifest';
+import { downloadBytes, resolveManifestResource, STATIC_MANIFEST_URL, validateManifest } from '../inference/modelManifest';
 import {
   ACTIVE_MODEL_URL, JSON_MIME_TYPE, MODEL_CACHE_NAME, MODEL_CACHE_PATH_PREFIX, MODEL_RESOURCE_EXTENSIONS, type ModelResourceKind,
 } from './offline.constants';
@@ -69,26 +69,42 @@ function isSameOriginPath(value: string): boolean {
   try { return new URL(value, self.location.origin).origin === self.location.origin; } catch { return false; }
 }
 
-/** A pointer becomes active only after both resources have been completely verified. */
-export async function downloadModel(manifestUrl: string, progress: (received: number, total: number) => void): Promise<ModelManifest> {
-  const { manifest, base } = await availableManifest(manifestUrl);
-  const modelUrl = safeResource(manifest.model_file, base);
-  const labelsUrl = safeResource(manifest.labels_file, base);
-  const response = await fetch(modelUrl, { cache: 'no-store' });
+/** Streams one resource into memory, reporting each chunk, and checks its exact size and content hash. */
+async function fetchVerified(url: string, size: number, sha256: string, onBytes: (bytes: number) => void): Promise<Uint8Array<ArrayBuffer>> {
+  const response = await fetch(url, { cache: 'no-store' });
   if (!response.ok || !response.body) throw new Error('Model download failed.');
   const reader = response.body.getReader();
-  const buffer = new Uint8Array(manifest.size_bytes);
+  const buffer = new Uint8Array(size);
   let received = 0;
-  progress(received, manifest.size_bytes);
   try {
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
       if (received + value.length > buffer.length) throw new Error('Unexpected model size.');
-      buffer.set(value, received); received += value.length; progress(received, manifest.size_bytes);
+      buffer.set(value, received); received += value.length; onBytes(value.length);
     }
   } catch (error) { await reader.cancel(); throw error; }
-  if (received !== manifest.size_bytes || await hash(buffer.buffer) !== manifest.sha256) throw new Error('Model integrity check failed.');
+  if (received !== size || await hash(buffer.buffer) !== sha256) throw new Error('Model integrity check failed.');
+  return buffer;
+}
+
+/**
+ * The one model download of the app (ADR-19): the acoustic model, its labels and, when published, the geographic
+ * model, reported as a single progress. The pointer becomes active only after every resource has been verified.
+ */
+export async function downloadModel(manifestUrl: string, progress: (received: number, total: number) => void): Promise<ModelManifest> {
+  const { manifest, base } = await availableManifest(manifestUrl);
+  const modelUrl = safeResource(manifest.model_file, base);
+  const labelsUrl = safeResource(manifest.labels_file, base);
+  const geoUrl = manifest.geo_model_file ? safeResource(manifest.geo_model_file, base) : null;
+  const total = downloadBytes(manifest);
+  let received = 0;
+  const onBytes = (bytes: number): void => { received += bytes; progress(received, total); };
+  progress(received, total);
+  const model = await fetchVerified(modelUrl, manifest.size_bytes, manifest.sha256, onBytes);
+  const geo = geoUrl && manifest.geo_size_bytes && manifest.geo_sha256
+    ? await fetchVerified(geoUrl, manifest.geo_size_bytes, manifest.geo_sha256, onBytes)
+    : null;
   const labelsResponse = await fetch(labelsUrl, { cache: 'no-store' });
   if (!labelsResponse.ok) throw new Error('Model labels unavailable.');
   const labels = await labelsResponse.text();
@@ -99,9 +115,14 @@ export async function downloadModel(manifestUrl: string, progress: (received: nu
   if (previous) {
     try { previousHash = validateManifest(await previous.json()).sha256; } catch { /* Ignore an invalid old pointer when installing a verified replacement. */ }
   }
-  const active = { ...manifest, model_file: modelResource(manifest.sha256, 'model'), labels_file: modelResource(manifest.sha256, 'labels') };
-  await cache.put(active.model_file, new Response(buffer));
+  // Every resource is named after the acoustic model's hash, so the cleanup below keeps an installation together.
+  const active: ModelManifest = {
+    ...manifest, model_file: modelResource(manifest.sha256, 'model'), labels_file: modelResource(manifest.sha256, 'labels'),
+    ...(geo ? { geo_model_file: modelResource(manifest.sha256, 'geo') } : {}),
+  };
+  await cache.put(active.model_file, new Response(model));
   await cache.put(active.labels_file, new Response(labels));
+  if (geo && active.geo_model_file) await cache.put(active.geo_model_file, new Response(geo));
   await cache.put(ACTIVE_MODEL_URL, Response.json(active));
   for (const key of await cache.keys()) {
     const url = new URL(key.url);
@@ -125,6 +146,12 @@ export async function activeModel(): Promise<ModelManifest | null> {
     if (!model || !labels) return null;
     const buffer = await model.arrayBuffer();
     if (buffer.byteLength !== manifest.size_bytes || await hash(buffer) !== manifest.sha256 || countLabels(await labels.text()) !== manifest.num_classes) return null;
+    if (manifest.geo_model_file && manifest.geo_sha256) {
+      const geo = await cache.match(modelResource(manifest.sha256, 'geo'));
+      if (!geo) return null;
+      const geoBuffer = await geo.arrayBuffer();
+      if (geoBuffer.byteLength !== manifest.geo_size_bytes || await hash(geoBuffer) !== manifest.geo_sha256) return null;
+    }
     return manifest;
   } catch { return null; }
 }

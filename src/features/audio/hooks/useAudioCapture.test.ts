@@ -89,7 +89,7 @@ describe('useAudioCapture listening session', () => {
       inferenceCallbacks.onInferenceResult?.([0.2, 0.45, 0.8].map((confidence, classIndex) => ({
         classIndex, confidence, label: 'Turdus fuscater_Great Thrush',
         scientificName: 'Turdus fuscater', commonName: 'Great Thrush',
-      })), 7, 100, 30, 45);
+      })), 7, 100, 30, 45, null);
     });
     expect(infer).toHaveBeenCalledWith(buffer, 7, 100, TOP_K, MIN_CANDIDATE_CONFIDENCE, undefined);
     expect(result.current.detections.map((item) => item.status)).toEqual(['provisional', 'confirmed_local']);
@@ -127,7 +127,7 @@ describe('useAudioCapture listening session', () => {
     expect(start).not.toHaveBeenCalled();
     act(() => {
       captureCallbacks.onWindowReady?.(new Float32Array(AUDIO_CONSTANTS.WINDOW_SAMPLES), 1, 100);
-      inferenceCallbacks.onInferenceResult?.([], 1, 100, 10, 20);
+      inferenceCallbacks.onInferenceResult?.([], 1, 100, 10, 20, null);
     });
     expect(infer).not.toHaveBeenCalled();
     expect(result.current.endToEndLatencyMs).toBe(0);
@@ -169,7 +169,7 @@ describe('useAudioCapture listening session', () => {
     act(() => {
       inferenceCallbacks.onInferenceResult?.([{
         classIndex: 0, confidence: NaN, label: '', scientificName: '', commonName: '',
-      }], 0, 0, 0, 0);
+      }], 0, 0, 0, 0, null);
     });
     expect(result.current.sessionError).toBe('inference');
     await act(async () => { await result.current.startListening(); });
