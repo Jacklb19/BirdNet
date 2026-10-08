@@ -121,7 +121,7 @@ test('unassociated records and records without location stay local', async ({ pa
 
 test('real model survives closing, identifies recorded audio offline and detects corrupt cache', async ({ context, page }) => {
   await ready(page, routeHash({ name: 'settings' }));
-  await page.getByRole('button', { name: texts.settings.model.download }).click();
+  // Once the person has entered the app the model installs itself (ADR-19): no button has to be pressed.
   await expect(page.getByRole('button', { name: texts.settings.model.checkUpdate })).toBeVisible({ timeout: MODEL_DOWNLOAD_TIMEOUT_MS });
   const failedUpdate = await page.evaluate(async () => {
     try { await window.offlineChecks.invalidUpdate(); return false; } catch { return true; }

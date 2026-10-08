@@ -1,4 +1,5 @@
 import { useId, useState } from 'react';
+import { routeHash } from '../../app/routes';
 import { formatCount, formatDate, formatNumber, formatPercent, formatRelativeTime, useI18n } from '../../i18n';
 import { Icon } from '../../shared/ui/Icon';
 import { SpeciesPhoto } from '../../shared/ui/SpeciesPhoto';
@@ -64,6 +65,9 @@ export function MapSpeciesRow({ summary, name, now }: MapSpeciesRowProps): React
         {summary.detections > shown.length && (
           <p className="bn-map-row__note">{m.species.showing(formatNumber(shown.length, locale), formatNumber(summary.detections, locale))}</p>
         )}
+        <a className="bn-map-row__card" href={routeHash({ name: 'species', species: summary.species })}>
+          <Icon name="book" size="s" />{m.popup.card}
+        </a>
         {picture.status === 'loaded' && (
           <p className="bn-map-row__note">{dict.common.photoCredit(picture.photo.author ?? dict.common.photoAuthorUnknown, picture.photo.license)}</p>
         )}

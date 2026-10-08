@@ -1,0 +1,88 @@
+/* Before the first detection: the brand plate, with sound rings that breathe while the microphone is open. */
+.bn-listen-idle {
+  --plate: var(--plumage-esmeralda);
+  --on-plate: var(--plumage-esmeralda-on);
+
+  position: relative;
+  display: grid;
+  overflow: hidden;
+  min-height: calc(var(--sticker-l) + var(--space-8));
+  align-content: center;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-5);
+  border-radius: var(--radius-plate);
+}
+
+.bn-listen-idle__title {
+  max-width: 24rem;
+  font-size: var(--text-l);
+  line-height: var(--leading-l);
+}
+
+.bn-listen-idle p {
+  max-width: 28rem;
+}
+
+.bn-listen-idle__caveat {
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-listen-idle__rings {
+  position: absolute;
+  top: 50%;
+  right: calc(var(--sticker-l) * -0.3);
+  width: calc(var(--sticker-l) * 1.4);
+  height: calc(var(--sticker-l) * 1.4);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.bn-listen-idle__rings span {
+  position: absolute;
+  inset: 0;
+  border: var(--border-width-strong) solid currentcolor;
+  border-radius: var(--radius-pill);
+  opacity: 0.2;
+}
+
+.bn-listen-idle--live .bn-listen-idle__rings span {
+  animation: bn-listen-ring calc(var(--duration-sky) / 2) var(--ease-standard) infinite;
+}
+
+.bn-listen-idle--live .bn-listen-idle__rings span:nth-child(2) { animation-delay: calc(var(--duration-sky) / 6); }
+.bn-listen-idle--live .bn-listen-idle__rings span:nth-child(3) { animation-delay: calc(var(--duration-sky) / 3); }
+
+.bn-listen-idle__rings span:nth-child(2) { inset: 15%; }
+.bn-listen-idle__rings span:nth-child(3) { inset: 30%; }
+
+@keyframes bn-listen-ring {
+  from { opacity: 0.35; transform: scale(0.5); }
+  to { opacity: 0; transform: scale(1.1); }
+}
+
+.bn-listen-plate__dot {
+  width: var(--live-dot-size);
+  height: var(--live-dot-size);
+  border-radius: var(--radius-pill);
+  background: currentcolor;
+  animation: bn-listen-dot var(--duration-slow) var(--ease-standard) infinite alternate;
+}
+
+@keyframes bn-listen-dot {
+  from { opacity: 1; }
+  to { opacity: 0.35; }
+}
+
+.bn-listen-plate__meaning {
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+/* On the plumage color the button takes the plate's own pair, so it reads on every plate. */
+.bn-species-plate .bn-listen-plate__open {
+  justify-self: start;
+  margin-top: var(--space-2);
+  background: var(--on-plate);
+  color: var(--plate);
+}

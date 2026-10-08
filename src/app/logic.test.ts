@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { parseRoute, routeHash, sectionOf, type Route } from './routes';
+import { isAuthCallback, parseRoute, routeHash, sectionOf, type Route } from './routes';
 import { TRUNCATED_HEADER } from '../config/api';
 import { HOURS_PER_DAY } from '../config/contract';
 import { applyDetectionPolicy } from '../features/inference/detectionPolicy';
@@ -12,13 +12,24 @@ const emptyDay = (): number[] => Array.from({ length: HOURS_PER_DAY }, () => 0);
 
 describe('routes', () => {
   it('round-trips every route and falls back to listening', () => {
-    const routes: Route[] = [{ name: 'listen' }, { name: 'log' }, { name: 'detection', id }, { name: 'map' }, { name: 'sites' }, { name: 'site', id }, { name: 'account' }, { name: 'settings' }, { name: 'welcome' }];
+    const routes: Route[] = [{ name: 'listen' }, { name: 'log' }, { name: 'detection', id }, { name: 'map' }, { name: 'sites' }, { name: 'site', id }, { name: 'account' }, { name: 'settings' }, { name: 'home' },
+      { name: 'album' }, { name: 'species', species: 'Turdus fuscater' }, { name: 'map', species: 'Colibri coruscans' }];
     for (const route of routes) expect(parseRoute(routeHash(route))).toEqual(route);
     expect(parseRoute('#/log/not-a-uuid')).toEqual({ name: 'log' });
     // 36 characters is not enough: the identifier must have the UUID layout the API issues.
     expect(parseRoute(`#/sites/${'-'.repeat(36)}`)).toEqual({ name: 'sites' });
     expect(parseRoute('')).toEqual({ name: 'listen' });
     expect(sectionOf({ name: 'site', id })).toBe('sites');
+    // Links from before S7 and malformed species names still land somewhere sensible.
+    expect(parseRoute('#/welcome')).toEqual({ name: 'home' });
+    expect(parseRoute('#/species/%E0%A4%A')).toEqual({ name: 'log' });
+    expect(parseRoute(`#/species/${'a'.repeat(201)}`)).toEqual({ name: 'log' });
+  });
+
+  it('ignores the tokens Supabase returns in the hash after Google or a reset link', () => {
+    expect(isAuthCallback('#access_token=abc&type=recovery')).toBe(true);
+    expect(isAuthCallback('#error=access_denied&error_description=x')).toBe(true);
+    expect(isAuthCallback('#/species/Turdus%20fuscater')).toBe(false);
   });
 });
 

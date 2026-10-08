@@ -1,37 +1,54 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { routeHash } from '../../app/routes';
 import { formatCount, useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
 import { EmptyState } from '../../shared/ui/EmptyState';
+import { Icon } from '../../shared/ui/Icon';
 import { Notice } from '../../shared/ui/Notice';
 import { Page } from '../../shared/ui/Page';
 import { PageHeader } from '../../shared/ui/PageHeader';
 import { useQueueStatus } from '../offline/useQueueStatus';
-import { useSpeciesNames } from '../species/speciesNames';
+import { useSites } from '../sites/useSites';
+import { matchesSearch } from '../species/album';
+import { commonName, useSpeciesNames } from '../species/speciesNames';
+import { AssignSiteCard } from './AssignSiteCard';
 import { LOG_PAGE_SIZE } from './log.config';
 import { LogDay } from './LogDay';
 import { LogFilters } from './LogFilters';
-import { groupByDay, matchesFilter, todaySummary, type LogFilter } from './logRecords';
+import { groupByDay, matchesFilter, syncCounts, todaySummary, type LogFilter } from './logRecords';
 import { LogSyncNotice } from './LogSyncNotice';
+import { LogTabs } from './LogTabs';
 import { useLogRecords } from './useLogRecords';
 import './LogPage.css';
 
-/** The field log: every detection kept on this phone, newest first and grouped by local day. */
+/** Site filter of the log: every record, one site, or the records without a site. */
+const ALL_SITES = 'all';
+const NO_SITE = 'none';
+
+/** The field log: every detection kept on this phone, newest first and grouped by local day, searchable by species and site. */
 export default function LogPage(): React.JSX.Element {
   const { dict, locale } = useI18n();
   const queue = useQueueStatus();
   const names = useSpeciesNames();
+  const { sites, active } = useSites();
   const { records, readAt, error, reload } = useLogRecords();
   const [filter, setFilter] = useState<LogFilter>('all');
+  const [query, setQuery] = useState('');
+  const [site, setSite] = useState(ALL_SITES);
   const [limit, setLimit] = useState(LOG_PAGE_SIZE);
-  const visible = useMemo(() => (records ?? []).filter((record) => matchesFilter(record, filter)), [records, filter]);
+  const searchId = useId();
+  const siteId = useId();
+  const visible = useMemo(() => (records ?? []).filter((record) =>
+    matchesFilter(record, filter) &&
+    (site === ALL_SITES || (site === NO_SITE ? record.siteId === null : record.siteId === site)) &&
+    matchesSearch(query, record.species, commonName(names, record.species, locale)),
+  ), [records, filter, site, query, names, locale]);
   // Only the shown slice is grouped and rendered; "show more" extends it.
   const groups = useMemo(() => groupByDay(visible.slice(0, limit), readAt), [visible, limit, readAt]);
+  const unlocated = records ? syncCounts(records).noLocation : 0;
+  const searching = query.trim() !== '' || site !== ALL_SITES;
 
-  const changeFilter = (next: LogFilter): void => {
-    setFilter(next);
-    setLimit(LOG_PAGE_SIZE);
-  };
+  const restart = (): void => { setLimit(LOG_PAGE_SIZE); };
 
   let subtitle: string | undefined;
   if (records?.length) {
@@ -43,6 +60,7 @@ export default function LogPage(): React.JSX.Element {
 
   return (
     <Page width="narrow" className="bn-log">
+      <LogTabs current="log" />
       <PageHeader title={dict.log.title} subtitle={subtitle} />
       {error && (
         <Notice tone="error" action={<Button variant="quiet" onClick={reload}>{dict.common.actions.retry}</Button>}>{dict.log.loadError}</Notice>
@@ -56,11 +74,30 @@ export default function LogPage(): React.JSX.Element {
       )}
       {records?.length ? (
         <>
+          {unlocated > 0 && <AssignSiteCard count={unlocated} sites={sites} activeSiteId={active?.id ?? null} />}
           <LogSyncNotice records={records} online={queue.online} syncFailed={queue.syncFailed} syncing={queue.syncing} onRetry={() => { void queue.syncNow(); }} />
-          <LogFilters value={filter} onChange={changeFilter} />
+          <div className="bn-log__search" role="search" aria-label={dict.log.search.label}>
+            <div className="bn-log__query">
+              <label htmlFor={searchId} className="visually-hidden">{dict.log.search.placeholder}</label>
+              <Icon name="search" size="s" />
+              <input id={searchId} type="search" className="bn-log__query-input" placeholder={dict.log.search.placeholder} value={query}
+                autoComplete="off" spellCheck={false} onChange={(event) => { setQuery(event.target.value); restart(); }} />
+            </div>
+            {sites.length > 0 && (
+              <>
+                <label htmlFor={siteId} className="visually-hidden">{dict.log.search.site}</label>
+                <select id={siteId} className="bn-log__site" value={site} onChange={(event) => { setSite(event.target.value); restart(); }}>
+                  <option value={ALL_SITES}>{dict.log.search.allSites}</option>
+                  {sites.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
+                  <option value={NO_SITE}>{dict.log.search.noSite}</option>
+                </select>
+              </>
+            )}
+          </div>
+          <LogFilters value={filter} onChange={(next) => { setFilter(next); restart(); }} />
           {groups.length
             ? groups.map((group) => <LogDay key={group.day.getTime()} group={group} names={names} now={readAt} />)
-            : <p className="bn-log__status">{dict.log.filters.empty[filter]}</p>}
+            : <p className="bn-log__status">{searching ? dict.log.search.empty : dict.log.filters.empty[filter]}</p>}
           {visible.length > limit && (
             <Button variant="secondary" block onClick={() => { setLimit((current) => current + LOG_PAGE_SIZE); }}>{dict.log.showMore}</Button>
           )}

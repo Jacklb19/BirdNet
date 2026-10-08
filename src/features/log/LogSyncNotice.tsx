@@ -16,7 +16,8 @@ export interface LogSyncNoticeProps {
 /** Why some records are not in the cloud yet, and the one thing the person can do about it, if any. */
 export function LogSyncNotice({ records, online, syncFailed, syncing, onRetry }: LogSyncNoticeProps): React.JSX.Element | null {
   const { dict, locale } = useI18n();
-  const notice = syncNotice(syncCounts(records), { online, syncFailed });
+  // Records without a location have their own card (AssignSiteCard), which also says how to upload them.
+  const notice = syncNotice({ ...syncCounts(records), noLocation: 0 }, { online, syncFailed });
   if (!notice) return null;
   const actions = notice.retry || notice.account ? (
     <span className="bn-log-sync__actions">

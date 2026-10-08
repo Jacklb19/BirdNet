@@ -57,6 +57,10 @@ export const mapMessages = defineMessages({
     popup: {
       detail: (status: string, confidence: string) => `${status} · confianza ${confidence}`,
       approximate: (distance: string) => `Ubicación aproximada (celda de unos ${distance})`,
+      own: 'Tu registro',
+      ownAt: (site: string) => `Tu registro · ${site}`,
+      card: 'Ver la ficha de la especie',
+      marker: (name: string, date: string) => `${name}, ${date}`,
     },
   },
   en: {
@@ -111,6 +115,10 @@ export const mapMessages = defineMessages({
     popup: {
       detail: (status: string, confidence: string) => `${status} · ${confidence} confidence`,
       approximate: (distance: string) => `Approximate location (cell of about ${distance})`,
+      own: 'Your record',
+      ownAt: (site: string) => `Your record · ${site}`,
+      card: 'See the species card',
+      marker: (name: string, date: string) => `${name}, ${date}`,
     },
   },
 });

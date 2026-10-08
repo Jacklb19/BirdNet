@@ -55,7 +55,7 @@ export default function SettingsPage(): React.JSX.Element {
       </ListGroup>
 
       <ListGroup>
-        <ListRow icon="bird" label={texts.intro} href={routeHash({ name: 'welcome' })} />
+        <ListRow icon="bird" label={texts.intro} href={routeHash({ name: 'home' })} />
       </ListGroup>
     </Page>
   );

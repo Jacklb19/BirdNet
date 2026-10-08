@@ -9,3 +9,9 @@ export const CONFIDENCE_FRACTION_DIGITS = 0;
 
 /** The spectrogram's time span is a round number of seconds, so its description uses whole seconds. */
 export const SPECTROGRAM_SPAN_FRACTION_DIGITS = 0;
+
+/** The clock in the listening context shows minutes, so it refreshes a few times a minute. */
+export const CONTEXT_CLOCK_REFRESH_MS = 20_000;
+
+/** Latest album stickers shown beside the plate while no session is running (two rows of three). */
+export const RECENT_ALBUM_COUNT = 6;

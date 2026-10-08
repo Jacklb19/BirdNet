@@ -66,7 +66,7 @@ export const settingsMessages = defineMessages({
       photos: 'Fotos',
       photosDetail: 'Imagen principal del artículo de Wikipedia de cada especie, desde Wikimedia Commons. Cada foto muestra su autor y su licencia.',
     },
-    intro: 'Ver la introducción de nuevo',
+    intro: 'Ver la página de inicio',
     saveError: 'No se pudieron leer o guardar tus ajustes en el teléfono. Inténtalo de nuevo.',
   },
   en: {
@@ -132,7 +132,7 @@ export const settingsMessages = defineMessages({
       photos: 'Photos',
       photosDetail: 'The main image of each species’ Wikipedia article, from Wikimedia Commons. Every photo shows its author and license.',
     },
-    intro: 'See the introduction again',
+    intro: 'See the home page',
     saveError: 'Your settings could not be read or saved on the phone. Try again.',
   },
 });

@@ -6,12 +6,14 @@ import {
 } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
+import { routeHash } from '../../app/routes';
 import { config } from '../../config/env';
 import { APPROX_CELL_METERS } from '../../config/contract';
 import { formatDate, formatMeters, formatPercent, useI18n, type Locale, type Messages } from '../../i18n';
 import { useTheme } from '../../theme';
 import { commonName, useSpeciesNames } from '../species/speciesNames';
-import { toFeatureCollection, type MapResult } from './mapData';
+import { toFeatureCollection, type MapDetection, type MapResult } from './mapData';
+import { photoMarkers, type PhotoMarkers } from './mapMarkers';
 import { addDetectionLayers, repaintDetectionLayers } from './mapLayers';
 import { popupContent } from './mapPopup';
 import {
@@ -47,10 +49,7 @@ class SlotControl implements IControl {
   onRemove(): void { this.slot.remove(); }
 }
 
-function openPopup(map: MapLibreMap, event: MapLayerMouseEvent, result: MapResult | null, text: PopupText): void {
-  const id: unknown = event.features?.[0]?.properties.id;
-  const row = result?.detections.find((item) => item.id === id);
-  if (!row) return;
+function openPopup(map: MapLibreMap, row: MapDetection, text: PopupText): void {
   const { dict, locale, names } = text;
   const name = commonName(names, row.species, locale);
   const content = popupContent({
@@ -59,9 +58,16 @@ function openPopup(map: MapLibreMap, event: MapLayerMouseEvent, result: MapResul
     detail: dict.map.popup.detail(dict.common.status[row.status], formatPercent(row.confidence, locale, MAP_CONFIDENCE_FRACTION_DIGITS)),
     recordedAt: formatDate(new Date(row.recorded_at), locale),
     recordedAtIso: row.recorded_at,
+    own: row.own ? (row.site_name ? dict.map.popup.ownAt(row.site_name) : dict.map.popup.own) : null,
     note: dict.map.popup.approximate(formatMeters(APPROX_CELL_METERS, locale)),
+    card: { href: routeHash({ name: 'species', species: row.species }), label: dict.map.popup.card },
   });
   new Popup(MAP_POPUP).setLngLat([row.longitude, row.latitude]).setDOMContent(content).addTo(map);
+}
+
+function rowOf(event: MapLayerMouseEvent, result: MapResult | null): MapDetection | undefined {
+  const id: unknown = event.features?.[0]?.properties.id;
+  return result?.detections.find((item) => item.id === id);
 }
 
 export interface MapViewProps {
@@ -83,6 +89,7 @@ export function MapView({ result, onReady, focusOffset, overlay, control }: MapV
   const { resolved } = useTheme();
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
+  const markersRef = useRef<PhotoMarkers | null>(null);
   const resultRef = useRef(result);
   const textRef = useRef<PopupText>({ dict, locale, names });
   // Map handlers are bound once per map; refs give them the latest values without recreating the map.
@@ -104,6 +111,8 @@ export function MapView({ result, onReady, focusOffset, overlay, control }: MapV
   useEffect(() => {
     resultRef.current = result;
     void mapRef.current?.getSource<GeoJSONSource>(MAP_SOURCE_ID)?.setData(toFeatureCollection(result?.detections ?? []));
+    // New data re-renders the dots on the next frame; the stickers follow once the map is idle again.
+    if (!result) markersRef.current?.clear();
   }, [result]);
 
   useEffect(() => {
@@ -129,7 +138,21 @@ export function MapView({ result, onReady, focusOffset, overlay, control }: MapV
       const center = event.lngLat;
       void map.getSource<GeoJSONSource>(MAP_SOURCE_ID)?.getClusterExpansionZoom(clusterId).then((zoom) => { map.easeTo({ center, zoom, offset: focusRef.current() }); });
     });
-    map.on('click', MAP_LAYERS.points, (event: MapLayerMouseEvent) => { openPopup(map, event, resultRef.current, textRef.current); });
+    map.on('click', MAP_LAYERS.points, (event: MapLayerMouseEvent) => {
+      const row = rowOf(event, resultRef.current);
+      if (row) openPopup(map, row, textRef.current);
+    });
+    const markers = photoMarkers(map, {
+      rows: () => resultRef.current?.detections ?? [],
+      onOpen: (row) => { openPopup(map, row, textRef.current); },
+      label: (row) => {
+        const { dict: text, locale: language, names: table } = textRef.current;
+        return text.map.popup.marker(commonName(table, row.species, language), formatDate(new Date(row.recorded_at), language));
+      },
+    });
+    markersRef.current = markers;
+    // 'idle' fires after every pan, zoom, data or style change has been drawn, which is when the visible dots are known.
+    map.on('idle', markers.sync);
     for (const layer of MAP_INTERACTIVE_LAYERS) {
       map.on('mouseenter', layer, () => { map.getCanvas().classList.add(MAP_POINTER_CLASS); });
       map.on('mouseleave', layer, () => { map.getCanvas().classList.remove(MAP_POINTER_CLASS); });
@@ -137,7 +160,7 @@ export function MapView({ result, onReady, focusOffset, overlay, control }: MapV
     // The visible area is known as soon as the map exists, so detections load while the basemap is still on its
     // way (or if it never arrives); the layers pick up the latest result when the style loads.
     onReady(map);
-    return () => { mapRef.current = null; onReady(null); map.remove(); };
+    return () => { markers.clear(); markersRef.current = null; mapRef.current = null; onReady(null); map.remove(); };
   }, [slot, onReady]);
 
   useEffect(() => {

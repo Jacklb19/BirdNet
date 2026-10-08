@@ -10,6 +10,7 @@ import { useQueueStatus } from '../offline/useQueueStatus';
 import { requestSettingsSection } from '../settings/settingsSections';
 import { useSites } from '../sites/useSites';
 import { useAccountContext } from './accountContext';
+import { AccountSummaryCard } from './AccountSummaryCard';
 import { ClaimCard } from './ClaimCard';
 import { LocalStatsCard } from './LocalStatsCard';
 import { localTotals } from './localTotals';
@@ -18,6 +19,7 @@ import { RecoveryForm } from './RecoveryForm';
 import { SignInForm } from './SignInForm';
 import { SyncRow } from './SyncRow';
 import { pendingSync } from './syncStatus';
+import { useAccountSummary } from './useAccountSummary';
 import { useLocalRecords } from './useLocalRecords';
 
 /** Account screen: the cloud account when this build has one, and what this phone holds in every case. */
@@ -32,6 +34,7 @@ export default function AccountPage(): React.JSX.Element {
   const userId = session?.user.id ?? null;
   const audioConsent = settings?.audioConsent ?? false;
   const { records, error } = useLocalRecords();
+  const summary = useAccountSummary(session?.access_token ?? null);
   const totals = useMemo(() => (records ? localTotals(records.pending, records.history) : null), [records]);
   const pending = useMemo(
     () => (records && userId ? pendingSync(records.pending, userId, audioConsent) : null),
@@ -56,6 +59,7 @@ export default function AccountPage(): React.JSX.Element {
             <SyncRow queue={queue} pending={pending} lastSyncedAt={totals?.lastSyncedAt ?? null} />
           </ProfileCard>
           {account.error && !account.recovering && <Notice tone="error">{texts.errors[account.error]}</Notice>}
+          <AccountSummaryCard state={summary} />
         </>
       )}
 

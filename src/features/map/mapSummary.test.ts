@@ -3,7 +3,7 @@ import type { MapDetection } from './mapData';
 import { summarizeArea } from './mapSummary';
 
 const detection = (id: string, species: string, recordedAt: string, status: MapDetection['status'] = 'confirmed'): MapDetection => ({
-  id, species, confidence: 0.9, status, recorded_at: recordedAt, latitude: 4.679, longitude: -74.123,
+  id, species, confidence: 0.9, status, recorded_at: recordedAt, latitude: 4.679, longitude: -74.123, own: false, site_name: null,
 });
 
 describe('summarizeArea', () => {
