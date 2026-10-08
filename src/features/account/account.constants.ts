@@ -24,7 +24,25 @@ export const SUPABASE_AUTH_OPTIONS = Object.freeze({
  */
 export const AUTH_ERROR_CODES = Object.freeze({
   invalid_credentials: 'invalidCredentials',
+  email_not_confirmed: 'emailNotConfirmed',
+  user_already_exists: 'emailTaken',
+  email_exists: 'emailTaken',
+  weak_password: 'weakPassword',
+  same_password: 'samePassword',
+  over_email_send_rate_limit: 'rateLimited',
+  over_request_rate_limit: 'rateLimited',
 } as const);
+
+/** Identity provider of the "Continue with Google" button (Supabase Auth, ADR-21). */
+export const GOOGLE_PROVIDER = 'google';
+
+/** Supabase Auth event when a password-reset link was opened: the person must now choose a new password. */
+export const PASSWORD_RECOVERY_EVENT = 'PASSWORD_RECOVERY' satisfies AuthChangeEvent;
+
+/** Whether the two password fields of a form agree; checked before anything is sent. */
+export function passwordsMatch(password: string, confirmation: string): boolean {
+  return password.length > 0 && password === confirmation;
+}
 
 export type AuthErrorCode = keyof typeof AUTH_ERROR_CODES;
 

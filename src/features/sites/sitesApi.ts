@@ -1,6 +1,7 @@
 import { API_ROUTES, TRUNCATED_HEADER, apiFetch } from '../../config/api';
 import { HOURS_PER_DAY, isPeriod, type Period } from '../../config/contract';
 import { config } from '../../config/env';
+import { deviceTimeZone, isCount, isTimestamp } from '../../shared/apiValues';
 import { JSON_HEADERS } from '../offline/offline.constants';
 import type { CachedSite } from '../offline/types';
 
@@ -42,16 +43,6 @@ export async function createSite(token: string, name: string, location: { latitu
   return site;
 }
 
-const isCount = (value: unknown): boolean => typeof value === 'number' && Number.isFinite(value) && value >= 0;
-
-/**
- * ISO 8601 date-time as the API serializes it. `Date.parse` alone also accepts locale formats such as
- * "Oct 7, 2026", which the API never sends, so the layout is checked before the value.
- */
-const ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})$/;
-
-const isTimestamp = (value: unknown): boolean => typeof value === 'string' && ISO_TIMESTAMP.test(value) && Number.isFinite(Date.parse(value));
-
 /** Every field a species row formats: a bad date or count would otherwise break the whole screen, not one row. */
 function isSpeciesStat(value: unknown): boolean {
   const entry = value as Partial<Record<keyof SpeciesStat, unknown>> | null;
@@ -75,13 +66,9 @@ export function parseStats(body: unknown): SiteStats {
   return s as unknown as SiteStats;
 }
 
-/** Hours are grouped in the device's time zone, so a dawn chorus stays at dawn wherever the API runs. */
-function deviceTimeZone(): string {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone || config.defaultTimeZone;
-}
 
 export async function siteStats(token: string, id: string, period: Period): Promise<SiteStats> {
-  const params = new URLSearchParams({ period, tz: deviceTimeZone() });
+  const params = new URLSearchParams({ period, tz: deviceTimeZone(config.defaultTimeZone) });
   return parseStats(await (await apiFetch(API_ROUTES.siteStats(id), { token, params })).json());
 }
 

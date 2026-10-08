@@ -14,6 +14,7 @@ import { ClaimCard } from './ClaimCard';
 import { LocalStatsCard } from './LocalStatsCard';
 import { localTotals } from './localTotals';
 import { ProfileCard } from './ProfileCard';
+import { RecoveryForm } from './RecoveryForm';
 import { SignInForm } from './SignInForm';
 import { SyncRow } from './SyncRow';
 import { pendingSync } from './syncStatus';
@@ -47,12 +48,14 @@ export default function AccountPage(): React.JSX.Element {
 
       {account.configured && !session && <SignInForm account={account} />}
 
+      {session && account.recovering && <RecoveryForm account={account} />}
+
       {session && (
         <>
-          <ProfileCard email={session.user.email ?? null}>
+          <ProfileCard account={account}>
             <SyncRow queue={queue} pending={pending} lastSyncedAt={totals?.lastSyncedAt ?? null} />
           </ProfileCard>
-          {account.error && <Notice tone="error">{texts.errors[account.error]}</Notice>}
+          {account.error && !account.recovering && <Notice tone="error">{texts.errors[account.error]}</Notice>}
         </>
       )}
 

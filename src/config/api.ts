@@ -12,6 +12,11 @@ export const API_ROUTES = {
   sites: `${VERSION}/sites`,
   siteStats: (siteId: string): string => `${VERSION}/sites/${encodeURIComponent(siteId)}/stats`,
   export: `${VERSION}/export`,
+  me: `${VERSION}/me`,
+  meAvatarUrl: `${VERSION}/me/avatar-url`,
+  meSummary: `${VERSION}/me/summary`,
+  meSpecies: `${VERSION}/me/species`,
+  meSpeciesRecord: (species: string): string => `${VERSION}/me/species/${encodeURIComponent(species)}`,
 } as const;
 
 /** Response header set by the export endpoint when the row cap was reached. */

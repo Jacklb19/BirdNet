@@ -6,15 +6,19 @@
 .bn-account-stats__title {
   padding: 0 var(--space-4);
   color: var(--color-text-secondary);
-  font-size: var(--text-small);
-  font-weight: var(--font-weight-semibold);
-  line-height: var(--leading-small);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-label);
+  line-height: var(--leading-caption);
+  text-transform: uppercase;
 }
 
 .bn-account-stats__card {
   padding: var(--space-4) var(--space-2);
-  border-radius: var(--radius-l);
+  border-radius: var(--radius-xl);
   background: var(--color-bg-surface);
+  box-shadow: var(--shadow-raised);
 }
 
 .bn-account-stats__message {
@@ -46,8 +50,10 @@
 
 .bn-account-stats__value {
   margin: 0;
-  font-size: var(--text-l);
-  font-weight: var(--font-weight-bold);
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-variation-settings: var(--display-softness);
+  font-weight: var(--font-weight-display);
   line-height: var(--leading-l);
   font-variant-numeric: tabular-nums;
 }
@@ -56,4 +62,32 @@
   color: var(--color-text-secondary);
   font-size: var(--text-small);
   line-height: var(--leading-small);
+}
+
+.bn-account-stats__card--summary {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: center;
+  padding: var(--space-5) var(--space-3);
+}
+
+.bn-account-stats__grid--four {
+  width: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  row-gap: var(--space-4);
+}
+
+/* Two by two on phones: the rule between tiles only separates neighbours in the same row. */
+.bn-account-stats__grid--four .bn-account-stats__item:nth-child(odd) {
+  border-inline-start: 0;
+}
+
+@media (min-width: 40rem) {
+  .bn-account-stats__grid--four {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .bn-account-stats__grid--four .bn-account-stats__item + .bn-account-stats__item {
+    border-inline-start: var(--border-width) solid var(--color-border-subtle);
+  }
 }
