@@ -6,6 +6,8 @@ import '@fontsource/radio-canada/latin-500.css';
 import '@fontsource/radio-canada/latin-600.css';
 import '@fontsource/radio-canada/latin-700.css';
 import '@fontsource/radio-canada/latin-400-italic.css';
+import '@fontsource/dm-mono/latin-500.css';
+import './styles/fonts.css';
 import './styles/tokens.css';
 import './styles/base.css';
 import { applyInitialTheme } from './theme';

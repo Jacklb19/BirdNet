@@ -7,13 +7,17 @@
 .bn-photo--row {
   width: var(--photo-row);
   height: var(--photo-row);
-  border-radius: var(--radius-m);
+  border: calc(var(--sticker-edge) / 2) solid var(--color-sticker-edge);
+  border-radius: var(--radius-sticker);
+  box-shadow: var(--shadow-raised);
 }
 
 .bn-photo--round {
   width: var(--avatar);
   height: var(--avatar);
+  border: calc(var(--sticker-edge) / 2) solid var(--color-sticker-edge);
   border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-raised);
 }
 
 .bn-photo--hero {

@@ -3,7 +3,7 @@ import { Icon, type IconName } from './Icon';
 import './Button.css';
 
 interface ButtonLook {
-  readonly variant?: 'primary' | 'secondary' | 'quiet';
+  readonly variant?: 'primary' | 'accent' | 'secondary' | 'quiet';
   readonly icon?: IconName;
   readonly block?: boolean;
 }

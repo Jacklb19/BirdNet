@@ -1,0 +1,58 @@
+.bn-sticker {
+  --size: var(--sticker-m);
+
+  display: inline-block;
+  width: var(--size);
+  height: var(--size);
+  flex-shrink: 0;
+  padding: var(--sticker-edge);
+  border-radius: var(--radius-sticker);
+  background: var(--color-sticker-edge);
+  box-shadow: var(--shadow-sticker);
+  transform: rotate(calc(var(--tilt) * var(--sticker-tilt)));
+}
+
+.bn-sticker--xs { --size: var(--sticker-xs); padding: calc(var(--sticker-edge) / 2); }
+.bn-sticker--s { --size: var(--sticker-s); padding: calc(var(--sticker-edge) * 0.7); }
+.bn-sticker--m { --size: var(--sticker-m); }
+.bn-sticker--l { --size: var(--sticker-l); }
+.bn-sticker--xl { --size: var(--sticker-xl); }
+
+.bn-sticker .bn-photo--sticker {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-sticker);
+}
+
+/* An empty slot: dashed outline on the paper, the place a sticker will go. */
+.bn-sticker--missing {
+  background: transparent;
+  box-shadow: none;
+  outline: var(--border-width-strong) dashed var(--color-border-subtle);
+  outline-offset: calc(var(--sticker-edge) * -1);
+}
+
+.bn-sticker__slot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-sticker);
+  background: var(--color-bg-sunken);
+}
+
+.bn-sticker--drop {
+  animation: bn-sticker-drop var(--duration-slow) var(--ease-bounce) both;
+  animation-delay: calc(var(--order) * var(--stagger));
+}
+
+@keyframes bn-sticker-drop {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--space-6) * -1)) rotate(calc(var(--tilt) * var(--sticker-tilt) * -3)) scale(1.15);
+  }
+
+  to {
+    opacity: 1;
+    transform: rotate(calc(var(--tilt) * var(--sticker-tilt)));
+  }
+}

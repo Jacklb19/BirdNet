@@ -11,6 +11,8 @@ html {
 }
 
 body {
+  position: relative;
+  isolation: isolate;
   margin: 0;
   min-height: 100dvh;
   background: var(--color-bg-canvas);
@@ -20,6 +22,57 @@ body {
   line-height: var(--leading-body);
   font-weight: var(--font-weight-regular);
   -webkit-font-smoothing: antialiased;
+  transition: --sky-top var(--duration-sky) var(--ease-standard);
+}
+
+/* The sky of the current hour, fading into the paper below the page header. */
+body::before {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: -1;
+  height: var(--sky-band-height);
+  background: linear-gradient(var(--sky-top), var(--color-bg-canvas));
+  content: '';
+  pointer-events: none;
+}
+
+/* Paper grain: fixed, so the texture does not slide with the content. */
+body::after {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: var(--texture-grain);
+  content: '';
+  opacity: var(--texture-grain-opacity);
+  pointer-events: none;
+}
+
+/* Names and titles are written in the display face; reading text stays in the humanist family. */
+.display {
+  font-family: var(--font-display);
+  font-variation-settings: var(--display-softness);
+  font-weight: var(--font-weight-display);
+  letter-spacing: var(--tracking-tight);
+}
+
+/*
+ * A plate painted with a bird's plumage (src/features/species/plumage.ts sets --plate and --on-plate). --plate is a
+ * registered color, so a new singer floods the plate with its color instead of switching abruptly.
+ */
+.bn-plate {
+  background: var(--plate);
+  color: var(--on-plate);
+  transition: --plate var(--duration-slow) var(--ease-standard);
+}
+
+/* Field-notebook label: small capitals in the mono face. */
+.label {
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-label);
+  line-height: var(--leading-caption);
+  text-transform: uppercase;
 }
 
 h1,

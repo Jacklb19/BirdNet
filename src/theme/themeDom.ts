@@ -2,6 +2,7 @@
  * Theme side effects on the document, kept apart from the provider so they can run before React renders.
  */
 import { readPreferences } from '../config/storage';
+import { applySky } from './sky';
 import {
   DARK_SCHEME_QUERY, DEFAULT_RESOLVED_THEME, DEFAULT_THEME_PREFERENCE, isThemePreference,
   type ResolvedTheme, type ThemePreference,
@@ -52,7 +53,8 @@ export function applyTheme(resolved: ResolvedTheme): void {
   syncThemeColor();
 }
 
-/** Called before the first render so a dark system theme never flashes light. */
+/** Called before the first render so a dark system theme never flashes light, nor the day sky at night. */
 export function applyInitialTheme(): void {
+  applySky();
   applyTheme(resolveTheme(readStoredTheme()));
 }

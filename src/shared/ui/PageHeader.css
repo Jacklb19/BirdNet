@@ -28,10 +28,20 @@
 }
 
 .bn-page-header__title {
+  font-family: var(--font-display);
   font-size: var(--text-xl);
-  font-weight: var(--font-weight-bold);
+  font-variation-settings: var(--display-softness);
+  font-weight: var(--font-weight-display);
   line-height: var(--leading-xl);
   letter-spacing: var(--tracking-tight);
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 64rem) {
+  .bn-page-header__title {
+    font-size: var(--text-hero);
+    line-height: var(--leading-hero);
+  }
 }
 
 .bn-page-header__subtitle {
