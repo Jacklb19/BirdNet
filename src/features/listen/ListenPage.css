@@ -1,0 +1,59 @@
+.bn-listen {
+  /* Bottom padding the shell gives <main> above the phone tab bar (AppShell.css); the page fills the rest of the
+     screen so the record button rests at the bottom like a player control. */
+  --listen-shell-bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom) + var(--space-6));
+  /* Fade behind the docked record button, so rows scrolling under it do not collide with its label. */
+  --listen-dock-backdrop: linear-gradient(transparent, var(--color-bg-canvas) var(--space-6));
+
+  min-height: calc(100dvh - var(--listen-shell-bottom));
+  grid-template-rows: auto 1fr auto;
+}
+
+/* Phones: the site bar has no title above it, so it sits close to the top and to the spectrogram, as designed. */
+@media not all and (min-width: 64rem) {
+  .bn-page.bn-listen {
+    padding-top: var(--space-3);
+    row-gap: var(--space-3);
+  }
+}
+
+.bn-listen__bar {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.bn-listen__content {
+  display: grid;
+  align-content: start;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.bn-listen__columns {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.bn-listen__dock {
+  position: sticky;
+  bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: center;
+  padding-block: var(--space-6) var(--space-2);
+  background: var(--listen-dock-backdrop);
+}
+
+@media (min-width: 64rem) {
+  .bn-listen {
+    min-height: 0;
+    grid-template-rows: none;
+  }
+
+  .bn-listen__columns--hero {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  }
+}

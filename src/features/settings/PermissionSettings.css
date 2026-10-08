@@ -1,0 +1,15 @@
+/* Opened from Account: keep the group clear of the sticky top bar on wide screens when it is scrolled into view. */
+.bn-settings-permissions {
+  scroll-margin-top: var(--space-4);
+}
+
+/* Focus is moved here programmatically to start reading at this group; it is not a control, so no ring. */
+.bn-settings-permissions:focus {
+  outline: none;
+}
+
+@media (min-width: 64rem) {
+  .bn-settings-permissions {
+    scroll-margin-top: calc(var(--topbar-height) + var(--space-5) + var(--space-4));
+  }
+}

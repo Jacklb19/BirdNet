@@ -1,16 +1,24 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { audioObjectPath } from '../../config/contract';
+import { DEFAULT_QUEUE_BYTES } from './offline.constants';
 import { synchronizeQueue } from './syncQueue';
 import { acknowledge, getAudio, getSettings, listDetections } from './queueStore';
 import type { OfflineSettings, StoredDetection } from './types';
 
+/** Hoisted: the configuration mock below is created before the module's own constants. */
+const { storageOrigin } = vi.hoisted(() => ({ storageOrigin: 'https://example.supabase.co' }));
 vi.mock('./queueStore');
+vi.mock(import('../../config/env'), async (importOriginal) => {
+  const actual = await importOriginal();
+  return { ...actual, config: actual.readConfig({ VITE_SUPABASE_URL: storageOrigin, VITE_SUPABASE_ANON_KEY: 'test-anon-key' }) };
+});
 const userId = '00000000-0000-4000-8000-000000000001';
 const row: StoredDetection = { id: '00000000-0000-4000-8000-000000000002', species: 'Turdus fuscater', confidence: 0.6, status: 'provisional', recorded_at: '2026-10-06T12:00:00Z', location: { latitude: 4.679, longitude: -74.123 }, model_version: 'birdnet-v2.4:arm', owner: userId, audioId: null, metadataSynced: false, bytes: 300 };
 let settings: OfflineSettings;
 beforeEach(() => {
   vi.clearAllMocks();
-  settings = { maxBytes: 64 * 1024 * 1024, audioConsent: true, locationEnabled: true, session: { userId, accessToken: 'test-token', expiresAt: Date.now() / 1000 + 3600 } };
+  settings = { maxBytes: DEFAULT_QUEUE_BYTES, audioConsent: true, locationEnabled: true, session: { userId, accessToken: 'test-token', expiresAt: Date.now() / 1000 + 3600 } };
   vi.mocked(getSettings).mockImplementation(() => Promise.resolve(structuredClone(settings)));
   vi.mocked(listDetections).mockResolvedValue([row]);
   vi.mocked(acknowledge).mockResolvedValue(undefined);
@@ -59,26 +67,27 @@ describe('synchronization trust and retry boundaries', () => {
   });
   it('confirms an audio link only after successful direct upload and a second acknowledgement', async () => {
     vi.mocked(listDetections).mockResolvedValue([{ ...row, audioId: 'audio', metadataSynced: true }]);
-    vi.mocked(fetch).mockResolvedValueOnce(Response.json({ upload_url: 'https://example.supabase.co/storage/upload', audio_path: `${userId}/${row.id}.wav` })).mockResolvedValueOnce(new Response()).mockResolvedValueOnce(Response.json({ accepted_ids: [], existing_ids: [row.id] }));
+    vi.mocked(fetch).mockResolvedValueOnce(Response.json({ upload_url: `${storageOrigin}/storage/upload`, audio_path: audioObjectPath(userId, row.id) })).mockResolvedValueOnce(new Response()).mockResolvedValueOnce(Response.json({ accepted_ids: [], existing_ids: [row.id] }));
     await synchronizeQueue();
     expect(acknowledge).toHaveBeenCalledWith([row.id], true);
     expect(vi.mocked(fetch).mock.calls[1]?.[1]?.headers).not.toHaveProperty('Authorization');
   });
-  it.each(['missing-audio', 'sign-failure', 'invalid-json', 'foreign-path', 'foreign-origin', 'upload-failure', 'revoked-before-upload', 'revoked-before-link'])('preserves audio on failure: %s', async (failure) => {
+  it.each(['missing-audio', 'sign-failure', 'invalid-json', 'foreign-path', 'foreign-origin', 'other-project', 'upload-failure', 'revoked-before-upload', 'revoked-before-link'])('preserves audio on failure: %s', async (failure) => {
     vi.mocked(listDetections).mockResolvedValue([{ ...row, audioId: 'audio', metadataSynced: true }]);
-    vi.mocked(fetch).mockResolvedValueOnce(Response.json({ upload_url: 'https://example.supabase.co/upload', audio_path: `${userId}/${row.id}.wav` })).mockResolvedValueOnce(new Response());
+    vi.mocked(fetch).mockResolvedValueOnce(Response.json({ upload_url: `${storageOrigin}/upload`, audio_path: audioObjectPath(userId, row.id) })).mockResolvedValueOnce(new Response());
     if (failure === 'missing-audio') vi.mocked(getAudio).mockResolvedValueOnce(undefined);
     if (failure === 'sign-failure') vi.mocked(fetch).mockReset().mockResolvedValueOnce(new Response(null, { status: 503 }));
     if (failure === 'invalid-json') vi.mocked(fetch).mockReset().mockResolvedValueOnce(Response.json({}));
     if (failure === 'foreign-path') vi.mocked(fetch).mockReset().mockResolvedValueOnce(Response.json({ upload_url: '/upload', audio_path: 'foreign.wav' }));
-    if (failure === 'foreign-origin') vi.mocked(fetch).mockReset().mockResolvedValueOnce(Response.json({ upload_url: 'https://foreign.example/upload', audio_path: `${userId}/${row.id}.wav` }));
-    if (failure === 'upload-failure') vi.mocked(fetch).mockReset().mockResolvedValueOnce(Response.json({ upload_url: '/upload', audio_path: `${userId}/${row.id}.wav` })).mockResolvedValueOnce(new Response(null, { status: 503 }));
+    if (failure === 'foreign-origin') vi.mocked(fetch).mockReset().mockResolvedValueOnce(Response.json({ upload_url: 'https://foreign.example/upload', audio_path: audioObjectPath(userId, row.id) }));
+    if (failure === 'other-project') vi.mocked(fetch).mockReset().mockResolvedValueOnce(Response.json({ upload_url: 'https://other.supabase.co/upload', audio_path: audioObjectPath(userId, row.id) }));
+    if (failure === 'upload-failure') vi.mocked(fetch).mockReset().mockResolvedValueOnce(Response.json({ upload_url: '/upload', audio_path: audioObjectPath(userId, row.id) })).mockResolvedValueOnce(new Response(null, { status: 503 }));
     if (failure.startsWith('revoked')) {
       vi.mocked(fetch).mockReset().mockImplementation(() => {
         settings.audioConsent = false;
-        return Promise.resolve(failure === 'revoked-before-upload' ? Response.json({ upload_url: '/upload', audio_path: `${userId}/${row.id}.wav` }) : new Response());
+        return Promise.resolve(failure === 'revoked-before-upload' ? Response.json({ upload_url: '/upload', audio_path: audioObjectPath(userId, row.id) }) : new Response());
       });
-      if (failure === 'revoked-before-link') vi.mocked(fetch).mockResolvedValueOnce(Response.json({ upload_url: '/upload', audio_path: `${userId}/${row.id}.wav` }));
+      if (failure === 'revoked-before-link') vi.mocked(fetch).mockResolvedValueOnce(Response.json({ upload_url: '/upload', audio_path: audioObjectPath(userId, row.id) }));
       await synchronizeQueue();
     } else await expect(synchronizeQueue()).rejects.toThrow();
     expect(acknowledge).not.toHaveBeenCalled();

@@ -1,0 +1,162 @@
+import { defineMessages } from '../../i18n/defineMessages';
+import type { AccountFailure } from './account.constants';
+
+/** Texts of the account feature. Counted texts are plural forms for `formatCount` and `selectPlural` (src/i18n/formatters.ts). */
+export const accountMessages = defineMessages({
+  es: {
+    title: 'Cuenta',
+    unavailable: {
+      title: 'Todo funciona en este teléfono',
+      text: 'Esta versión no tiene cuenta en la nube. Puedes escuchar, llevar tu bitácora y usar el modelo sin señal; lo que registres se queda en el teléfono.',
+    },
+    signIn: {
+      title: 'Suma tus cantos al mapa',
+      intro: 'Con una cuenta, tus cantos se suben al mapa compartido y a las estadísticas de tus sitios. Sin ella, todo sigue funcionando en este teléfono.',
+      modeLabel: 'Qué quieres hacer',
+      modes: { signIn: 'Iniciar sesión', signUp: 'Crear cuenta' },
+      email: 'Correo electrónico',
+      password: 'Contraseña',
+      passwordHint: (min: string) => `Mínimo ${min} caracteres.`,
+      offline: 'Necesitas conexión para iniciar sesión o crear la cuenta.',
+      confirmationTitle: 'Revisa tu correo',
+      confirmation: (email: string) => `Enviamos un enlace a ${email}. Ábrelo para activar la cuenta y luego inicia sesión aquí.`,
+    },
+    errors: {
+      invalidCredentials: 'El correo o la contraseña no coinciden.',
+      generic: 'No se pudo completar. Revisa la conexión e inténtalo de nuevo.',
+    } satisfies Record<AccountFailure, string>,
+    profile: {
+      label: 'Tu cuenta',
+      signedIn: 'Sesión iniciada',
+    },
+    sync: {
+      synced: 'Todo sincronizado',
+      justNow: 'Hace un momento',
+      minutesAgo: {
+        one: (minutes: string) => `Hace ${minutes} minuto`,
+        other: (minutes: string) => `Hace ${minutes} minutos`,
+      },
+      hoursAgo: {
+        one: (hours: string) => `Hace ${hours} hora`,
+        other: (hours: string) => `Hace ${hours} horas`,
+      },
+      since: (date: string) => `Última vez: ${date}`,
+      nothingYet: 'Aún no hay cantos subidos.',
+      waitingConnection: {
+        one: (count: string) => `${count} canto espera conexión`,
+        other: (count: string) => `${count} cantos esperan conexión`,
+      },
+      waitingDetail: 'Se suben solos cuando vuelva la señal.',
+      pending: {
+        one: (count: string) => `${count} canto por subir`,
+        other: (count: string) => `${count} cantos por subir`,
+      },
+      pendingDetail: 'Se suben solos en segundo plano.',
+      syncing: 'Sincronizando…',
+      failed: 'No se pudo sincronizar',
+      failedDetail: 'Tus cantos siguen guardados en el teléfono.',
+      syncNow: 'Sincronizar ahora',
+      withoutLocation: {
+        one: (count: string) => `${count} canto sin ubicación se queda solo en este teléfono.`,
+        other: (count: string) => `${count} cantos sin ubicación se quedan solo en este teléfono.`,
+      },
+    },
+    stats: {
+      title: 'En este teléfono',
+      songs: { one: 'canto', other: 'cantos' },
+      species: { one: 'especie', other: 'especies' },
+      sites: { one: 'sitio', other: 'sitios' },
+      error: 'No se pudieron leer los datos guardados en el teléfono.',
+    },
+    claim: {
+      title: {
+        one: (count: string) => `Tienes ${count} canto sin cuenta`,
+        other: (count: string) => `Tienes ${count} cantos sin cuenta`,
+      },
+      text: 'Los guardaste antes de iniciar sesión. ¿Los sumamos a tus aportes?',
+      accept: 'Sumarlos',
+      decline: 'Ahora no',
+      done: 'Listo: se sumaron a tus aportes.',
+    },
+    links: { settings: 'Ajustes', privacy: 'Privacidad y datos' },
+    signOut: 'Cerrar sesión',
+  },
+  en: {
+    title: 'Account',
+    unavailable: {
+      title: 'Everything works on this phone',
+      text: 'This version has no cloud account. You can listen, keep your log and use the model offline; what you record stays on the phone.',
+    },
+    signIn: {
+      title: 'Add your songs to the map',
+      intro: 'With an account, your songs are uploaded to the shared map and to your sites’ statistics. Without one, everything keeps working on this phone.',
+      modeLabel: 'What do you want to do',
+      modes: { signIn: 'Sign in', signUp: 'Create account' },
+      email: 'Email',
+      password: 'Password',
+      passwordHint: (min: string) => `At least ${min} characters.`,
+      offline: 'You need a connection to sign in or create the account.',
+      confirmationTitle: 'Check your email',
+      confirmation: (email: string) => `We sent a link to ${email}. Open it to activate the account, then sign in here.`,
+    },
+    errors: {
+      invalidCredentials: 'The email or the password does not match.',
+      generic: 'That did not work. Check the connection and try again.',
+    },
+    profile: {
+      label: 'Your account',
+      signedIn: 'Signed in',
+    },
+    sync: {
+      synced: 'Everything synced',
+      justNow: 'A moment ago',
+      minutesAgo: {
+        one: (minutes: string) => `${minutes} minute ago`,
+        other: (minutes: string) => `${minutes} minutes ago`,
+      },
+      hoursAgo: {
+        one: (hours: string) => `${hours} hour ago`,
+        other: (hours: string) => `${hours} hours ago`,
+      },
+      since: (date: string) => `Last time: ${date}`,
+      nothingYet: 'No songs uploaded yet.',
+      waitingConnection: {
+        one: (count: string) => `${count} song waiting for a connection`,
+        other: (count: string) => `${count} songs waiting for a connection`,
+      },
+      waitingDetail: 'They upload by themselves when the signal is back.',
+      pending: {
+        one: (count: string) => `${count} song to upload`,
+        other: (count: string) => `${count} songs to upload`,
+      },
+      pendingDetail: 'They upload by themselves in the background.',
+      syncing: 'Syncing…',
+      failed: 'Could not sync',
+      failedDetail: 'Your songs are still kept on the phone.',
+      syncNow: 'Sync now',
+      withoutLocation: {
+        one: (count: string) => `${count} song without a location stays only on this phone.`,
+        other: (count: string) => `${count} songs without a location stay only on this phone.`,
+      },
+    },
+    stats: {
+      title: 'On this phone',
+      songs: { one: 'song', other: 'songs' },
+      species: { one: 'species', other: 'species' },
+      sites: { one: 'site', other: 'sites' },
+      error: 'The data kept on the phone could not be read.',
+    },
+    claim: {
+      title: {
+        one: (count: string) => `You have ${count} song without an account`,
+        other: (count: string) => `You have ${count} songs without an account`,
+      },
+      text: 'You saved them before signing in. Shall we add them to your contributions?',
+      accept: 'Add them',
+      decline: 'Not now',
+      done: 'Done: they were added to your contributions.',
+    },
+    links: { settings: 'Settings', privacy: 'Privacy and data' },
+    signOut: 'Sign out',
+  },
+});

@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MessageChannel, type MessagePort } from 'node:worker_threads';
+import { OFFLINE_OPERATIONS } from './offline.constants';
 import { offlineOperation, registerOffline, scheduleSynchronization } from './offlineClient';
 
 let reply: (port: MessagePort) => void;
@@ -16,16 +17,16 @@ afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 describe('offline worker communication', () => {
   it('delivers progress and a final result without treating progress as completion', async () => {
     const progress = vi.fn();
-    await expect(offlineOperation('DOWNLOAD_MODEL', {}, progress)).resolves.toBe('ready');
+    await expect(offlineOperation(OFFLINE_OPERATIONS.downloadModel, {}, progress)).resolves.toBe('ready');
     expect(progress).toHaveBeenCalledWith(5, 10);
   });
   it('reports failed operations', async () => {
     reply = (port) => { port.postMessage({ ok: false }); port.close(); };
-    await expect(offlineOperation('QUEUE_STATS')).rejects.toThrow();
+    await expect(offlineOperation(OFFLINE_OPERATIONS.queueStats)).rejects.toThrow();
   });
   it('does not pretend offline support exists without a service worker', async () => {
     vi.stubGlobal('navigator', {});
-    await expect(offlineOperation('QUEUE_STATS')).rejects.toThrow();
+    await expect(offlineOperation(OFFLINE_OPERATIONS.queueStats)).rejects.toThrow();
     await scheduleSynchronization();
     vi.stubEnv('PROD', true);
     await registerOffline();

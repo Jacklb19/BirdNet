@@ -1,0 +1,11 @@
+.bn-icon {
+  flex-shrink: 0;
+  width: var(--icon-size);
+  height: var(--icon-size);
+  stroke-width: var(--icon-stroke);
+}
+
+.bn-icon--s {
+  width: var(--icon-size-s);
+  height: var(--icon-size-s);
+}

@@ -1,0 +1,92 @@
+.bn-group {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.bn-group__title {
+  padding: 0 var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-small);
+}
+
+.bn-group__body {
+  overflow: hidden;
+  border-radius: var(--radius-l);
+  background: var(--color-bg-surface);
+}
+
+.bn-row {
+  display: flex;
+  width: 100%;
+  min-height: var(--control-height);
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  text-align: start;
+  text-decoration: none;
+}
+
+.bn-row + .bn-row {
+  border-top: var(--border-width) solid var(--color-border-subtle);
+}
+
+.bn-row--action {
+  cursor: pointer;
+}
+
+/* The group body clips its corners, so the focus ring is drawn inside the row. */
+.bn-row--action:focus-visible {
+  outline-offset: calc(-1 * var(--focus-width));
+}
+
+.bn-row--action[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: var(--state-disabled-opacity);
+}
+
+@media (hover: hover) {
+  .bn-row--action:not([aria-disabled='true']):hover {
+    background: var(--color-bg-sunken);
+  }
+}
+
+.bn-row__icon,
+.bn-row__chevron {
+  display: inline-flex;
+  color: var(--color-text-secondary);
+}
+
+.bn-row__text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: var(--space-1);
+}
+
+.bn-row__label {
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+}
+
+.bn-row__description {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-row__value {
+  color: var(--color-text-secondary);
+}
+
+.bn-row--danger .bn-row__label {
+  color: var(--color-error);
+}
+
+.bn-row--brand .bn-row__label {
+  color: var(--color-brand);
+}

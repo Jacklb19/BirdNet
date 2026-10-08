@@ -1,6 +1,5 @@
 /**
- * Feature de inferencia ONNX para clasificación acústica de aves (RF-05).
- * Reexporta tipos y servicio principal.
+ * On-device ONNX bird sound classification (RF-05): public types and the inference service.
  */
 
 export type {

@@ -1,24 +1,26 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import './index.css';
-import { I18nProvider } from './i18n';
-import { ThemeProvider } from './theme';
-import App from './App';
+// Self-hosted so the interface keeps its typeface offline; only the weights and subset the design uses.
+import '@fontsource/radio-canada/latin-400.css';
+import '@fontsource/radio-canada/latin-500.css';
+import '@fontsource/radio-canada/latin-600.css';
+import '@fontsource/radio-canada/latin-700.css';
+import '@fontsource/radio-canada/latin-400-italic.css';
+import './styles/tokens.css';
+import './styles/base.css';
+import { applyInitialTheme } from './theme';
 import { registerOffline } from './features/offline/offlineClient';
+import App from './App';
 
-const rootElement = document.getElementById('root');
+// Before the first render, so a dark preference never flashes the light palette.
+applyInitialTheme();
 void registerOffline().catch(() => { document.documentElement.dataset.offlineError = 'true'; });
 
-if (!rootElement) {
-  throw new Error('Root element (#root) not found in the document.');
-}
+const rootElement = document.getElementById('root');
+if (!rootElement) throw new Error('Root element (#root) not found in the document.');
 
 createRoot(rootElement).render(
   <StrictMode>
-    <ThemeProvider>
-      <I18nProvider>
-        <App />
-      </I18nProvider>
-    </ThemeProvider>
+    <App />
   </StrictMode>,
 );

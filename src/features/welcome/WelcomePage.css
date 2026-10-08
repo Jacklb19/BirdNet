@@ -1,0 +1,124 @@
+/*
+ * Component tokens. The hero is taller than the shared photo hero, as in the design, but never more than the
+ * share of the screen it takes there (under half), so the button stays in reach. The photo fades to transparent,
+ * so it dissolves into the page in both themes; the credit sits where it has fully faded. The column is the
+ * narrow content width: photos are fetched for about that size (species/speciesPhotos.ts), so wider would blur them.
+ */
+.bn-welcome {
+  --welcome-hero-height: min(calc(var(--photo-hero) + 2 * var(--space-8)), 42dvh);
+  /* A mask only reads alpha: any opaque token works as the visible end. */
+  --welcome-hero-fade: linear-gradient(to bottom, var(--color-bg-canvas) 45%, transparent 92%);
+  --welcome-column-width: var(--content-narrow);
+  --welcome-badge-size: calc(var(--icon-size) + var(--space-3));
+}
+
+/* More specific than .bn-page: this full-bleed screen stacks hero and text instead of using the page grid. */
+.bn-welcome.bn-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  min-height: 100dvh;
+}
+
+.bn-welcome__hero {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: var(--welcome-column-width);
+  margin: 0;
+}
+
+/*
+ * The photo itself fades out (a mask) instead of a canvas-colored layer painted over it: the page shows through,
+ * so there is no seam where an overlay meets the page background.
+ */
+.bn-welcome .bn-welcome__photo {
+  display: flex;
+  width: 100%;
+  height: var(--welcome-hero-height);
+  mask-image: var(--welcome-hero-fade);
+}
+
+.bn-welcome__credit {
+  position: absolute;
+  z-index: 1;
+  right: var(--space-4);
+  bottom: var(--space-1);
+  left: var(--space-4);
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+  text-align: end;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bn-welcome__content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-5);
+  width: 100%;
+  max-width: var(--welcome-column-width);
+  padding: var(--space-4) var(--space-6) calc(var(--space-6) + env(safe-area-inset-bottom));
+}
+
+.bn-welcome__features {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.bn-welcome__feature {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.bn-welcome__badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: var(--welcome-badge-size);
+  height: var(--welcome-badge-size);
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+}
+
+/* Pushed to the bottom of the phone screen, where the thumb reaches it. */
+.bn-welcome__footer {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: auto;
+}
+
+.bn-welcome__note {
+  color: var(--color-text-secondary);
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+  text-align: center;
+}
+
+/* Wide screens: the same column, centered in the window, with the photo's top corners rounded like a card. */
+@media (min-width: 64rem) {
+  .bn-welcome.bn-page {
+    justify-content: center;
+    padding: var(--space-8) var(--space-6);
+  }
+
+  .bn-welcome__hero {
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  }
+
+  .bn-welcome__content {
+    flex: none;
+    padding: var(--space-4) var(--space-6) 0;
+  }
+
+  .bn-welcome__footer {
+    margin-top: var(--space-2);
+  }
+}

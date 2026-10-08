@@ -1,0 +1,47 @@
+.bn-site-missing {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.bn-site-missing__head {
+  display: grid;
+  gap: var(--space-1);
+  padding-inline-start: var(--space-1);
+}
+
+.bn-site-missing__title {
+  font-size: var(--text-title);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-title);
+}
+
+.bn-site-missing__intro {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-site-missing__list {
+  display: grid;
+  padding: var(--space-2);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-surface);
+}
+
+/* On wide screens the heading moves inside the card, like the species list next to it. */
+@media (min-width: 64rem) {
+  .bn-site-missing {
+    padding: var(--space-5) var(--space-4) var(--space-4);
+    border-radius: var(--radius-xl);
+    background: var(--color-bg-surface);
+  }
+
+  .bn-site-missing__head {
+    padding-inline: var(--space-3);
+  }
+
+  .bn-site-missing__list {
+    padding: 0;
+    background: transparent;
+  }
+}

@@ -1,45 +1,62 @@
-import { useI18n, type Locale } from '../../i18n';
-import { useTheme, type ThemePreference } from '../../theme';
-import { FieldIcon, type FieldIconName } from '../../shared/FieldIcon';
-import { DiagnosticoPage } from '../diagnostico/DiagnosticoPage';
-import { OfflinePanel } from '../offline/OfflinePanel';
+import { useEffect, useRef } from 'react';
+import { routeHash } from '../../app/routes';
+import { LOCALES, isLocale, useI18n } from '../../i18n';
+import { ListGroup, ListRow } from '../../shared/ui/ListGroup';
+import { Notice } from '../../shared/ui/Notice';
+import { Page } from '../../shared/ui/Page';
+import { PageHeader } from '../../shared/ui/PageHeader';
+import { THEME_PREFERENCES, useTheme } from '../../theme';
+import { useOfflineSettings } from '../offline/useOfflineSettings';
+import { ChoiceGroup } from './ChoiceGroup';
+import { ModelSettings } from './ModelSettings';
+import { PermissionSettings } from './PermissionSettings';
+import { SelectRow } from './SelectRow';
+import { takeRequestedSection } from './settingsSections';
+import { StorageSettings } from './StorageSettings';
 
-/** Native preference controls preserve keyboard navigation and immediate local persistence. */
-export function SettingsPage(): React.JSX.Element {
-  const { locale, setLocale, dict } = useI18n();
+/** Settings: the model, what may leave the phone, local space, appearance, language and credits. */
+export default function SettingsPage(): React.JSX.Element {
+  const { dict, locale, setLocale } = useI18n();
+  const texts = dict.settings;
   const { preference, setTheme } = useTheme();
-  const s = dict.settings;
+  const offline = useOfflineSettings();
+  const permissionsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (takeRequestedSection() !== 'permissions') return;
+    const group = permissionsRef.current;
+    group?.scrollIntoView({ block: 'start' });
+    group?.focus({ preventScroll: true });
+  }, []);
+
   return (
-    <section aria-label={s.title} className="page settings-page">
-      <header className="page-heading"><p className="eyebrow">{dict.app.navSettings}</p><h2>{s.title}</h2><p>{s.subtitle}</p></header>
-      <div className="settings-groups">
-        <fieldset className="preference-group">
-          <legend>{s.themeLabel}</legend>
-          {([
-            ['system', s.themeSystem, 'system'], ['light', s.themeLight, 'sun'], ['dark', s.themeDark, 'moon'],
-          ] as [ThemePreference, string, FieldIconName][]).map(([value, label, icon]) => (
-            <label key={value} className="preference-option" data-selected={preference === value}>
-              <span className="theme-swatch" data-preview={value} aria-hidden="true"><FieldIcon name={icon} /></span><span>{label}</span>
-              <input type="radio" name="theme" value={value} checked={preference === value} onChange={() => { setTheme(value); }} />
-            </label>
-          ))}
-        </fieldset>
-        <fieldset className="preference-group">
-          <legend>{s.languageLabel}</legend>
-          {([['es', s.langEs], ['en', s.langEn]] as [Locale, string][]).map(([value, label]) => (
-            <label key={value} className="preference-option" data-selected={locale === value}>
-              <span className="language-code" aria-hidden="true">{value.toUpperCase()}</span><span>{label}</span>
-              <input type="radio" name="language" value={value} checked={locale === value} onChange={() => { setLocale(value); }} />
-            </label>
-          ))}
-        </fieldset>
-      </div>
-      <p className="saved-notice"><FieldIcon name="shield" />{s.savedNotice}</p>
-      <OfflinePanel />
-      {import.meta.env.DEV && <details className="development-tools">
-        <summary>{dict.field.developmentTools}</summary>
-        <DiagnosticoPage />
-      </details>}
-    </section>
+    <Page width="narrow">
+      <PageHeader title={texts.title} back={{ href: routeHash({ name: 'account' }), label: texts.back }} />
+
+      {offline.error && <Notice tone="error">{texts.saveError}</Notice>}
+
+      <ModelSettings />
+      <PermissionSettings ref={permissionsRef} offline={offline} />
+      <StorageSettings offline={offline} />
+
+      <ChoiceGroup title={texts.appearance.title} value={preference} onChange={setTheme}
+        options={THEME_PREFERENCES.map((value) => ({ value, label: texts.appearance.options[value] }))} />
+
+      <ListGroup title={texts.language.title}>
+        <SelectRow label={texts.language.label} value={locale}
+          options={LOCALES.map((entry) => ({ value: entry.code, label: entry.nativeName, lang: entry.code }))}
+          onChange={(value) => { if (isLocale(value)) setLocale(value); }} />
+      </ListGroup>
+
+      <ListGroup title={texts.credits.title}>
+        <ListRow label={texts.credits.model} description={texts.credits.modelDetail} />
+        <ListRow label={texts.credits.names} description={texts.credits.namesDetail} />
+        <ListRow label={texts.credits.photos} description={texts.credits.photosDetail} />
+      </ListGroup>
+
+      <ListGroup>
+        <ListRow icon="bird" label={texts.intro} href={routeHash({ name: 'welcome' })} />
+      </ListGroup>
+    </Page>
   );
 }

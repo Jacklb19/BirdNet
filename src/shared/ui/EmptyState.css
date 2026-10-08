@@ -1,0 +1,33 @@
+.bn-empty {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+}
+
+.bn-empty__icon {
+  display: inline-flex;
+  width: var(--avatar);
+  height: var(--avatar);
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-sunken);
+  color: var(--color-text-secondary);
+}
+
+.bn-empty__title {
+  font-size: var(--text-title);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-title);
+}
+
+.bn-empty__text {
+  max-width: var(--content-narrow);
+  color: var(--color-text-secondary);
+}
+
+.bn-empty__action {
+  margin-top: var(--space-3);
+}

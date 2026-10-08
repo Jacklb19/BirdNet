@@ -2,17 +2,24 @@ import { AUDIO_CONSTANTS } from './audio.constants';
 import { createHannWindow, computeMagnitudeSpectrum } from './fft';
 
 /**
- * Convierte frecuencia en Hertz a escala Mel.
+ * Coefficients of the HTK mel scale, mel = factor * log10(1 + hz / cornerHz): roughly linear below the
+ * corner frequency and logarithmic above it, like pitch perception.
  */
+const HTK_MEL_SCALE = Object.freeze({ factor: 2595, cornerHz: 700 });
+
+/** Converts a frequency in hertz to mels. */
 export function hzToMel(hz: number): number {
-  return 2595 * Math.log10(1 + hz / 700);
+  return HTK_MEL_SCALE.factor * Math.log10(1 + hz / HTK_MEL_SCALE.cornerHz);
 }
 
-/**
- * Convierte valor en escala Mel a frecuencia en Hertz.
- */
+/** Converts mels back to hertz; the inverse of `hzToMel`. */
 export function melToHz(mel: number): number {
-  return 700 * (Math.pow(10, mel / 2595) - 1);
+  return HTK_MEL_SCALE.cornerHz * (Math.pow(10, mel / HTK_MEL_SCALE.factor) - 1);
+}
+
+/** Mel energy in decibels, floored so silent bands stay finite (never below `MEL_LOG_FLOOR_DB`). */
+export function melEnergyToDb(energy: number): number {
+  return AUDIO_CONSTANTS.POWER_DECIBEL_FACTOR * Math.log10(Math.max(energy, AUDIO_CONSTANTS.MEL_LOG_FLOOR));
 }
 
 export interface MelFilterbankConfig {
@@ -23,34 +30,34 @@ export interface MelFilterbankConfig {
   maxFreqHz: number;
 }
 
+/** Filterbank of the on-screen spectrogram at the model sample rate. */
+export const DEFAULT_MEL_FILTERBANK: Readonly<MelFilterbankConfig> = Object.freeze({
+  sampleRate: AUDIO_CONSTANTS.TARGET_SAMPLE_RATE,
+  fftSize: AUDIO_CONSTANTS.FFT_SIZE,
+  numMelBands: AUDIO_CONSTANTS.NUM_MEL_BANDS,
+  minFreqHz: AUDIO_CONSTANTS.MIN_FREQUENCY_HZ,
+  maxFreqHz: AUDIO_CONSTANTS.MAX_FREQUENCY_HZ,
+});
+
 /**
- * Genera un banco de filtros triangulares Mel precalculados.
- * Devuelve un array de Float32Array, donde cada fila corresponde a un filtro Mel
- * con pesos sobre los bins espectrales (fftSize / 2 + 1).
+ * Precomputed triangular mel filterbank. Each row is one mel filter holding weights over the
+ * spectrum bins (fftSize / 2 + 1).
  */
-export function createMelFilterbank(
-  config: MelFilterbankConfig = {
-    sampleRate: AUDIO_CONSTANTS.TARGET_SAMPLE_RATE,
-    fftSize: AUDIO_CONSTANTS.FFT_SIZE,
-    numMelBands: AUDIO_CONSTANTS.NUM_MEL_BANDS,
-    minFreqHz: AUDIO_CONSTANTS.MIN_FREQUENCY_HZ,
-    maxFreqHz: AUDIO_CONSTANTS.MAX_FREQUENCY_HZ,
-  },
-): Float32Array[] {
+export function createMelFilterbank(config: Readonly<MelFilterbankConfig> = DEFAULT_MEL_FILTERBANK): Float32Array[] {
   const { sampleRate, fftSize, numMelBands, minFreqHz, maxFreqHz } = config;
   const numBins = (fftSize >> 1) + 1;
 
   const minMel = hzToMel(minFreqHz);
   const maxMel = hzToMel(maxFreqHz);
 
-  // Puntos equidistantes en escala Mel
+  // Points evenly spaced on the mel scale.
   const melPoints = new Float32Array(numMelBands + 2);
   const melStep = (maxMel - minMel) / (numMelBands + 1);
   for (let i = 0; i < melPoints.length; i++) {
     melPoints[i] = minMel + i * melStep;
   }
 
-  // Convertir puntos a bins de frecuencia FFT
+  // Map each point to its nearest FFT bin.
   const binPoints = new Int32Array(numMelBands + 2);
   for (let i = 0; i < binPoints.length; i++) {
     const hz = melToHz(melPoints[i] ?? 0);
@@ -66,14 +73,14 @@ export function createMelFilterbank(
     const centerBin = binPoints[m + 1] ?? 0;
     const rightBin = binPoints[m + 2] ?? 0;
 
-    // Rampa ascendente
+    // Rising edge.
     if (centerBin > leftBin) {
       for (let k = leftBin; k < centerBin; k++) {
         filter[k] = (k - leftBin) / (centerBin - leftBin);
       }
     }
 
-    // Rampa descendente
+    // Falling edge.
     if (rightBin > centerBin) {
       for (let k = centerBin; k <= rightBin; k++) {
         filter[k] = (rightBin - k) / (rightBin - centerBin);
@@ -86,9 +93,7 @@ export function createMelFilterbank(
   return filterbank;
 }
 
-/**
- * Aplica el banco de filtros Mel a un vector de espectro de magnitud.
- */
+/** Applies the mel filterbank to a magnitude spectrum, writing into `melEnergiesOutput` when given. */
 export function applyMelFilterbank(
   magnitudeSpectrum: Float32Array,
   filterbank: Float32Array[],
@@ -114,20 +119,20 @@ export function applyMelFilterbank(
 }
 
 export interface MelSpectrogramResult {
-  /** Matriz aplanada [numFrames, numMelBands] */
+  /** Row-major matrix [numFrames, numMelBands] in decibels. */
   data: Float32Array;
   numFrames: number;
   numMelBands: number;
 }
 
 /**
- * Calcula el mel-espectrograma en decibelios (dB) para una señal de audio completa.
+ * Mel spectrogram in decibels of a whole signal (see `melEnergyToDb` for the scale).
  *
- * @param samples Muestras de audio (ej: 144.000 muestras para 3 s a 48 kHz)
- * @param sampleRate Frecuencia de muestreo (Hz)
- * @param fftSize Tamaño de ventana FFT
- * @param hopLength Desplazamiento temporal de trama
- * @param filterbank Banco de filtros Mel precalculado
+ * @param samples Audio samples, typically one analysis window.
+ * @param sampleRate Sample rate in Hz.
+ * @param fftSize FFT frame length.
+ * @param hopLength Samples between consecutive frames.
+ * @param filterbank Precomputed mel filterbank; built from `AUDIO_CONSTANTS` when omitted.
  */
 export function computeMelSpectrogram(
   samples: Float32Array,
@@ -136,26 +141,18 @@ export function computeMelSpectrogram(
   hopLength: number = AUDIO_CONSTANTS.STFT_HOP_LENGTH,
   filterbank?: Float32Array[],
 ): MelSpectrogramResult {
-  const actualFilterbank =
-    filterbank ??
-    createMelFilterbank({
-      sampleRate,
-      fftSize,
-      numMelBands: AUDIO_CONSTANTS.NUM_MEL_BANDS,
-      minFreqHz: AUDIO_CONSTANTS.MIN_FREQUENCY_HZ,
-      maxFreqHz: AUDIO_CONSTANTS.MAX_FREQUENCY_HZ,
-    });
+  const actualFilterbank = filterbank ?? createMelFilterbank({ ...DEFAULT_MEL_FILTERBANK, sampleRate, fftSize });
 
   const numMelBands = actualFilterbank.length;
   const window = createHannWindow(fftSize);
 
-  // Número de tramas posibles
+  // Number of complete frames that fit in the signal.
   const numFrames =
     samples.length >= fftSize ? Math.floor((samples.length - fftSize) / hopLength) + 1 : 0;
 
   const data = new Float32Array(numFrames * numMelBands);
 
-  // Búferes auxiliares reusados en cada trama para evitar recolector de basura
+  // Work buffers reused by every frame so the loop does not allocate.
   const frameBuffer = new Float32Array(fftSize);
   const realBuffer = new Float32Array(fftSize);
   const imagBuffer = new Float32Array(fftSize);
@@ -171,11 +168,9 @@ export function computeMelSpectrogram(
     computeMagnitudeSpectrum(frameBuffer, window, realBuffer, imagBuffer, magnitudeBuffer);
     applyMelFilterbank(magnitudeBuffer, actualFilterbank, melBandBuffer);
 
-    // Convertir a dB: 10 * log10(max(val, 1e-10))
     const rowOffset = f * numMelBands;
     for (let m = 0; m < numMelBands; m++) {
-      const val = melBandBuffer[m] ?? 0;
-      data[rowOffset + m] = 10 * Math.log10(Math.max(val, 1e-10));
+      data[rowOffset + m] = melEnergyToDb(melBandBuffer[m] ?? 0);
     }
   }
 

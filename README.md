@@ -1,71 +1,54 @@
 # BirdNet Local
 
-Aplicación web progresiva (PWA) para el monitoreo continuo de biodiversidad mediante identificación acústica de aves con inferencia híbrida y enfoque local-first.
+Aplicación web progresiva para el monitoreo continuo de aves por sonido. Identifica especies con un modelo acústico que corre en el navegador, funciona sin conexión y registra las detecciones con ubicación aproximada en un mapa colectivo.
 
-## Propósito
+- **Aplicación web**: https://birdnet-nu.vercel.app (este repositorio)
+- **API**: https://bird-back.vercel.app ([Jacklb19/Bird_Back](https://github.com/Jacklb19/Bird_Back))
 
-BirdNet Local permite a observadores ciudadanos, investigadores y estudiantes registrar y monitorear la avifauna en campo utilizando únicamente el navegador web del dispositivo móvil o de escritorio, operando sin conexión a internet y preservando la privacidad del usuario y de las especies sensibles.
+## Funciones
 
-## Características Principales
+- Escucha continua con el micrófono, segmentada en ventanas de 3 s en un AudioWorklet, con espectrograma en vivo.
+- Identificación en el dispositivo con BirdNET v2.4 (ONNX cuantizado, 6.522 especies) dentro de un Web Worker. El audio no sale del dispositivo.
+- Política de confianza: ≥ 0,80 confirmada por el modelo local; 0,45–0,80 provisional; < 0,45 descartada. Toda detección muestra su confianza y estado.
+- Funcionamiento sin conexión: modelo en caché con verificación SHA-256 y cola local de detecciones que se sincroniza sola, sin duplicados.
+- Cuenta con Supabase Auth y mapa colectivo (MapLibre + OpenFreeMap) con agrupamiento y filtros por especie y periodo.
+- Ubicación siempre aproximada (celdas de unos 100 m).
 
-- **Captura continua en cliente**: Captura de audio continuo y segmentación en ventanas de duración fija mediante `AudioWorklet` en el hilo de audio sin bloquear la interfaz.
-- **Inferencia local en el navegador**: Cálculo de mel-espectrogramas y ejecución de modelo acústico exportado a ONNX (cuantizado a 8 bits) dentro de un `Web Worker` con aceleración WebGPU o WebAssembly.
-- **Política de decisión híbrida**:
-  - Confianza alta ($\ge 0.80$): aceptación y registro local directo.
-  - Confianza intermedia ($0.45 - 0.80$): registro provisional y encolado de fragmento de audio para verificación diferida en la nube con modelo de alta fidelidad.
-  - Confianza baja ($< 0.45$): descarte automático para optimizar almacenamiento.
-- **Local-first y funcionamiento sin conexión**: Almacenamiento local persistente con cola de sincronización diferida e idempotente hacia la nube.
-- **Privacidad y geolocalización aproximada**: Las ubicaciones se truncan automáticamente mediante trigger en base de datos a una cuadrícula de ~100 metros (PostGIS), protegiendo el domicilio del usuario y la ubicación exacta de especies vulnerables. El audio solo se transmite en casos de duda razonable con consentimiento.
-- **Arquitectura de costo cero**: Diseñado para operar íntegramente dentro de los límites de los planes gratuitos de Vercel (Hobby) y Supabase (Free tier) con Row Level Security (RLS) estricto.
+## Tecnología
 
-## Requisitos del Entorno
+React 19, TypeScript, Vite, ONNX Runtime Web, Workbox, MapLibre GL y Supabase. Despliegue en Vercel (plan Hobby) y Supabase (plan Free).
 
-- **Node.js**: $\ge 24.0.0$ (definido en `.nvmrc` y `engines`)
-- **Navegador**: Soporte para Web Audio API, Web Workers, WebAssembly y aislamiento de origen cruzado (`crossOriginIsolated`).
+## Desarrollo
 
-## Puesta en Marcha
+Requiere la versión de Node.js indicada en `.nvmrc` (la misma que usa la integración continua).
 
-1. Clonar el repositorio y verificar la versión de Node.js:
-   ```bash
-   node -v # debe ser >= 24
-   ```
+```bash
+npm ci
+cp .env.example .env.local
+npm run dev
+```
 
-2. Instalar dependencias:
-   ```bash
-   npm ci
-   ```
+La configuración vive en un solo lugar por tipo de valor:
 
-3. Configurar variables de entorno:
-   ```bash
-   cp .env.example .env.local
-   ```
+- `.env.example`: todas las variables de entorno. Las `VITE_*` se validan en `src/config/env.ts` y, si quedan vacías, usan los valores del despliegue público.
+- `build.config.mjs`: contrato del build (carpetas, nombre del service worker, recursos precacheados, cabeceras de aislamiento y valores por defecto de desarrollo), compartido por Vite, los scripts, Vitest, ESLint y Playwright.
+- `vercel.json`: configuración del despliegue. Vercel no lee variables de entorno en este archivo, por eso el destino del rewrite `/api/*` (la URL de la API) y la CSP están escritos ahí. Si cambia la URL de la API o se usa un origen externo nuevo (mapa, fotos, Supabase), hay que actualizarlo; `src/config/config.test.ts` comprueba que la CSP permite los orígenes de la configuración por defecto.
 
-4. Iniciar el servidor de desarrollo local:
-   ```bash
-   npm run dev
-   ```
+En desarrollo y en `npm run preview`, Vite reenvía `/api` a `API_PROXY_TARGET` (por defecto, la API local del repositorio de la API; ver `BUILD_ENV_DEFAULTS` en `build.config.mjs`). Los puertos se cambian con `DEV_PORT` y `PREVIEW_PORT`.
 
-## Verificación de Calidad
+| Comando | Uso |
+|---|---|
+| `npm run lint` / `npm run typecheck` | Análisis estático y tipos |
+| `npm run test` | Pruebas unitarias (Vitest) |
+| `npm run build` | Build de producción y precaché sin conexión |
+| `npm run test:offline` | E2E sin conexión (Playwright; requiere el repositorio de la API) |
+| `npm run data:species-names` | Regenera `public/models/species-names.json` desde la taxonomía de eBird (al cambiar el modelo) |
+| `npm run model:prepare` | Valida y prepara el modelo BirdNET (Python con numpy, scipy, requests, soundfile, onnx, onnxruntime y birdnet; descarga varios modelos) |
 
-El proyecto cuenta con un flujo estricto de verificación estática, pruebas unitarias y cobertura:
+Variables opcionales de `npm run test:offline` (se leen del entorno del proceso): `BACKEND_DIR` (por defecto `../backend`), `BACKEND_PYTHON` (por defecto el Python de su `.venv`), `PW_CHANNEL` (por defecto el Chromium de Playwright: `npx playwright install chromium`; por ejemplo `msedge`), `PW_HEADLESS`, `E2E_HOST`, `E2E_PORT`, `E2E_API_PORT`, `E2E_TIMEOUT_MS` y `E2E_SERVER_TIMEOUT_MS`. Los valores por defecto están en `playwright.config.mjs`.
 
-- **Verificación de tipos estáticos**:
-  ```bash
-  npm run typecheck
-  ```
-- **Análisis de código estático (Lint)**:
-  ```bash
-  npm run lint
-  ```
-- **Pruebas unitarias (Vitest)**:
-  ```bash
-  npm test
-  ```
-- **Cobertura de pruebas**:
-  ```bash
-  npm run test:coverage
-  ```
-- **Compilación de producción**:
-  ```bash
-  npm run build
-  ```
+## Documentación
+
+- `docs/definicion-proyecto.md`: especificación (requisitos, arquitectura y plan de sprints).
+- `docs/decisiones.md`: decisiones de arquitectura adicionales.
+- `docs/despliegue.md`: configuración de Supabase y Vercel.

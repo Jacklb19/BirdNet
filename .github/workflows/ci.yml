@@ -22,7 +22,7 @@ jobs:
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version-file: '.nvmrc'
           cache: 'npm'
 
       - name: Instalar dependencias
@@ -37,8 +37,7 @@ jobs:
       - name: Pruebas unitarias y cobertura
         run: npm run test:coverage
 
+      # scripts/prepare-offline.mjs falla si falta algún recurso del shell sin conexión (index.html incluido),
+      # así que un build correcto ya verifica el artefacto.
       - name: Construcción de la aplicación
         run: npm run build
-
-      - name: Verificar artefacto de construcción
-        run: test -f dist/index.html

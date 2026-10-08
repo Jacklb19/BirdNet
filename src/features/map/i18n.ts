@@ -1,0 +1,116 @@
+import { defineMessages } from '../../i18n/defineMessages';
+
+/**
+ * Texts of the shared map. Counted phrases come as plural forms keyed by Intl.PluralRules categories
+ * (see `formatCount` in src/i18n/formatters.ts); "other" is the fallback for any category a language does not list.
+ */
+export const mapMessages = defineMessages({
+  es: {
+    title: 'Mapa',
+    mapLabel: 'Mapa de cantos registrados',
+    controls: {
+      zoomIn: 'Acercar',
+      zoomOut: 'Alejar',
+      closePopup: 'Cerrar el detalle del canto',
+      toggleAttribution: 'Mostrar u ocultar los créditos del mapa',
+      mapFeedback: 'Sugerir una corrección del mapa base',
+      locate: 'Centrar en mi ubicación aproximada',
+    },
+    locateError: {
+      denied: 'El navegador no permite usar tu ubicación. Puedes autorizarlo en sus ajustes.',
+      unavailable: 'No se pudo obtener tu ubicación. Inténtalo de nuevo en un momento.',
+    },
+    filters: {
+      label: 'Filtros del mapa',
+      species: 'Especie',
+      allSpecies: 'Todas las especies',
+      period: 'Periodo',
+    },
+    sheet: {
+      title: 'En esta zona',
+      expand: 'Ampliar la lista',
+      totals: (songs: string, species: string) => `${songs} · ${species}`,
+      songs: { one: (count: string) => `${count} canto`, other: (count: string) => `${count} cantos` },
+      species: { one: (count: string) => `${count} especie`, other: (count: string) => `${count} especies` },
+      toVerify: { one: (count: string) => `${count} por verificar`, other: (count: string) => `${count} por verificar` },
+      updating: 'Actualizando…',
+      empty: 'No hay cantos registrados en esta zona durante este periodo.',
+      emptyHint: 'Aleja el mapa o elige un periodo más largo.',
+      truncated: (shown: string) => `Se muestran los ${shown} cantos más recientes y puede haber más. Acerca el mapa o elige un periodo más corto para verlos todos.`,
+      approximate: (distance: string) => `Las ubicaciones son aproximadas: celdas de unos ${distance}.`,
+      error: 'No se pudo cargar el mapa compartido.',
+      serverError: 'El servidor no pudo atender la consulta. Inténtalo de nuevo en un momento.',
+      unavailableTitle: 'El mapa compartido no está disponible en esta versión',
+      unavailable: 'El mapa reúne los cantos que comparte la comunidad y necesita una cuenta, y esta versión no tiene cuentas. Lo que escuchas se sigue guardando en tu teléfono.',
+      signedOutTitle: 'Inicia sesión para ver el mapa',
+      signedOut: 'El mapa reúne los cantos que comparte la comunidad. Lo que escuchas se sigue guardando en tu teléfono.',
+      signIn: 'Ir a Cuenta',
+      offlineTitle: 'Sin conexión',
+      offline: 'El mapa compartido necesita internet. Lo que registres se guarda en el teléfono y se sube al volver la conexión.',
+      unsupported: 'Este navegador no puede dibujar el mapa porque no tiene WebGL 2. Prueba con un navegador actualizado.',
+    },
+    species: {
+      recentLabel: (name: string) => `Cantos recientes de ${name}`,
+      showing: (shown: string, total: string) => `Se muestran los ${shown} más recientes de ${total}.`,
+      detail: (when: string, confidence: string) => `${when} · confianza ${confidence}`,
+    },
+    popup: {
+      detail: (status: string, confidence: string) => `${status} · confianza ${confidence}`,
+      approximate: (distance: string) => `Ubicación aproximada (celda de unos ${distance})`,
+    },
+  },
+  en: {
+    title: 'Map',
+    mapLabel: 'Map of recorded songs',
+    controls: {
+      zoomIn: 'Zoom in',
+      zoomOut: 'Zoom out',
+      closePopup: 'Close the song details',
+      toggleAttribution: 'Show or hide map credits',
+      mapFeedback: 'Suggest a basemap correction',
+      locate: 'Centre on my approximate location',
+    },
+    locateError: {
+      denied: 'The browser does not allow using your location. You can allow it in its settings.',
+      unavailable: 'Your location could not be found. Try again in a moment.',
+    },
+    filters: {
+      label: 'Map filters',
+      species: 'Species',
+      allSpecies: 'All species',
+      period: 'Period',
+    },
+    sheet: {
+      title: 'In this area',
+      expand: 'Enlarge the list',
+      totals: (songs: string, species: string) => `${songs} · ${species}`,
+      songs: { one: (count: string) => `${count} song`, other: (count: string) => `${count} songs` },
+      species: { one: (count: string) => `${count} species`, other: (count: string) => `${count} species` },
+      toVerify: { one: (count: string) => `${count} to verify`, other: (count: string) => `${count} to verify` },
+      updating: 'Updating…',
+      empty: 'No songs have been recorded in this area during this period.',
+      emptyHint: 'Zoom out or choose a longer period.',
+      truncated: (shown: string) => `Showing the ${shown} most recent songs; there may be more. Zoom in or choose a shorter period to see them all.`,
+      approximate: (distance: string) => `Locations are approximate: cells of about ${distance}.`,
+      error: 'The shared map could not be loaded.',
+      serverError: 'The server could not handle the request. Try again in a moment.',
+      unavailableTitle: 'The shared map is not available in this version',
+      unavailable: 'The map gathers the songs the community shares and needs an account, and this version has no accounts. What you hear is still kept on your phone.',
+      signedOutTitle: 'Sign in to see the map',
+      signedOut: 'The map gathers the songs the community shares. What you hear is still kept on your phone.',
+      signIn: 'Go to Account',
+      offlineTitle: 'Offline',
+      offline: 'The shared map needs the internet. What you record is kept on the phone and uploaded when the connection returns.',
+      unsupported: 'This browser cannot draw the map because it lacks WebGL 2. Try an up-to-date browser.',
+    },
+    species: {
+      recentLabel: (name: string) => `Recent songs of ${name}`,
+      showing: (shown: string, total: string) => `Showing the ${shown} most recent of ${total}.`,
+      detail: (when: string, confidence: string) => `${when} · ${confidence} confidence`,
+    },
+    popup: {
+      detail: (status: string, confidence: string) => `${status} · ${confidence} confidence`,
+      approximate: (distance: string) => `Approximate location (cell of about ${distance})`,
+    },
+  },
+});

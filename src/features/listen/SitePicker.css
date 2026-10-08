@@ -1,0 +1,84 @@
+.bn-listen-site-field {
+  /* Site names may be long (FIELD_LIMITS.siteName): past this width they end in an ellipsis instead of pushing
+     the live badge, the desktop title or the record control out of view. */
+  --listen-site-max-width: calc(var(--content-narrow) / 2);
+
+  display: grid;
+  max-width: var(--listen-site-max-width);
+  min-width: 0;
+  /* A bounded track: an auto column would grow to the select's full text and overflow the bar. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1);
+}
+
+/* The icons are drawn over the select and let clicks through, so the whole row opens the picker. */
+.bn-listen-site {
+  --listen-site-icon-gap: calc(var(--icon-size-s) + var(--space-2));
+
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+  min-height: var(--touch-min);
+  align-items: center;
+  justify-self: start;
+  color: var(--color-text-primary);
+}
+
+.bn-listen-site__pin,
+.bn-listen-site__chevron {
+  position: absolute;
+  display: inline-flex;
+  pointer-events: none;
+}
+
+.bn-listen-site__pin {
+  left: 0;
+  color: var(--color-brand);
+}
+
+.bn-listen-site__chevron {
+  right: 0;
+  color: var(--color-text-secondary);
+}
+
+.bn-listen-site__select,
+.bn-listen-site__name {
+  overflow: hidden;
+  font-size: var(--text-title-s);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-title-s);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bn-listen-site__select {
+  max-width: 100%;
+  min-height: var(--touch-min);
+  padding: 0 var(--listen-site-icon-gap);
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
+  /* Sized to the chosen site rather than the longest option, so the chevron follows the name; browsers
+     without it keep the platform width. */
+  field-sizing: content;
+}
+
+/* Options are painted by the platform; give them the theme's surface so text stays readable in dark mode. */
+.bn-listen-site__select option {
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+
+.bn-listen-site--link {
+  padding: 0 var(--listen-site-icon-gap);
+  border-radius: var(--radius-s);
+  text-decoration: none;
+}
+
+.bn-listen-site__error {
+  color: var(--color-error);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}

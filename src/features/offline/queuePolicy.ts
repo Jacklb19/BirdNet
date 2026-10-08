@@ -1,32 +1,63 @@
+import { AUDIO_CONSTANTS } from '../audio/dsp/audio.constants';
+import { AUDIO_UPLOAD_MIME_TYPE, LOCATION_GRID_DECIMALS } from '../../config/contract';
+import { MIN_QUEUE_BYTES } from './offline.constants';
 import type { ApproximateLocation } from './types';
+
+const MAX_ABS_LATITUDE = 90;
+const MAX_ABS_LONGITUDE = 180;
+const GRID_FACTOR = 10 ** LOCATION_GRID_DECIMALS;
 
 /** Round before persistence; raw device coordinates must never enter the queue. */
 export function approximateLocation(latitude: number, longitude: number): ApproximateLocation {
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > MAX_ABS_LATITUDE || Math.abs(longitude) > MAX_ABS_LONGITUDE) {
     throw new Error('Invalid location.');
   }
-  return { latitude: Math.round(latitude * 1000) / 1000, longitude: Math.round(longitude * 1000) / 1000 };
+  return { latitude: Math.round(latitude * GRID_FACTOR) / GRID_FACTOR, longitude: Math.round(longitude * GRID_FACTOR) / GRID_FACTOR };
 }
 
 /** Preserve every pending record by rejecting overflow before the transaction commits. */
 export function assertQueueCapacity(current: number, addition: number, maximum: number): void {
-  if (![current, addition, maximum].every(Number.isSafeInteger) || current < 0 || addition < 0 || maximum < 1024 * 1024 || current + addition > maximum) {
+  if (![current, addition, maximum].every(Number.isSafeInteger) || current < 0 || addition < 0 || maximum < MIN_QUEUE_BYTES || current + addition > maximum) {
     throw new Error('Queue capacity exceeded.');
   }
 }
 
+// Canonical RIFF/WAVE PCM layout: RIFF header, "fmt " chunk, "data" chunk. Every value below derives from the
+// capture contract, so a change of sample rate cannot leave a stale header behind.
+const CHUNK_HEADER_BYTES = 8;
+const FOURCC_BYTES = 4;
+const FMT_CHUNK_BYTES = 16;
+const WAV_HEADER_BYTES = CHUNK_HEADER_BYTES + FOURCC_BYTES + CHUNK_HEADER_BYTES + FMT_CHUNK_BYTES + CHUNK_HEADER_BYTES;
+const PCM_FORMAT = 1;
+const WAV_CHANNELS = 1;
+const BITS_PER_BYTE = 8;
+const BYTES_PER_SAMPLE = Int16Array.BYTES_PER_ELEMENT;
+const BITS_PER_SAMPLE = BYTES_PER_SAMPLE * BITS_PER_BYTE;
+const BLOCK_ALIGN = WAV_CHANNELS * BYTES_PER_SAMPLE;
+const BYTE_RATE = AUDIO_CONSTANTS.TARGET_SAMPLE_RATE * BLOCK_ALIGN;
+/** Signed PCM is asymmetric: -1 maps to the most negative value, +1 to the most positive one. */
+const PCM_NEGATIVE_SCALE = 2 ** (BITS_PER_SAMPLE - 1);
+const PCM_POSITIVE_SCALE = PCM_NEGATIVE_SCALE - 1;
+
 /** WAV PCM16 is independent of the model's floating-point tensor representation. */
 export function encodeAudio(samples: Float32Array): Blob {
-  if (samples.length !== 144000 || samples.some((sample) => !Number.isFinite(sample))) throw new Error('Invalid audio.');
-  const buffer = new ArrayBuffer(44 + samples.length * 2);
+  if (samples.length !== AUDIO_CONSTANTS.WINDOW_SAMPLES || samples.some((sample) => !Number.isFinite(sample))) throw new Error('Invalid audio.');
+  const dataBytes = samples.length * BLOCK_ALIGN;
+  const buffer = new ArrayBuffer(WAV_HEADER_BYTES + dataBytes);
   const view = new DataView(buffer);
-  const write = (offset: number, value: string): void => { for (let index = 0; index < value.length; index++) view.setUint8(offset + index, value.charCodeAt(index)); };
-  write(0, 'RIFF'); view.setUint32(4, buffer.byteLength - 8, true); write(8, 'WAVE'); write(12, 'fmt ');
-  view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
-  view.setUint32(24, 48000, true); view.setUint32(28, 96000, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true);
-  write(36, 'data'); view.setUint32(40, samples.length * 2, true);
-  samples.forEach((sample, index) => { const value = Math.min(1, Math.max(-1, sample)); view.setInt16(44 + index * 2, Math.round(value * (value < 0 ? 32768 : 32767)), true); });
-  return new Blob([buffer], { type: 'audio/wav' });
+  let offset = 0;
+  const fourcc = (value: string): void => { for (let index = 0; index < FOURCC_BYTES; index++) view.setUint8(offset + index, value.charCodeAt(index)); offset += FOURCC_BYTES; };
+  const uint32 = (value: number): void => { view.setUint32(offset, value, true); offset += Uint32Array.BYTES_PER_ELEMENT; };
+  const uint16 = (value: number): void => { view.setUint16(offset, value, true); offset += Uint16Array.BYTES_PER_ELEMENT; };
+  fourcc('RIFF'); uint32(buffer.byteLength - CHUNK_HEADER_BYTES); fourcc('WAVE');
+  fourcc('fmt '); uint32(FMT_CHUNK_BYTES); uint16(PCM_FORMAT); uint16(WAV_CHANNELS);
+  uint32(AUDIO_CONSTANTS.TARGET_SAMPLE_RATE); uint32(BYTE_RATE); uint16(BLOCK_ALIGN); uint16(BITS_PER_SAMPLE);
+  fourcc('data'); uint32(dataBytes);
+  samples.forEach((sample, index) => {
+    const value = Math.min(1, Math.max(-1, sample));
+    view.setInt16(WAV_HEADER_BYTES + index * BYTES_PER_SAMPLE, Math.round(value * (value < 0 ? PCM_NEGATIVE_SCALE : PCM_POSITIVE_SCALE)), true);
+  });
+  return new Blob([buffer], { type: AUDIO_UPLOAD_MIME_TYPE });
 }
 
 /** Untrusted acknowledgements must identify only records in the submitted batch. */

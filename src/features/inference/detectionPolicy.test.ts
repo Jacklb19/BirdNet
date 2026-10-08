@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CONFIDENCE_THRESHOLDS } from '../../config/contract';
 import { applyDetectionPolicy } from './detectionPolicy';
 import type { Detection } from './inference.types';
 
@@ -20,8 +21,8 @@ describe('applyDetectionPolicy', () => {
       const confidence = index / 999;
       const input = Object.freeze({ ...candidate, confidence });
       const result = applyDetectionPolicy([input]);
-      if (confidence < 0.45) expect(result).toEqual([]);
-      else expect(result[0]?.status).toBe(confidence < 0.8 ? 'provisional' : 'confirmed_local');
+      if (confidence < CONFIDENCE_THRESHOLDS.discardBelow) expect(result).toEqual([]);
+      else expect(result[0]?.status).toBe(confidence < CONFIDENCE_THRESHOLDS.confirmedFrom ? 'provisional' : 'confirmed_local');
       expect(input).not.toHaveProperty('status');
     }
     expect(applyDetectionPolicy([])).toEqual([]);

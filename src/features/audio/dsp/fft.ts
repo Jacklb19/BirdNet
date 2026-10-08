@@ -1,11 +1,10 @@
 /**
- * Implementación eficiente de la Transformada Rápida de Fourier (FFT Radix-2 Cooley-Tukey)
- * y funciones de ventaneo temporal para análisis espectral acústico.
+ * Radix-2 Cooley-Tukey fast Fourier transform and time windowing for the spectrogram.
  */
 
 /**
- * Genera una ventana de Hann de tamaño N.
- * w[n] = 0.5 * (1 - cos(2 * PI * n / (N - 1)))
+ * Hann window of length N: w[n] = 0.5 * (1 - cos(2 * PI * n / (N - 1))).
+ * It tapers each frame to zero at both ends, which limits spectral leakage between bins.
  */
 export function createHannWindow(size: number): Float32Array {
   const window = new Float32Array(size);
@@ -20,9 +19,7 @@ export function createHannWindow(size: number): Float32Array {
   return window;
 }
 
-/**
- * Aplica una ventana temporal sobre un búfer de muestras.
- */
+/** Multiplies samples by a window, writing into `output` when given to avoid allocations per frame. */
 export function applyWindow(
   samples: Float32Array,
   window: Float32Array,
@@ -36,9 +33,7 @@ export function applyWindow(
   return out;
 }
 
-/**
- * Reordena los arrays por inversión de bits (Bit-Reversal Permutation) para FFT in-place.
- */
+/** Bit-reversal permutation that puts the input in the order the in-place butterflies expect. */
 function bitReversePermutation(real: Float32Array, imag: Float32Array): void {
   const n = real.length;
   let j = 0;
@@ -62,16 +57,15 @@ function bitReversePermutation(real: Float32Array, imag: Float32Array): void {
 }
 
 /**
- * Ejecuta la FFT in-place (Cooley-Tukey Radix-2).
- * El tamaño de los arrays debe ser una potencia de 2.
+ * In-place radix-2 FFT. The length must be a power of two.
  *
- * @param real Componente real de entrada y salida
- * @param imag Componente imaginaria de entrada y salida (inicialmente con ceros para señales reales)
+ * @param real Real part, input and output.
+ * @param imag Imaginary part, input and output (zeros for a real signal).
  */
 export function fftInPlace(real: Float32Array, imag: Float32Array): void {
   const n = real.length;
   if ((n & (n - 1)) !== 0) {
-    throw new Error('El tamaño de la FFT debe ser una potencia de 2.');
+    throw new RangeError(`FFT size must be a power of two, got ${String(n)}.`);
   }
 
   bitReversePermutation(real, imag);
@@ -106,13 +100,13 @@ export function fftInPlace(real: Float32Array, imag: Float32Array): void {
 }
 
 /**
- * Calcula el espectro de magnitud de un lado (N/2 + 1 bins) para una trama de audio con ventana.
+ * One-sided magnitude spectrum (N/2 + 1 bins) of a windowed frame.
  *
- * @param frame Trama de audio de entrada de tamaño N (potencia de 2)
- * @param window Ventana temporal aplicada
- * @param realBuffer Búfer preasignado para cómputo real (opcional para evitar allocs)
- * @param imagBuffer Búfer preasignado para cómputo imag (opcional)
- * @param magnitudeOutput Búfer de salida de tamaño N/2 + 1
+ * @param frame Input frame of N samples (power of two).
+ * @param window Time window applied before the transform.
+ * @param realBuffer Optional preallocated real work buffer, reused across frames.
+ * @param imagBuffer Optional preallocated imaginary work buffer.
+ * @param magnitudeOutput Optional output buffer of N/2 + 1 values.
  */
 export function computeMagnitudeSpectrum(
   frame: Float32Array,

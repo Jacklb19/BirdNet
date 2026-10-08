@@ -1,12 +1,18 @@
 import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
-import { activeModel, availableManifest, downloadModel, MODEL_CACHE } from './modelCache';
+import { config } from '../../config/env';
+import { activeModel, availableManifest, downloadModel, requestedManifestUrl } from './modelCache';
+import {
+  APP_SHELL_URL, isOfflineOperation, MODEL_CACHE_NAME, MODEL_CACHE_PATH_PREFIX, OFFLINE_OPERATIONS, SYNC_TAG,
+  type OfflineOperation, type OfflineProgress, type OfflineReply, type OfflineRequest, type OfflineRequestMessage, type OfflineResult,
+} from './offline.constants';
+import { cachedPhoto, isSpeciesPhotoUrl } from './photoCache';
 import { getSettings, queueStats, updateSettings } from './queueStore';
 import { synchronizeQueue } from './syncQueue';
-import { SYNC_TAG, type OfflineSettings } from './types';
 
+// The app compiles against the DOM library, so the few service worker types used here are declared locally.
 interface ExtendableEvent extends Event { waitUntil(task: Promise<unknown>): void }
-interface MessageEventWithLifetime extends ExtendableEvent { data: { type: string; changes?: Partial<Omit<OfflineSettings, 'session'>>; manifestUrl?: string }; ports: MessagePort[] }
+interface MessageEventWithLifetime extends ExtendableEvent { data: unknown; ports: readonly MessagePort[] }
 interface SyncEvent extends ExtendableEvent { tag: string }
 interface WorkerScope {
   __WB_MANIFEST: { url: string; revision: string | null }[];
@@ -16,42 +22,84 @@ interface WorkerScope {
   clients: { claim(): Promise<void> };
 }
 const scope = self as unknown as WorkerScope;
+const SERVICE_UNAVAILABLE = 503;
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+/** Matches a same-origin path prefix and everything below it. */
+function pathPrefixPattern(prefix: string): RegExp {
+  return new RegExp(`^${escapeRegExp(prefix.replace(/\/+$/, ''))}(?:/|$)`);
+}
+/** An absolute API base lives on another origin and never reaches the navigation route. */
+const apiPathPrefix = config.apiBaseUrl.startsWith('/') && config.apiBaseUrl !== '/' ? [config.apiBaseUrl] : [];
+/** Paths that must reach the network (API) or the model route instead of the app shell. */
+const NAVIGATION_DENYLIST = [...apiPathPrefix, MODEL_CACHE_PATH_PREFIX].map(pathPrefixPattern);
+
+// workbox-build injects the precache list only where the literal `self.__WB_MANIFEST` appears in the bundle.
 precacheAndRoute((self as unknown as WorkerScope).__WB_MANIFEST);
 cleanupOutdatedCaches();
-registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html'), { denylist: [/^\/api\//, /^\/__birdnet_models\//] }));
-registerRoute(({ url }) => url.pathname.startsWith('/__birdnet_models/'), async ({ request }) => (await (await caches.open(MODEL_CACHE)).match(request)) ?? new Response('Model unavailable', { status: 503 }));
+registerRoute(new NavigationRoute(createHandlerBoundToURL(APP_SHELL_URL), { denylist: NAVIGATION_DENYLIST }));
+registerRoute(
+  ({ url }) => url.origin === self.location.origin && url.pathname.startsWith(MODEL_CACHE_PATH_PREFIX),
+  async ({ request }) => (await (await caches.open(MODEL_CACHE_NAME)).match(request)) ?? new Response('Model unavailable', { status: SERVICE_UNAVAILABLE }),
+);
+registerRoute(
+  ({ url }) => isSpeciesPhotoUrl(url),
+  ({ request, event }: { request: Request; event: ExtendableEvent }) => cachedPhoto(request, (task) => { event.waitUntil(task); }),
+);
 scope.addEventListener('activate', (event) => { event.waitUntil(scope.clients.claim()); });
+
 let synchronization: Promise<void> | null = null;
-async function synchronizeOnce(): Promise<void> {
+async function synchronizeOnce(): Promise<undefined> {
   synchronization ??= synchronizeQueue();
   try { await synchronization; } finally { synchronization = null; }
+  return undefined;
 }
 scope.addEventListener('sync', (event) => { if (event.tag === SYNC_TAG) event.waitUntil(synchronizeOnce()); });
+
 let downloading: Promise<unknown> | null = null;
+async function download(manifestUrl: string | undefined, progress: (update: OfflineProgress) => void): Promise<OfflineResult<typeof OFFLINE_OPERATIONS.downloadModel>> {
+  if (downloading) throw new Error('Model download already in progress.');
+  const pending = downloadModel(requestedManifestUrl(manifestUrl), (received, total) => { progress({ received, total }); });
+  downloading = pending;
+  try { return await pending; } finally { downloading = null; }
+}
+
+type OfflineHandlers = {
+  readonly [O in OfflineOperation]: (request: OfflineRequest<O>, progress: (update: OfflineProgress) => void) => Promise<OfflineResult<O>>;
+};
+/** One handler per operation; the mapped type makes a missing or mistyped handler a compile error. */
+const handlers: OfflineHandlers = {
+  [OFFLINE_OPERATIONS.modelStatus]: () => activeModel(),
+  [OFFLINE_OPERATIONS.modelManifest]: async () => (await availableManifest()).manifest,
+  [OFFLINE_OPERATIONS.downloadModel]: (request, progress) => download(request?.manifestUrl, progress),
+  [OFFLINE_OPERATIONS.getSettings]: () => getSettings(),
+  [OFFLINE_OPERATIONS.updateSettings]: async (request) => { await updateSettings(request.changes); return undefined; },
+  [OFFLINE_OPERATIONS.queueStats]: () => queueStats(),
+  [OFFLINE_OPERATIONS.sync]: () => synchronizeOnce(),
+};
+
+/**
+ * Messages come from same-origin pages, but are still checked: the operation name here, the payload by its
+ * handler (`updateSettings` and `requestedManifestUrl` reject anything malformed, which replies `ok: false`).
+ */
+function parseRequest(data: unknown): OfflineRequestMessage {
+  if (!data || typeof data !== 'object' || !('type' in data) || !isOfflineOperation(data.type)) throw new Error('Unknown offline operation.');
+  return data as OfflineRequestMessage;
+}
+function perform<O extends OfflineOperation>(operation: O, request: OfflineRequest<O>, port: MessagePort): Promise<OfflineResult<O>> {
+  const handler: OfflineHandlers[O] = handlers[operation];
+  return handler(request, (progress) => { port.postMessage({ progress } satisfies OfflineReply); });
+}
+async function reply(data: unknown, port: MessagePort): Promise<void> {
+  try {
+    const message = parseRequest(data);
+    const result = await perform(message.type, message.request, port);
+    port.postMessage({ ok: true, result } satisfies OfflineReply);
+  } catch { port.postMessage({ ok: false } satisfies OfflineReply); }
+}
 scope.addEventListener('message', (event) => {
   const port = event.ports[0];
-  if (!port) return;
-  event.waitUntil((async () => {
-    try {
-      let result: unknown;
-      switch (event.data.type) {
-        case 'MODEL_STATUS': result = await activeModel(); break;
-        case 'MODEL_MANIFEST': result = (await availableManifest()).manifest; break;
-        case 'DOWNLOAD_MODEL': {
-          if (downloading) throw new Error('Model download already in progress.');
-          const url = event.data.manifestUrl ?? '/models/manifest.json';
-          if (!url.startsWith('/') || url.startsWith('//')) throw new Error('Invalid manifest URL.');
-          downloading = downloadModel(url, (received, total) => { port.postMessage({ progress: { received, total } }); });
-          try { result = await downloading; } finally { downloading = null; }
-          break;
-        }
-        case 'GET_SETTINGS': result = await getSettings(); break;
-        case 'UPDATE_SETTINGS': await updateSettings(event.data.changes ?? {}); break;
-        case 'QUEUE_STATS': result = await queueStats(); break;
-        case 'SYNC': await synchronizeOnce(); break;
-        default: throw new Error('Unknown offline operation.');
-      }
-      port.postMessage({ ok: true, result });
-    } catch { port.postMessage({ ok: false }); }
-  })());
+  if (port) event.waitUntil(reply(event.data, port));
 });

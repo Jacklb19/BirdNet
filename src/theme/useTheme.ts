@@ -1,9 +1,10 @@
 import { createContext, useContext } from 'react';
-import type { ThemeContextValue } from './types';
+import { DEFAULT_RESOLVED_THEME, DEFAULT_THEME_PREFERENCE, type ThemeContextValue } from './types';
 
+/** Value outside a ThemeProvider (isolated component tests): defaults, and a setter that does nothing. */
 export const defaultThemeValue: ThemeContextValue = {
-  preference: 'system',
-  resolved: 'light',
+  preference: DEFAULT_THEME_PREFERENCE,
+  resolved: DEFAULT_RESOLVED_THEME,
   setTheme: () => {},
 };
 

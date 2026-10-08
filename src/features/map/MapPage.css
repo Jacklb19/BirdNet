@@ -1,0 +1,105 @@
+/*
+ * The map screen takes the whole viewport above the tab bar (phones) or under the floating top bar (wide
+ * screens). It is fixed rather than in the page flow so the shell's bottom padding never makes it scroll:
+ * dragging the map must never scroll the page instead. The "In this area" panel floats over the map and never
+ * resizes it, so a panel that grows or shrinks with its content does not move the camera or reload the data.
+ */
+.bn-page.bn-map {
+  --map-gutter: var(--space-4);
+  --map-top: calc(env(safe-area-inset-top) + var(--space-4));
+  --map-panel-width: 24rem; /* a species row with its count fits; most of a laptop screen stays map */
+  --map-filter-width: 20rem;
+  --map-sheet-height: 42%; /* title, totals and about two species, as in the design */
+  --map-filters-height: calc(var(--control-height) + var(--space-3) + var(--touch-min)); /* species field, gap, chips */
+  /* Enlarged, the sheet stops just under the filters, which stay usable above it. */
+  --map-sheet-height-expanded: calc(100% - var(--map-top) - var(--map-filters-height) - var(--space-3));
+  --map-sheet-handle-width: var(--space-7);
+  --map-sheet-handle-height: var(--space-1);
+  --map-overlay-layer: 1; /* inside the isolated map view: above the canvas, which comes later in the document */
+
+  position: fixed;
+  inset: 0 0 calc(var(--tabbar-height) + env(safe-area-inset-bottom));
+  display: block;
+  max-width: none;
+  padding: 0;
+  background: var(--color-bg-canvas);
+}
+
+.bn-map > .bn-map-view {
+  position: absolute;
+  inset: 0;
+}
+
+.bn-map__overlay {
+  position: absolute;
+  z-index: var(--map-overlay-layer);
+  top: var(--map-top);
+  display: grid;
+  gap: var(--space-3);
+  inset-inline: var(--map-gutter);
+  /* Only the controls catch the pointer; the map can be dragged between them. */
+  pointer-events: none;
+}
+
+.bn-map__overlay > * {
+  pointer-events: auto;
+}
+
+.bn-map__message {
+  max-width: var(--content-narrow);
+  border-radius: var(--radius-l);
+  box-shadow: var(--shadow-float);
+}
+
+/*
+ * The control corners sit just above the collapsed sheet. Both percentages resolve against the same box: the
+ * map fills the screen, and the sheet's height is a share of it.
+ */
+.bn-map .maplibregl-ctrl-bottom-left,
+.bn-map .maplibregl-ctrl-bottom-right {
+  bottom: var(--map-sheet-height);
+}
+
+/*
+ * The enlarged sheet covers the control corners. Hidden, the controls also leave the keyboard order, so focus
+ * never lands on a button out of sight.
+ */
+.bn-map:has(.bn-map-sheet--expanded) :is(.maplibregl-ctrl-bottom-left, .maplibregl-ctrl-bottom-right) {
+  visibility: hidden;
+}
+
+/* While listening elsewhere, the live player floats over the end of the sheet; the last row stays reachable. */
+.bn-map--with-player .bn-map-sheet__body {
+  padding-bottom: calc(var(--live-player-height) + var(--space-4) + var(--space-5));
+}
+
+@media (min-width: 64rem) {
+  .bn-page.bn-map {
+    --map-gutter: var(--space-6);
+    --map-top: calc(var(--space-5) + var(--topbar-height) + var(--space-4));
+
+    inset: 0;
+  }
+
+  .bn-map__overlay {
+    inset-inline: var(--map-gutter) calc(var(--map-panel-width) + 2 * var(--map-gutter));
+  }
+
+  .bn-map .maplibregl-ctrl-bottom-left {
+    bottom: 0;
+  }
+
+  /* The side panel never covers the controls, even if the sheet was enlarged on a narrower window. */
+  .bn-map:has(.bn-map-sheet--expanded) :is(.maplibregl-ctrl-bottom-left, .maplibregl-ctrl-bottom-right) {
+    visibility: visible;
+  }
+
+  .bn-map .maplibregl-ctrl-bottom-right {
+    right: calc(var(--map-panel-width) + var(--map-gutter));
+    bottom: 0;
+  }
+
+  .bn-map--with-player .bn-map-sheet__body {
+    padding-bottom: var(--space-5);
+  }
+}

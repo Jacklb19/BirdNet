@@ -1,5 +1,57 @@
 // AudioWorklet processor served as a same-origin file: the CSP blocks blob: worklet modules.
-// Window constants mirror AUDIO_CONSTANTS; audio-window-processor.test.ts enforces the match.
+// It cannot import TypeScript, so every parameter arrives through `processorOptions`, built from
+// AUDIO_CONSTANTS as AUDIO_WINDOW_PROCESSOR_OPTIONS (audio-window-processor.ts). The registered name and
+// MESSAGE_TYPES mirror WORKLET_PROCESSOR_NAME and WORKLET_MESSAGE_TYPES; audio-window-processor.test.ts
+// runs this file against them.
+
+const MESSAGE_TYPES = Object.freeze({
+  windowReady: 'WINDOW_READY',
+  levelUpdate: 'LEVEL_UPDATE',
+  windowAck: 'WINDOW_ACK',
+});
+
+// Float audio is normalized to [-1, 1]; a target peak above full scale would clip.
+const FULL_SCALE = 1;
+
+function invalidOption(key) {
+  return new TypeError(`Invalid audio window processor option "${key}".`);
+}
+
+function positiveNumber(options, key) {
+  const value = options[key];
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) throw invalidOption(key);
+  return value;
+}
+
+function positiveInteger(options, key) {
+  const value = options[key];
+  if (!Number.isSafeInteger(value) || value <= 0) throw invalidOption(key);
+  return value;
+}
+
+// Throwing in the constructor makes the node fire `processorerror`, which the capture service reports.
+function readOptions(processorOptions) {
+  const options = processorOptions ?? {};
+  const windowSamples = positiveInteger(options, 'windowSamples');
+  const hopSamples = positiveInteger(options, 'hopSamples');
+  if (hopSamples > windowSamples) throw invalidOption('hopSamples');
+  const targetPeak = positiveNumber(options, 'targetPeak');
+  if (targetPeak > FULL_SCALE) throw invalidOption('targetPeak');
+  const silenceThreshold = options.silenceThreshold;
+  if (typeof silenceThreshold !== 'number' || !Number.isFinite(silenceThreshold) || silenceThreshold < 0 ||
+      silenceThreshold >= targetPeak) {
+    throw invalidOption('silenceThreshold');
+  }
+  return {
+    targetSampleRate: positiveNumber(options, 'targetSampleRate'),
+    windowSamples,
+    hopSamples,
+    levelReportIntervalSec: positiveNumber(options, 'levelReportIntervalSec'),
+    silenceThreshold,
+    targetPeak,
+  };
+}
+
 class StreamingResampler {
   constructor(sourceSampleRate, targetSampleRate) {
     this.sourceSampleRate = sourceSampleRate;
@@ -53,11 +105,14 @@ class StreamingResampler {
 }
 
 class AudioWindowProcessor extends AudioWorkletProcessor {
-  constructor() {
+  constructor(nodeOptions) {
     super();
-    this.targetSampleRate = 48000;
-    this.windowSamples = 144000;
-    this.hopSamples = 72000;
+    const options = readOptions(nodeOptions?.processorOptions);
+    this.targetSampleRate = options.targetSampleRate;
+    this.windowSamples = options.windowSamples;
+    this.hopSamples = options.hopSamples;
+    this.silenceThreshold = options.silenceThreshold;
+    this.targetPeak = options.targetPeak;
     this.sourceSampleRate = sampleRate; // AudioWorkletGlobalScope sampleRate
     this.needsResample = this.sourceSampleRate !== this.targetSampleRate;
     if (this.needsResample) {
@@ -73,7 +128,7 @@ class AudioWindowProcessor extends AudioWorkletProcessor {
     this.windowPending = null;
     this.droppedWindows = 0;
     this.port.onmessage = (event) => {
-      if (event.data.type !== 'WINDOW_ACK') return;
+      if (event.data.type !== MESSAGE_TYPES.windowAck) return;
       this.windowInFlight = false;
       if (this.windowPending) {
         const next = this.windowPending;
@@ -85,7 +140,7 @@ class AudioWindowProcessor extends AudioWorkletProcessor {
     this.levelSampleCount = 0;
     this.levelSumSquares = 0;
     this.levelPeak = 0;
-    this.levelInterval = Math.floor(sampleRate * 0.1);
+    this.levelInterval = Math.floor(sampleRate * options.levelReportIntervalSec);
   }
 
   process(inputs) {
@@ -109,7 +164,7 @@ class AudioWindowProcessor extends AudioWorkletProcessor {
     if (this.levelSampleCount >= this.levelInterval) {
       const rms = Math.sqrt(this.levelSumSquares / this.levelSampleCount);
       this.port.postMessage({
-        type: 'LEVEL_UPDATE',
+        type: MESSAGE_TYPES.levelUpdate,
         rms,
         peak: this.levelPeak
       });
@@ -118,12 +173,12 @@ class AudioWindowProcessor extends AudioWorkletProcessor {
       this.levelPeak = 0;
     }
 
-    // Resample when the context does not run at 48 kHz
+    // Resample when the context does not run at the target rate
     const processedChunk = this.needsResample ? this.resampler.processChunk(chunk) : chunk;
     const processedLen = processedChunk.length;
     if (processedLen === 0) return true;
 
-    // Update the ring buffer with 48 kHz samples
+    // Update the ring buffer with target-rate samples
     if (processedLen >= this.windowSamples) {
       this.ringBuffer.set(processedChunk.subarray(processedLen - this.windowSamples));
     } else {
@@ -151,15 +206,15 @@ class AudioWindowProcessor extends AudioWorkletProcessor {
         const abs = Math.abs(windowBuf[i]);
         if (abs > peak) peak = abs;
       }
-      if (peak > 1e-4) {
-        const factor = 0.95 / peak;
+      if (peak > this.silenceThreshold) {
+        const factor = this.targetPeak / peak;
         for (let i = 0; i < this.windowSamples; i++) {
           windowBuf[i] *= factor;
         }
       }
 
       const message = {
-          type: 'WINDOW_READY',
+          type: MESSAGE_TYPES.windowReady,
           buffer: windowBuf,
           windowIndex: this.windowIndex,
           timestamp: currentTime,

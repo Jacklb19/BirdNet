@@ -1,0 +1,11 @@
+/* The design keeps the log's blocks closer together than the page rhythm: header, notice, chips and days read as one list. */
+.bn-page.bn-log {
+  --log-block-gap: var(--space-5);
+
+  gap: var(--log-block-gap);
+}
+
+.bn-log__status {
+  padding: var(--space-4) var(--space-1);
+  color: var(--color-text-secondary);
+}

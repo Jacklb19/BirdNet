@@ -1,0 +1,185 @@
+/*
+ * Design tokens — single source for every visual value (Figma: BirdNet Local, collection "Color").
+ * Components use only these custom properties; no literal colors, sizes or fonts elsewhere.
+ * Media queries cannot read custom properties: the desktop breakpoint (64rem) is mirrored in src/config/layout.ts.
+ */
+:root {
+  color-scheme: light;
+
+  /* Color — light */
+  --color-bg-canvas: #F5F6F4;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-sunken: #ECEEEB;
+  --color-bg-inverse: #141A17;
+  --color-text-primary: #141A17;
+  --color-text-secondary: #5F6863;
+  --color-text-inverse: #FFFFFF;
+  --color-border-subtle: #E1E4E0;
+  --color-border-strong: #141A17;
+  --color-brand: #2E7D4F;
+  --color-brand-soft: #E3F1E8;
+  --color-on-brand: #FFFFFF;
+  --color-record: #E5372B;
+  --color-on-record: #FFFFFF;
+  --color-highlight-now: #FFF1A8;
+  /* State text sits on the page, the hover fill (sunken) and the singing highlight: darker than the brand to keep 4.5:1 on all */
+  --color-status-confirmed: #2D794D;
+  --color-status-provisional: #A05B00;
+  --color-status-provisional-soft: #FFF4D6;
+  --color-status-verified: #2459C4;
+  --color-status-corrected: #6A43B5;
+  --color-error: #C42B1C;
+  --color-sono-faint: #E1E4E0;
+  --color-sono-mid: #9AA39E;
+  --color-sono-ink: #141A17;
+  --color-sono-mark: #2E7D4F;
+  --color-scrim: rgb(20 26 23 / 40%);
+  --color-shadow: rgb(20 26 23 / 14%);
+
+  /* Typography — one humanist family; italics only for scientific names */
+  --font-family: 'Radio Canada', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --text-hero: 2.5rem;
+  --leading-hero: 2.75rem;
+  --text-xl: 2rem;
+  --leading-xl: 2.375rem;
+  --text-l: 1.625rem;
+  --leading-l: 2rem;
+  --text-title: 1.25rem;
+  --leading-title: 1.625rem;
+  --text-title-s: 1.0625rem;
+  --leading-title-s: 1.375rem;
+  --text-body: 1rem;
+  --leading-body: 1.5rem;
+  --text-small: 0.875rem;
+  --leading-small: 1.25rem;
+  --text-caption: 0.8125rem;
+  --leading-caption: 1.125rem;
+  --text-tab: 0.6875rem;
+  --tracking-tight: -0.01em;
+
+  /* Space and shape */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 2rem;
+  --space-8: 3rem;
+  --radius-s: 0.5rem;
+  --radius-m: 0.75rem;
+  --radius-l: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-pill: 999px;
+  --border-width: 1px;
+  --border-width-strong: 1.5px;
+  --focus-width: 3px;
+  --focus-offset: 2px;
+
+  /* Sizes */
+  --touch-min: 2.75rem;
+  --control-height: 3rem;
+  --icon-size: 1.5rem;
+  --icon-size-s: 1.125rem;
+  --icon-stroke: 1.75;
+  --photo-row: 3.25rem;
+  --photo-hero: 18rem;
+  --record-button: 4.5rem;
+  --record-button-s: 2.5rem;
+  --avatar: 3.25rem;
+  --tabbar-height: 4.5rem;
+  --topbar-height: 4rem;
+  --content-max: 70rem;
+  --content-narrow: 40rem;
+  --spectrogram-height: 9.5rem;
+  --spectrogram-height-wide: 12.5rem;
+  --map-height: 100dvh;
+
+  /* Shell — brand mark, tab indicator, live player and the fade behind the floating top bar */
+  --brand-mark-size: 2.25rem;
+  --brand-tick-width: 2;
+  --tab-indicator-height: 0.125rem;
+  --live-player-height: 3.5rem;
+  --live-photo-size: 2.5rem;
+  --live-dot-size: 0.4375rem;
+  --stop-icon-size: 0.8125rem;
+  --radius-stop-icon: 0.125rem;
+  --topbar-backdrop: linear-gradient(var(--color-bg-canvas) 70%, transparent);
+
+  /* Chorus clock — lengths in SVG user units of its 260 × 260 viewBox */
+  --chorus-size: 17rem;
+  --chorus-ring-width: 1.5;
+  --chorus-tick-width: 1;
+  --chorus-tick-major-width: 2;
+  --chorus-bar-width: 7;
+  --chorus-hour-size: 11px;
+  --chorus-value-size: 34px;
+  /* Small cards draw only the number: about 18 CSS px on a 5.5rem clock, three digits still clear of the inner ticks */
+  --chorus-value-size-compact: 52px;
+  --chorus-unit-size: 12px;
+
+  /* Elevation */
+  --shadow-raised: 0 1px 3px var(--color-shadow);
+  --shadow-float: 0 8px 24px var(--color-shadow), 0 1px 3px var(--color-shadow);
+  --shadow-sheet: 0 -2px 16px var(--color-shadow);
+
+  /* Interaction states */
+  --state-hover-brightness: 1.08;
+  --state-disabled-opacity: 0.55;
+  --state-pressed-scale: 0.97;
+
+  /* Motion */
+  --duration-fast: 150ms;
+  --duration-medium: 250ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Layering */
+  --layer-nav: 20;
+  --layer-player: 30;
+  --layer-sheet: 40;
+
+  /* Map — MapLibre paints its canvas in CSS pixels and reads these with getComputedStyle, so they stay in px */
+  --map-cluster-radius-s: 16px;
+  --map-cluster-radius-m: 21px;
+  --map-cluster-radius-l: 27px;
+  --map-point-radius: 8px;
+  --map-marker-stroke-width: 2px;
+  --map-label-size: 13px;
+}
+
+/* Dark — ThemeProvider always sets data-theme to the resolved theme, including "automatic" */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-bg-canvas: #0F1311;
+  --color-bg-surface: #171C19;
+  --color-bg-sunken: #222824;
+  --color-bg-inverse: #EEF2EF;
+  --color-text-primary: #EEF2EF;
+  --color-text-secondary: #A3ACA7;
+  --color-text-inverse: #0F1311;
+  --color-border-subtle: #2C332F;
+  --color-border-strong: #EEF2EF;
+  --color-brand: #5CC98A;
+  --color-brand-soft: #1D3326;
+  --color-on-brand: #0F1311;
+  --color-record: #FF6B5E;
+  --color-on-record: #0F1311;
+  --color-highlight-now: #483F15;
+  --color-status-confirmed: #5CC98A;
+  --color-status-provisional: #F2B45A;
+  --color-status-provisional-soft: #3A2E12;
+  --color-status-verified: #8DB0FF;
+  --color-status-corrected: #C6A8F5;
+  --color-error: #FF8A80;
+  --color-sono-faint: #2C332F;
+  --color-sono-mid: #6E7772;
+  --color-sono-ink: #EEF2EF;
+  --color-sono-mark: #5CC98A;
+  --color-scrim: rgb(0 0 0 / 55%);
+  --color-shadow: rgb(0 0 0 / 40%);
+}
+

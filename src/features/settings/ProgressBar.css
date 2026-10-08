@@ -1,0 +1,39 @@
+.bn-settings-progress {
+  --settings-progress-height: var(--space-2);
+  --settings-progress: 0;
+
+  position: relative;
+  overflow: hidden;
+  height: var(--settings-progress-height);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-sunken);
+}
+
+/* The track is sunken gray; the fill needs the brand green to stand out at 3:1 as a graphic (WCAG 1.4.11). */
+.bn-settings-progress__fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--color-brand);
+  transform: scaleX(var(--settings-progress));
+  transform-origin: left center;
+  transition: transform var(--duration-medium) var(--ease-standard);
+}
+
+/*
+ * Unknown total: no fill (a full or partial bar would state a value that is not known); the track pulses to
+ * show activity instead. The global reduced-motion rule stops the pulse.
+ */
+.bn-settings-progress--indeterminate {
+  animation: bn-settings-progress-pulse calc(4 * var(--duration-medium)) var(--ease-standard) infinite alternate;
+}
+
+.bn-settings-progress--indeterminate .bn-settings-progress__fill {
+  visibility: hidden;
+}
+
+@keyframes bn-settings-progress-pulse {
+  to {
+    opacity: var(--state-disabled-opacity);
+  }
+}

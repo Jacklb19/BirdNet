@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateManifest } from './modelCache';
+import { validateManifest } from '../inference/modelManifest';
 import manifest from '../../../public/models/manifest.json';
 
 describe('model compatibility boundary', () => {

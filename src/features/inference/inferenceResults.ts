@@ -1,3 +1,4 @@
+import { MODEL_LABEL_SEPARATOR, MODEL_LABELS_LINE_SEPARATOR } from './inference.constants';
 import type { Detection } from './inference.types';
 
 /** Stable conversion of a model logit to probability. */
@@ -7,11 +8,17 @@ export function sigmoid(value: number): number {
   return exponential / (1 + exponential);
 }
 
+/** Labels of the model in output order: one per non-empty line, surrounding whitespace removed. */
+export function parseLabelsFile(text: string): string[] {
+  return text.split(MODEL_LABELS_LINE_SEPARATOR).map((label) => label.trim()).filter(Boolean);
+}
+
 /** Split the model's scientific_common label without changing its taxonomy. */
 export function parseLabel(label: string): { scientificName: string; commonName: string } {
-  const separator = label.indexOf('_');
+  // The first separator splits: common names may themselves contain the separator.
+  const separator = label.indexOf(MODEL_LABEL_SEPARATOR);
   return separator < 0 ? { scientificName: label, commonName: label } : {
-    scientificName: label.substring(0, separator), commonName: label.substring(separator + 1),
+    scientificName: label.substring(0, separator), commonName: label.substring(separator + MODEL_LABEL_SEPARATOR.length),
   };
 }
 

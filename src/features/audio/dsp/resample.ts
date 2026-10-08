@@ -1,25 +1,29 @@
 /**
- * Remuestreador determinista de señal de audio mono mediante interpolación lineal.
- * Permite adaptar la tasa de muestreo del dispositivo a la frecuencia requerida por el modelo.
+ * Deterministic linear-interpolation resampler for mono audio. It adapts the device sample rate to the
+ * rate the model expects.
  */
 
+/** Rejects rates that would make the resampling ratio zero, negative or not a number. */
+function assertValidSampleRates(sourceSampleRate: number, targetSampleRate: number): void {
+  if (!(sourceSampleRate > 0) || !(targetSampleRate > 0) || !Number.isFinite(sourceSampleRate) || !Number.isFinite(targetSampleRate)) {
+    throw new RangeError(`Sample rates must be positive finite numbers, got ${String(sourceSampleRate)} and ${String(targetSampleRate)}.`);
+  }
+}
+
 /**
- * Remuestrea un búfer de audio Float32Array a una nueva tasa de muestreo.
- * Si las tasas de muestreo de origen y destino son idénticas, devuelve una copia directa.
+ * Resamples a whole buffer to a new sample rate; equal rates return a copy.
  *
- * @param input Búfer de audio de entrada en formato Float32Array
- * @param sourceSampleRate Frecuencia de muestreo original en Hz
- * @param targetSampleRate Frecuencia de muestreo objetivo en Hz
- * @returns Búfer remuestreado en formato Float32Array
+ * @param input Input samples.
+ * @param sourceSampleRate Input rate in Hz.
+ * @param targetSampleRate Output rate in Hz.
+ * @returns Resampled samples.
  */
 export function resampleAudio(
   input: Float32Array,
   sourceSampleRate: number,
   targetSampleRate: number,
 ): Float32Array {
-  if (sourceSampleRate <= 0 || targetSampleRate <= 0) {
-    throw new Error('Las frecuencias de muestreo deben ser mayores a cero.');
-  }
+  assertValidSampleRates(sourceSampleRate, targetSampleRate);
 
   if (input.length === 0) {
     return new Float32Array(0);
@@ -49,9 +53,8 @@ export function resampleAudio(
 }
 
 /**
- * Remuestreador continuo para flujos de audio en tiempo real (chunks de AudioWorklet).
- * Mantiene la fase fraccionaria y la muestra de frontera entre bloques sucesivos
- * para evitar artefactos, saltos de fase y pérdida de muestras en el remuestreo streaming (RF-03).
+ * Streaming resampler for real-time blocks (AudioWorklet render quanta). It carries the fractional phase
+ * and the boundary sample across blocks so streaming output has no phase jumps or lost samples (RF-03).
  */
 export class StreamingResampler {
   public readonly sourceSampleRate: number;
@@ -61,18 +64,13 @@ export class StreamingResampler {
   private lastSample: number = 0;
 
   constructor(sourceSampleRate: number, targetSampleRate: number) {
-    if (sourceSampleRate <= 0 || targetSampleRate <= 0) {
-      throw new Error('Las frecuencias de muestreo deben ser mayores a cero.');
-    }
+    assertValidSampleRates(sourceSampleRate, targetSampleRate);
     this.sourceSampleRate = sourceSampleRate;
     this.targetSampleRate = targetSampleRate;
     this.ratio = sourceSampleRate / targetSampleRate;
   }
 
-  /**
-   * Procesa un bloque de entrada y devuelve el bloque remuestreado a la tasa objetivo.
-   * Si las frecuencias coinciden, retorna una copia directa.
-   */
+  /** Resamples one input block to the target rate; equal rates return a copy. */
   public processChunk(input: Float32Array): Float32Array {
     const inputLen = input.length;
     if (inputLen === 0) {
@@ -85,7 +83,7 @@ export class StreamingResampler {
     }
 
     const ratio = this.ratio;
-    // Estimación de cota superior para preasignación rápida
+    // Upper bound of the output length, so the buffer is allocated once per block.
     const maxSamples = Math.max(0, Math.ceil((inputLen - this.phase) / ratio) + 2);
     const output = new Float32Array(maxSamples);
     let outIdx = 0;
@@ -94,7 +92,7 @@ export class StreamingResampler {
     while (pos <= inputLen - 1) {
       let sample: number;
       if (pos < 0) {
-        // Interpolar en la frontera entre la última muestra del bloque previo y la primera del actual
+        // Interpolate across the boundary between the previous block's last sample and this block's first.
         const frac = pos + 1;
         sample = this.lastSample + frac * ((input[0] ?? 0) - this.lastSample);
       } else {

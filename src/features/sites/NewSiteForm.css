@@ -1,0 +1,81 @@
+.bn-new-site {
+  display: grid;
+  gap: var(--space-5);
+  width: 100%;
+  max-width: var(--content-narrow);
+  padding: var(--space-5) var(--space-4);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-surface);
+}
+
+.bn-new-site__title {
+  font-size: var(--text-title);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-title);
+}
+
+.bn-new-site__field {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.bn-new-site__label {
+  padding: 0;
+  font-weight: var(--font-weight-semibold);
+}
+
+/* The border is the only edge of the field on a white card, so it keeps 3:1 contrast (WCAG 1.4.11). */
+.bn-new-site__input {
+  width: 100%;
+  min-height: var(--control-height);
+  padding: 0 var(--space-4);
+  border: var(--border-width) solid var(--color-text-secondary);
+  border-radius: var(--radius-m);
+  background: var(--color-bg-surface);
+}
+
+.bn-new-site__input[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+
+/* Narrower side padding keeps "Use my approximate location" on one line on a 360 px phone. */
+.bn-new-site__location .bn-button {
+  justify-self: start;
+  padding-inline: var(--space-4);
+}
+
+@media (min-width: 64rem) {
+  .bn-new-site {
+    padding: var(--space-6);
+  }
+}
+
+.bn-new-site__hint {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-new-site__error,
+.bn-new-site__ready {
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-new-site__error {
+  color: var(--color-error);
+}
+
+.bn-new-site__ready {
+  color: var(--color-text-primary);
+}
+
+.bn-new-site__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}

@@ -1,0 +1,76 @@
+.bn-species {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-l);
+  background: transparent;
+  color: var(--color-text-primary);
+  text-align: start;
+  text-decoration: none;
+  transition: background-color var(--duration-medium) var(--ease-standard);
+}
+
+.bn-species--singing {
+  background: var(--color-highlight-now);
+}
+
+.bn-species--action {
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .bn-species--action:not(.bn-species--singing):hover {
+    background: var(--color-bg-sunken);
+  }
+}
+
+.bn-species__names {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.bn-species__name {
+  font-size: var(--text-title-s);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-title-s);
+  overflow-wrap: anywhere;
+}
+
+.bn-species__scientific {
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bn-species__meta {
+  display: grid;
+  flex-shrink: 0;
+  justify-items: end;
+  text-align: end;
+}
+
+.bn-species__status {
+  font-size: var(--text-small);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-small);
+}
+
+.bn-species__status--confirmed { color: var(--color-status-confirmed); }
+.bn-species__status--provisional { color: var(--color-status-provisional); }
+.bn-species__status--verified { color: var(--color-status-verified); }
+.bn-species__status--corrected { color: var(--color-status-corrected); }
+.bn-species__status--brand { color: var(--color-brand); }
+.bn-species__status--neutral { color: var(--color-text-primary); }
+
+.bn-species__detail {
+  color: var(--color-text-secondary);
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+}

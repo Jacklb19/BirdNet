@@ -1,0 +1,90 @@
+.bn-listen-record {
+  /* Ring of the card colour around the big button, as in the design, so it reads as lifted from the page. */
+  --listen-record-ring: var(--space-1);
+
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.bn-listen-record__circle {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand);
+  color: var(--color-on-brand);
+  transition: transform var(--duration-fast) var(--ease-standard), filter var(--duration-fast) var(--ease-standard);
+}
+
+.bn-listen-record--stop .bn-listen-record__circle {
+  background: var(--color-record);
+  color: var(--color-on-record);
+}
+
+.bn-listen-record__square {
+  border-radius: var(--radius-stop-icon);
+  background: currentColor;
+}
+
+/* Phone: the big round control with its label underneath. */
+.bn-listen-record--large {
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-l);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-listen-record--large .bn-listen-record__circle {
+  width: var(--record-button);
+  height: var(--record-button);
+  box-shadow: 0 0 0 var(--listen-record-ring) var(--color-bg-surface), var(--shadow-float);
+}
+
+.bn-listen-record--large .bn-listen-record__square {
+  width: var(--icon-size);
+  height: var(--icon-size);
+}
+
+/* Desktop header: a pill with the small round button and its label beside it. */
+.bn-listen-record--inline {
+  gap: var(--space-3);
+  min-height: var(--touch-min);
+  padding: var(--space-1) var(--space-4) var(--space-1) var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-raised);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+}
+
+.bn-listen-record--inline .bn-listen-record__circle {
+  width: var(--record-button-s);
+  height: var(--record-button-s);
+}
+
+.bn-listen-record--inline .bn-listen-record__square {
+  width: var(--stop-icon-size);
+  height: var(--stop-icon-size);
+}
+
+.bn-listen-record:disabled {
+  opacity: var(--state-disabled-opacity);
+}
+
+.bn-listen-record:not(:disabled):active .bn-listen-record__circle {
+  transform: scale(var(--state-pressed-scale));
+}
+
+@media (hover: hover) {
+  .bn-listen-record:not(:disabled):hover .bn-listen-record__circle {
+    filter: brightness(var(--state-hover-brightness));
+  }
+}

@@ -14,12 +14,15 @@
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:offline": "node scripts/prepare-offline-check.mjs && playwright test"
+    "test:offline": "node scripts/prepare-offline-check.mjs && playwright test",
+    "data:species-names": "node scripts/build-species-names.mjs",
+    "model:prepare": "python scripts/prepare-model.py"
   },
   "dependencies": {
+    "@fontsource/radio-canada": "5.3.0",
     "@supabase/supabase-js": "2.117.2",
     "maplibre-gl": "6.13.0",
-    "onnxruntime-web": "^1.30.0",
+    "onnxruntime-web": "1.30.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "workbox-precaching": "7.4.1",

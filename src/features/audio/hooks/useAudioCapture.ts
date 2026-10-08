@@ -1,14 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { AudioCaptureService, type AudioCaptureState } from '../services/audioCaptureService';
-import type { MelSpectrogramResponse } from '../worker/mel-spectrogram.worker';
+import type { MelSpectrogramResponse } from '../worker/mel-spectrogram.protocol';
 import { AUDIO_CONSTANTS } from '../dsp/audio.constants';
 import { InferenceService } from '../../inference/inference.service';
+import { MIN_CANDIDATE_CONFIDENCE, TOP_K } from '../../inference/inference.constants';
 import type { ModelStatus } from '../../inference/inference.types';
+import { formatModelVersion } from '../../inference/modelManifest';
 import { applyDetectionPolicy, type ClassifiedDetection } from '../../inference/detectionPolicy';
 import { getSettings } from '../../offline/queueStore';
-import { approximateLocation } from '../../offline/queuePolicy';
 import { scheduleSynchronization } from '../../offline/offlineClient';
-import type { ApproximateLocation } from '../../offline/types';
+import { dispatchSyncError } from '../../offline/offline.constants';
+import type { ApproximateLocation, PersistenceContext } from '../../offline/types';
+import { watchApproximateLocation } from '../location';
 
 export interface UseAudioCaptureReturn {
   state: AudioCaptureState;
@@ -28,8 +31,13 @@ export interface UseAudioCaptureReturn {
   stopListening: () => Promise<void>;
 }
 
+export interface UseAudioCaptureOptions {
+  /** Called once per analysed window, with the classified detections (possibly none) and the epoch time. */
+  readonly onWindowAnalysed?: (detections: readonly ClassifiedDetection[], analysedAt: number) => void;
+}
+
 /** Coordinates one listening session; audio and model resources are released on stop/unmount. */
-export function useAudioCapture(): UseAudioCaptureReturn {
+export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioCaptureReturn {
   const [state, setState] = useState<AudioCaptureState>('idle');
   const [rmsLevel, setRmsLevel] = useState(0);
   const [peakLevel, setPeakLevel] = useState(0);
@@ -46,12 +54,15 @@ export function useAudioCapture(): UseAudioCaptureReturn {
   const inferenceRef = useRef<InferenceService | null>(null);
   const requestedRef = useRef(false);
   const clearLocationRef = useRef<() => void>(() => undefined);
+  // The latest callback is read when a window arrives, so a new function never restarts the session.
+  const onWindowAnalysedRef = useRef(options.onWindowAnalysed);
+  useEffect(() => { onWindowAnalysedRef.current = options.onWindowAnalysed; }, [options.onWindowAnalysed]);
 
   useEffect(() => {
     let mounted = true;
     let location: ApproximateLocation | null = null;
-    let locationWatch: number | null = null;
-    const clearLocation = (): void => { if (locationWatch !== null) navigator.geolocation.clearWatch(locationWatch); locationWatch = null; location = null; };
+    let stopLocationWatch: (() => void) | null = null;
+    const clearLocation = (): void => { stopLocationWatch?.(); stopLocationWatch = null; location = null; };
     clearLocationRef.current = clearLocation;
     const isActive = (): boolean => mounted && requestedRef.current;
     const capture = new AudioCaptureService({
@@ -60,11 +71,12 @@ export function useAudioCapture(): UseAudioCaptureReturn {
       onWindowReady: (buffer, windowIndex, timestamp) => {
         if (!requestedRef.current) return;
         const manifest = inference.getManifest();
-        if (manifest) inference.infer(buffer, windowIndex, timestamp, 5, 0.45, {
+        // Windows are stored only when the exact model that classified them is known.
+        const persistence: PersistenceContext | undefined = manifest ? {
           recordedAt: new Date(performance.timeOrigin + timestamp).toISOString(), location,
-          modelVersion: `${manifest.model_id}:${manifest.variant}:${manifest.sha256}`,
-        });
-        else inference.infer(buffer, windowIndex, timestamp, 5, 0.45);
+          modelVersion: formatModelVersion(manifest),
+        } : undefined;
+        inference.infer(buffer, windowIndex, timestamp, TOP_K, MIN_CANDIDATE_CONFIDENCE, persistence);
       },
       onWindowsDropped: (count) => { setDroppedWindows((total) => total + count); },
       onMelSpectrogramReady: (response) => {
@@ -79,11 +91,7 @@ export function useAudioCapture(): UseAudioCaptureReturn {
         if (typeof indexedDB !== 'undefined') {
           const settings = await getSettings();
           if (!isActive()) return;
-          if (settings.locationEnabled && 'geolocation' in navigator) {
-            locationWatch = navigator.geolocation.watchPosition((position) => {
-              location = approximateLocation(position.coords.latitude, position.coords.longitude);
-            }, () => { location = null; }, { enableHighAccuracy: false, maximumAge: 0 });
-          }
+          if (settings.locationEnabled) stopLocationWatch = watchApproximateLocation((cell) => { location = cell; });
         }
         await capture.start();
       } catch {
@@ -96,11 +104,13 @@ export function useAudioCapture(): UseAudioCaptureReturn {
       onInferenceResult: (candidates, _windowIndex, _timestamp, latencyMs, totalMs) => {
         if (!requestedRef.current || !mounted) return;
         try {
-          setDetections(applyDetectionPolicy(candidates));
+          const classified = applyDetectionPolicy(candidates);
+          setDetections(classified);
           setWindowCount((count) => count + 1);
+          onWindowAnalysedRef.current?.(classified, Date.now());
           setInferenceLatencyMs(latencyMs);
           setEndToEndLatencyMs(totalMs);
-          void scheduleSynchronization().catch(() => { window.dispatchEvent(new Event('birdnet-sync-error')); });
+          void scheduleSynchronization().catch(dispatchSyncError);
         } catch {
           failSession('inference');
         }

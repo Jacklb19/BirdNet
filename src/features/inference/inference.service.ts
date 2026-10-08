@@ -1,24 +1,27 @@
 /**
- * Servicio de inferencia que gestiona el ciclo de vida del Worker ONNX (RF-05).
- *
- * Responsabilidades:
- * - Instanciar y destruir el Web Worker de inferencia.
- * - Cargar el modelo desde las URL del manifiesto (ADR-05).
- * - Enviar ventanas de audio y recibir detecciones.
- * - Exponer callbacks para que la UI o el servicio de captura reaccionen.
+ * Owns the lifecycle of the ONNX inference worker (RF-05): loads the model described by the manifest
+ * (ADR-05), sends audio windows with back-pressure and reports detections through callbacks.
  */
 
-import type {
-  ModelManifest,
-  ModelStatus,
-  InferenceWorkerOutbound,
-  Detection,
-  InferRequest,
+import { config } from '../../config/env';
+import {
+  INFERENCE_ERROR_REASONS,
+  INFERENCE_WORKER_MESSAGES,
+  type ModelManifest,
+  type ModelStatus,
+  type InferenceWorkerOutbound,
+  type Detection,
+  type DisposeRequest,
+  type InferRequest,
+  type LoadModelRequest,
+  type InferenceWorkerMessage,
 } from './inference.types';
+import { MIN_CANDIDATE_CONFIDENCE, TOP_K } from './inference.constants';
+import { STATIC_MANIFEST_URL, resolveManifestResource, validateManifest } from './modelManifest';
 import { LatestWindowQueue } from '../audio/services/latestWindowQueue';
 import { offlineOperation } from '../offline/offlineClient';
+import { OFFLINE_OPERATIONS } from '../offline/offline.constants';
 import type { PersistenceContext } from '../offline/types';
-import type { InferenceWorkerMessage } from './inference.types';
 
 export interface InferenceCallbacks {
   onStatusChange?: (status: ModelStatus) => void;
@@ -28,6 +31,9 @@ export interface InferenceCallbacks {
   onError?: (error: string) => void;
   onStorageError?: () => void;
 }
+
+/** Asks the worker to release its session; it acknowledges with DISPOSED, and only then is it terminated. */
+const DISPOSE_REQUEST: DisposeRequest = Object.freeze({ type: INFERENCE_WORKER_MESSAGES.dispose });
 
 export class InferenceService {
   private worker: Worker | null = null;
@@ -66,49 +72,52 @@ export class InferenceService {
   }
 
   /**
-   * Carga el manifiesto del modelo y lanza el Worker de inferencia.
-   * El modelo se descarga asíncronamente en el Worker.
+   * Reads and validates the model manifest, then starts the worker, which downloads the model itself.
+   * Once a service worker controls the page, the verified cached model is used instead of the network.
    *
-   * @param manifestUrl URL del manifest.json (por defecto /models/manifest.json)
+   * @param manifestUrl Manifest location; model and label paths of a downloaded manifest resolve against it.
    */
-  public async loadModel(manifestUrl: string = '/models/manifest.json'): Promise<void> {
+  public async loadModel(manifestUrl: string = STATIC_MANIFEST_URL): Promise<void> {
     if (this.status === 'loading' || this.status === 'ready') {
       return;
     }
 
     this.setStatus('loading');
     const generation = ++this.generation;
-    this.worker?.postMessage({ type: 'DISPOSE' });
+    this.worker?.postMessage(DISPOSE_REQUEST);
     this.worker = null;
     this.activeWindowIndex = null;
     this.queue.clear();
 
     try {
-      // Descargar manifiesto
-      let manifest: ModelManifest;
-      if (import.meta.env.PROD && 'serviceWorker' in navigator || 'serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        const cached = await offlineOperation<ModelManifest | null>('MODEL_STATUS');
+      const origin = globalThis.location.origin;
+      let candidate: unknown;
+      // Base that the manifest's resource paths resolve against.
+      let resourceBase = manifestUrl;
+      const serviceWorkerSupported = 'serviceWorker' in navigator;
+      if ((config.offlineEnabled && serviceWorkerSupported) || (serviceWorkerSupported && navigator.serviceWorker.controller)) {
+        const cached = await offlineOperation(OFFLINE_OPERATIONS.modelStatus);
         if (!cached) throw new Error('Download and verify the model before listening.');
-        manifest = cached;
+        candidate = cached;
+        // The service worker serves the verified copy under same-origin paths, wherever the manifest lives.
+        resourceBase = origin;
       } else {
         const response = await fetch(manifestUrl);
         if (!response.ok) throw new Error(`Error downloading manifest: ${String(response.status)}`);
-        manifest = await response.json() as ModelManifest;
+        candidate = await response.json();
       }
       if (generation !== this.generation) return;
+      const manifest = validateManifest(candidate);
       this.manifest = manifest;
-      if (this.manifest.sample_rate !== 48000 || this.manifest.window_samples !== 144000 ||
-          this.manifest.num_classes <= 0 || typeof this.manifest.model_file !== 'string' ||
-          typeof this.manifest.labels_file !== 'string') {
-        throw new Error('Incompatible model manifest.');
-      }
 
-      // Construir URLs absolutas para el modelo y labels
-      const baseUrl = manifestUrl.substring(0, manifestUrl.lastIndexOf('/') + 1);
-      const modelUrl = /^(https?:\/\/|\/)/.test(this.manifest.model_file) ? this.manifest.model_file : baseUrl + this.manifest.model_file;
-      const labelsUrl = /^(https?:\/\/|\/)/.test(this.manifest.labels_file) ? this.manifest.labels_file : baseUrl + this.manifest.labels_file;
+      const loadRequest: LoadModelRequest = {
+        type: INFERENCE_WORKER_MESSAGES.loadModel,
+        modelUrl: resolveManifestResource(manifest.model_file, resourceBase, origin),
+        labelsUrl: resolveManifestResource(manifest.labels_file, resourceBase, origin),
+        windowSamples: manifest.window_samples,
+        modelSizeBytes: manifest.size_bytes,
+      };
 
-      // Instanciar Worker
       this.worker = new Worker(
         new URL('./inference.worker.ts', import.meta.url),
         { type: 'module' },
@@ -116,7 +125,7 @@ export class InferenceService {
 
       const currentWorker = this.worker;
       this.worker.onmessage = (event: MessageEvent<InferenceWorkerMessage>) => {
-        if (event.data.type === 'DISPOSED') { currentWorker.terminate(); return; }
+        if (event.data.type === INFERENCE_WORKER_MESSAGES.disposed) { currentWorker.terminate(); return; }
         if (generation !== this.generation) return;
         this.handleWorkerMessage(event.data);
       };
@@ -125,15 +134,10 @@ export class InferenceService {
         if (generation !== this.generation) return;
         this.queue.clear();
         this.setStatus('error');
-        this.callbacks.onError?.(`Error en Worker de inferencia: ${event.message}`);
+        this.callbacks.onError?.(`Inference worker failed: ${event.message}`);
       };
 
-      // Enviar orden de carga al Worker
-      this.worker.postMessage({
-        type: 'LOAD_MODEL',
-        modelUrl,
-        labelsUrl,
-      });
+      this.worker.postMessage(loadRequest);
     } catch (err) {
       if (generation !== this.generation) return;
       const message = err instanceof Error ? err.message : String(err);
@@ -143,15 +147,17 @@ export class InferenceService {
   }
 
   /**
-   * Envía una ventana de audio al Worker para inferencia.
-   * Transfiere el buffer para evitar copia de memoria.
+   * Sends one audio window to the worker, transferring its buffer instead of copying it. While a window
+   * is being classified only the latest pending one is kept (back-pressure).
+   *
+   * @param persistence When given, the classified window is stored before its result is reported.
    */
   public infer(
     audioBuffer: Float32Array,
     windowIndex: number,
     timestamp: number,
-    topK: number = 5,
-    minConfidence: number = 0.1,
+    topK: number = TOP_K,
+    minConfidence: number = MIN_CANDIDATE_CONFIDENCE,
     persistence?: PersistenceContext,
   ): void {
     if (!this.worker || this.status !== 'ready') {
@@ -163,7 +169,7 @@ export class InferenceService {
       return;
     }
     this.queue.enqueue({
-        type: 'INFER',
+        type: INFERENCE_WORKER_MESSAGES.infer,
         audioBuffer,
         windowIndex,
         timestamp,
@@ -173,15 +179,13 @@ export class InferenceService {
     });
   }
 
-  /**
-   * Libera el Worker y la sesión ONNX.
-   */
+  /** Releases the worker and its ONNX session. */
   public dispose(): void {
     this.generation++;
     this.queue.clear();
     this.activeWindowIndex = null;
     if (this.worker) {
-      this.worker.postMessage({ type: 'DISPOSE' });
+      this.worker.postMessage(DISPOSE_REQUEST);
       // The worker acknowledges disposal after its active persistence transaction completes.
       this.worker = null;
     }
@@ -191,7 +195,7 @@ export class InferenceService {
 
   private handleWorkerMessage(msg: InferenceWorkerOutbound): void {
     switch (msg.type) {
-      case 'MODEL_LOADED':
+      case INFERENCE_WORKER_MESSAGES.modelLoaded:
         if (msg.numClasses !== this.manifest?.num_classes) {
           this.setStatus('error');
           this.callbacks.onError?.('Model label count does not match the manifest.');
@@ -200,12 +204,12 @@ export class InferenceService {
         this.setStatus('ready');
         this.callbacks.onModelLoaded?.(msg.numClasses);
         break;
-      case 'MODEL_ERROR':
+      case INFERENCE_WORKER_MESSAGES.modelError:
         this.queue.clear();
         this.setStatus('error');
         this.callbacks.onError?.(msg.error);
         break;
-      case 'INFERENCE_RESULT':
+      case INFERENCE_WORKER_MESSAGES.inferenceResult:
         if (msg.windowIndex !== this.activeWindowIndex) return;
         this.callbacks.onInferenceResult?.(
           msg.detections,
@@ -217,9 +221,9 @@ export class InferenceService {
         this.activeWindowIndex = null;
         this.queue.complete();
         break;
-      case 'INFERENCE_ERROR':
+      case INFERENCE_WORKER_MESSAGES.inferenceError:
         if (msg.windowIndex !== this.activeWindowIndex) return;
-        if (msg.reason === 'storage' && this.callbacks.onStorageError) {
+        if (msg.reason === INFERENCE_ERROR_REASONS.storage && this.callbacks.onStorageError) {
           this.queue.clear();
           this.activeWindowIndex = null;
           this.callbacks.onStorageError();
