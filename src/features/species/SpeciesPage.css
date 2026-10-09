@@ -1,0 +1,120 @@
+.bn-species-page__back {
+  display: inline-flex;
+  min-height: var(--touch-min);
+  align-items: center;
+  gap: var(--space-1);
+  justify-self: start;
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.bn-species-page__source {
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-species-page__columns {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.bn-species-page__card {
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-raised);
+}
+
+.bn-species-page__title {
+  color: var(--color-text-secondary);
+}
+
+.bn-species-page__summary {
+  font-size: var(--text-title-s);
+  line-height: var(--leading-title);
+}
+
+.bn-species-page__muted {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-species-page__muted a {
+  color: var(--color-brand);
+  font-weight: var(--font-weight-semibold);
+}
+
+.bn-species-page__when .bn-chorus {
+  justify-self: center;
+}
+
+.bn-species-page__sites,
+.bn-species-page__recent {
+  display: grid;
+}
+
+.bn-species-page__site,
+.bn-species-page__record {
+  display: grid;
+  min-height: var(--touch-min);
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: var(--border-width) solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.bn-species-page__site {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.bn-species-page__record {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.bn-species-page__record .bn-species-page__muted {
+  grid-column: 1;
+}
+
+.bn-species-page__status {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  font-size: var(--text-small);
+  font-weight: var(--font-weight-semibold);
+}
+
+.bn-species-page__status--confirmed { color: var(--color-status-confirmed); }
+.bn-species-page__status--provisional { color: var(--color-status-provisional); }
+.bn-species-page__status--verified { color: var(--color-status-verified); }
+.bn-species-page__status--corrected { color: var(--color-status-corrected); }
+
+.bn-species-page__site-name,
+.bn-species-page__record-time {
+  font-weight: var(--font-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+@media (hover: hover) {
+  a.bn-species-page__site:hover,
+  a.bn-species-page__record:hover {
+    background: var(--color-bg-sunken);
+  }
+}
+
+.bn-species-page__caveat {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+@media (min-width: 64rem) {
+  .bn-species-page__columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

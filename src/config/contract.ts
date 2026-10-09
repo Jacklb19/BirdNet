@@ -12,7 +12,7 @@ export const LOCATION_GRID_DECIMALS = 3;
 /** Approximate size of the resulting cell (10^-3 degrees of latitude ≈ 111 m), as explained to people. */
 export const APPROX_CELL_METERS = 100;
 
-export const FIELD_LIMITS = Object.freeze({ speciesName: 200, modelVersion: 200, siteName: 80 });
+export const FIELD_LIMITS = Object.freeze({ speciesName: 200, modelVersion: 200, siteName: 80, alias: 40 });
 
 /** Maximum detections per synchronization request. */
 export const SYNC_BATCH_SIZE = 50;
@@ -22,6 +22,14 @@ export const AUDIO_UPLOAD_MIME_TYPE = 'audio/wav';
 /** Storage object key the API issues for a detection's audio fragment. */
 export function audioObjectPath(userId: string, detectionId: string): string {
   return `${userId}/${detectionId}.wav`;
+}
+
+/** Profile photo: a square WebP the client resizes before upload, kept under the API's size limit. */
+export const AVATAR_UPLOAD = Object.freeze({ mimeType: 'image/webp', sidePx: 256, quality: 0.85, maxBytes: 200_000 });
+
+/** Storage object key the API accepts for the caller's profile photo. */
+export function avatarObjectPath(userId: string): string {
+  return `${userId}/avatar.webp`;
 }
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

@@ -143,7 +143,7 @@ export const MODEL_CACHE_PATH_PREFIX = '/__birdnet_models/';
 export const ACTIVE_MODEL_URL = `${MODEL_CACHE_PATH_PREFIX}active.json`;
 
 /** File extension of each verified resource cached under `MODEL_CACHE_PATH_PREFIX`, named by its content hash. */
-export const MODEL_RESOURCE_EXTENSIONS = Object.freeze({ model: 'onnx', labels: 'txt' } as const);
+export const MODEL_RESOURCE_EXTENSIONS = Object.freeze({ model: 'onnx', labels: 'txt', geo: 'geo.onnx' } as const);
 
 export type ModelResourceKind = keyof typeof MODEL_RESOURCE_EXTENSIONS;
 
@@ -151,10 +151,16 @@ export type ModelResourceKind = keyof typeof MODEL_RESOURCE_EXTENSIONS;
 export const PHOTO_CACHE_NAME = 'birdnet-photos-v1';
 
 /**
- * Oldest photos are evicted beyond this count; at `THUMBNAIL_WIDTH_PX` (species/speciesPhotos.ts) the cache stays
- * around a dozen MB.
+ * Oldest photos are evicted beyond this count. It leaves room for the optional regional guide (`GUIDE_MAX_SPECIES`)
+ * plus the birds seen elsewhere; at `THUMBNAIL_WIDTH_PX` (species/speciesPhotos.ts) that is a few tens of MB at most.
  */
-export const PHOTO_CACHE_MAX_ENTRIES = 200;
+export const PHOTO_CACHE_MAX_ENTRIES = 400;
+
+/** Species summaries (Wikipedia) kept for offline reading of the cards. */
+export const SUMMARY_CACHE_NAME = 'birdnet-summaries-v1';
+
+/** A summary is a few kB, so the cache can hold the regional guide in both languages and every bird seen. */
+export const SUMMARY_CACHE_MAX_ENTRIES = 800;
 
 // ─── Page ↔ service worker protocol ──────────────────────────────────────
 

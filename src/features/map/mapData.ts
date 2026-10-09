@@ -9,6 +9,9 @@ export interface MapDetection {
   recorded_at: string;
   latitude: number;
   longitude: number;
+  /** The viewer's own detection; only then is its site named (the shared map never reveals other people's sites). */
+  own: boolean;
+  site_name: string | null;
 }
 export interface MapResult { detections: MapDetection[]; truncated: boolean }
 export interface MapBounds { west: number; south: number; east: number; north: number }
@@ -42,13 +45,20 @@ const inRange = (value: unknown, minimum: number, maximum: number): boolean =>
   typeof value === 'number' && Number.isFinite(value) && value >= minimum && value <= maximum;
 
 /** Rows the interface could not show truthfully (no date to order by, a score outside 0-1, no place) are dropped. */
-function isDetection(value: unknown): value is MapDetection {
+function isDetection(value: unknown): boolean {
   if (!value || typeof value !== 'object') return false;
   const row = value as Record<string, unknown>;
   return typeof row.id === 'string' && typeof row.species === 'string' && inRange(row.confidence, 0, 1) &&
     typeof row.recorded_at === 'string' && Number.isFinite(Date.parse(row.recorded_at)) &&
     inRange(row.latitude, -MAX_LATITUDE, MAX_LATITUDE) && inRange(row.longitude, -MAX_LONGITUDE, MAX_LONGITUDE) &&
     isDetectionStatus(row.status);
+}
+
+/** An API from before S7 sends neither field: such rows are read as someone else's, which reveals nothing. */
+function toDetection(value: unknown): MapDetection {
+  const row = value as Omit<MapDetection, 'own' | 'site_name'> & { own?: unknown; site_name?: unknown };
+  const own = row.own === true;
+  return { ...row, own, site_name: own && typeof row.site_name === 'string' ? row.site_name : null };
 }
 
 /** The server answered with a body that does not follow the map contract. */
@@ -70,7 +80,7 @@ export async function fetchMapDetections(bounds: MapBounds, filters: { species: 
   // A null or scalar body is a broken contract too, not a crash while reading its fields.
   const { detections: rows, truncated } = (typeof body === 'object' && body !== null ? body : {}) as { detections?: unknown; truncated?: unknown };
   if (!Array.isArray(rows) || typeof truncated !== 'boolean') throw new MapResponseError();
-  return { detections: rows.filter(isDetection), truncated };
+  return { detections: rows.filter(isDetection).map(toDetection), truncated };
 }
 
 /** Why a request failed: no answer at all (connection, timeout) or an answer that cannot be used. */

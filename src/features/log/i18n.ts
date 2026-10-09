@@ -45,6 +45,31 @@ export const logMessages = defineMessages({
     },
     days: { today: 'Hoy', yesterday: 'Ayer' },
     showMore: 'Mostrar más',
+    search: {
+      label: 'Buscar en la bitácora',
+      placeholder: 'Buscar especie',
+      site: 'Sitio',
+      allSites: 'Todos los sitios',
+      noSite: 'Sin sitio',
+      empty: 'Ningún registro coincide con la búsqueda.',
+    },
+    assign: {
+      label: 'Cantos sin ubicación',
+      title: {
+        one: (count: string) => `${count} canto sin ubicación`,
+        other: (count: string) => `${count} cantos sin ubicación`,
+      },
+      text: 'Se guardaron sin sitio ni GPS, así que no pueden subirse al mapa. Asígnalos al sitio donde los grabaste: tomarán su zona de ~100 m y se subirán solos.',
+      select: 'Sitio al que asignarlos',
+      action: 'Asignar y subir',
+      createSite: 'Crear un sitio',
+      done: {
+        one: (count: string) => `Listo: ${count} canto asignado. Se subirá con la próxima sincronización.`,
+        other: (count: string) => `Listo: ${count} cantos asignados. Se subirán con la próxima sincronización.`,
+      },
+      failed: 'No se pudieron asignar. Inténtalo de nuevo.',
+    },
+    openSpecies: 'Ver la ficha de la especie',
     empty: {
       title: 'Aún no hay registros',
       text: 'Lo que el teléfono identifique mientras escuchas aparecerá aquí, agrupado por día.',
@@ -142,6 +167,31 @@ export const logMessages = defineMessages({
     },
     days: { today: 'Today', yesterday: 'Yesterday' },
     showMore: 'Show more',
+    search: {
+      label: 'Search the log',
+      placeholder: 'Search species',
+      site: 'Site',
+      allSites: 'All sites',
+      noSite: 'No site',
+      empty: 'No record matches the search.',
+    },
+    assign: {
+      label: 'Songs without a location',
+      title: {
+        one: (count: string) => `${count} song without a location`,
+        other: (count: string) => `${count} songs without a location`,
+      },
+      text: 'They were saved without a site or GPS, so they cannot go to the map. Assign them to the site where you recorded them: they take its ~100 m area and upload on their own.',
+      select: 'Site to assign them to',
+      action: 'Assign and upload',
+      createSite: 'Create a site',
+      done: {
+        one: (count: string) => `Done: ${count} song assigned. It uploads with the next synchronization.`,
+        other: (count: string) => `Done: ${count} songs assigned. They upload with the next synchronization.`,
+      },
+      failed: 'They could not be assigned. Try again.',
+    },
+    openSpecies: 'See the species card',
     empty: {
       title: 'No records yet',
       text: 'What the phone identifies while you listen will appear here, grouped by day.',

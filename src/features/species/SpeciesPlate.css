@@ -1,0 +1,133 @@
+.bn-species-plate {
+  position: relative;
+  display: grid;
+  overflow: hidden;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-5);
+  border-radius: var(--radius-plate);
+  isolation: isolate;
+}
+
+/* A paler disc behind the sticker, like the sun on the plate of the mockup; built from the plate's own text color. */
+.bn-species-plate::after {
+  position: absolute;
+  top: 50%;
+  right: calc(var(--sticker-l) * -0.35);
+  z-index: -1;
+  width: calc(var(--sticker-l) * 1.6);
+  height: calc(var(--sticker-l) * 1.6);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--on-plate) 12%, transparent);
+  content: '';
+  transform: translateY(-50%);
+}
+
+.bn-species-plate__text {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-2);
+}
+
+.bn-species-plate__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.bn-species-plate__name {
+  font-size: var(--text-xl);
+  line-height: var(--leading-xl);
+  overflow-wrap: anywhere;
+}
+
+.bn-species-plate__scientific {
+  font-size: var(--text-title-s);
+  line-height: var(--leading-title-s);
+}
+
+.bn-species-plate__notes {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+}
+
+/* Each note ends in a hairline that points at the sticker and draws itself in. */
+.bn-species-plate__note {
+  position: relative;
+  display: grid;
+  justify-items: start;
+}
+
+.bn-species-plate__note dd {
+  margin: 0;
+  font-weight: var(--font-weight-semibold);
+}
+
+.bn-species-plate__note::after {
+  position: absolute;
+  top: 50%;
+  right: calc(var(--space-4) * -1);
+  width: var(--space-7);
+  height: var(--annotation-width);
+  background: currentcolor;
+  content: '';
+  opacity: 0.7;
+  transform-origin: left;
+  animation: bn-annotation-draw var(--duration-slow) var(--ease-standard) both;
+  animation-delay: calc(var(--duration-medium) + var(--stagger));
+}
+
+.bn-species-plate__figure {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+}
+
+.bn-species-plate__credit {
+  max-width: var(--sticker-l);
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+/* Phones: the sticker sits above the text, centered, so long names keep the full width. */
+@media (max-width: 39.99rem) {
+  .bn-species-plate {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bn-species-plate__figure {
+    order: -1;
+  }
+
+  .bn-species-plate .bn-sticker {
+    --size: var(--sticker-m);
+  }
+
+  .bn-species-plate__note::after {
+    display: none;
+  }
+}
+
+@media (min-width: 64rem) {
+  .bn-species-plate {
+    padding: var(--space-8);
+  }
+
+  .bn-species-plate__name {
+    font-size: var(--text-display);
+    line-height: var(--leading-display);
+  }
+
+  .bn-species-plate .bn-sticker {
+    --size: var(--sticker-xl);
+  }
+}
+
+@keyframes bn-annotation-draw {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}

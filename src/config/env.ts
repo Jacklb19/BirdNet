@@ -96,6 +96,11 @@ export interface AppConfig {
     readonly allowedImageHosts: readonly string[];
     readonly requestTimeoutMs: number;
   };
+  /** Wikipedia page summaries (REST API) for species cards, per interface language; English is the fallback. */
+  readonly summaries: {
+    readonly es: string;
+    readonly en: string;
+  };
 }
 
 /** Pure so it can be tested with any environment; throws with the variable name on invalid input. */
@@ -122,6 +127,10 @@ export function readConfig(env: RawEnv): AppConfig {
       // Commons serves thumbnails from thumb.wikimedia.org and originals from upload.wikimedia.org.
       allowedImageHosts: hostList(env, 'VITE_PHOTO_IMAGE_HOSTS', ['thumb.wikimedia.org', 'upload.wikimedia.org']),
       requestTimeoutMs: positiveInteger(env, 'VITE_PHOTO_TIMEOUT_MS', 10_000),
+    },
+    summaries: {
+      es: url(env, 'VITE_SUMMARY_API_URL_ES', 'https://es.wikipedia.org/api/rest_v1/page/summary'),
+      en: url(env, 'VITE_SUMMARY_API_URL_EN', 'https://en.wikipedia.org/api/rest_v1/page/summary'),
     },
   });
 }

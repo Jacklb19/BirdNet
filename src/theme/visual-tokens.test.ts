@@ -16,11 +16,21 @@ const ROW_BACKGROUNDS = [...PAGE_BACKGROUNDS, 'color-bg-sunken', 'color-highligh
 
 const STATUS_COLORS = ['color-status-confirmed', 'color-status-provisional', 'color-status-verified', 'color-status-corrected'];
 
+/** Page titles and the context row sit on the sky of the hour (ADR-20). */
+const SKY_PAIRS: readonly (readonly [string, string])[] = ['sky-dawn', 'sky-day', 'sky-dusk', 'sky-night']
+  .map((sky) => ['color-text-primary', sky] as const);
+
+/** Every plate is read in its own text color; its button inverts the pair, so one check covers both. */
+const PLUMAGE_PAIRS: readonly (readonly [string, string])[] = [
+  'mirla', 'colibri', 'esmeralda', 'escarlata', 'azulejo', 'canario', 'copeton', 'tangara', 'pizarra', 'rosado',
+].map((name) => [`plumage-${name}-on`, `plumage-${name}`] as const);
+
 const TEXT_PAIRS: readonly (readonly [string, string])[] = [
   ...['color-text-primary', 'color-text-secondary', ...STATUS_COLORS].flatMap((foreground) =>
     ROW_BACKGROUNDS.map((background) => [foreground, background] as const)),
   ...['color-brand', 'color-error'].flatMap((foreground) => PAGE_BACKGROUNDS.map((background) => [foreground, background] as const)),
-  ['color-on-brand', 'color-brand'], ['color-text-inverse', 'color-bg-inverse'],
+  ['color-on-brand', 'color-brand'], ['color-text-inverse', 'color-bg-inverse'], ['color-on-accent', 'color-accent'],
+  ...SKY_PAIRS, ...PLUMAGE_PAIRS,
   // Caution notices: the state color and the secondary body text on the soft fill.
   ['color-status-provisional', 'color-status-provisional-soft'], ['color-text-secondary', 'color-status-provisional-soft'],
 ];
@@ -28,7 +38,10 @@ const TEXT_PAIRS: readonly (readonly [string, string])[] = [
 const GRAPHIC_PAIRS: readonly (readonly [string, string])[] = [
   'color-brand', 'color-record', 'color-border-strong',
   'color-status-confirmed', 'color-status-provisional', 'color-status-verified', 'color-status-corrected',
-].flatMap((foreground) => [...PAGE_BACKGROUNDS, 'color-bg-sunken'].map((background) => [foreground, background] as const));
+].flatMap((foreground) => [...PAGE_BACKGROUNDS, 'color-bg-sunken'].map((background) => [foreground, background] as const)).concat([
+  // Icons of the home page's privacy block, drawn in the sun yellow on the green plate.
+  ['color-accent', 'plumage-esmeralda'],
+]);
 
 function tokens(selector: string): Record<string, string> {
   const start = css.indexOf(selector);
@@ -55,7 +68,8 @@ function contrast(foreground: string, background: string): number {
 
 describe('design token contrast (src/styles/tokens.css)', () => {
   for (const [name, selector] of THEMES) {
-    const theme = tokens(selector);
+    // The dark block overrides the light one; tokens it does not redefine (plumage plates) are inherited.
+    const theme = { ...tokens(THEMES[0][1]), ...tokens(selector) };
     const check = (pairs: readonly (readonly [string, string])[], minimum: number): void => {
       for (const [foreground, background] of pairs) {
         expect(theme[foreground], foreground).toBeDefined();

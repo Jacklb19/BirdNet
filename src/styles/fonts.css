@@ -1,0 +1,20 @@
+/*
+ * Display face, self-hosted so names and titles keep their shape offline. Only the Latin subset of the "soft" build
+ * (weight and SOFT axes) is declared: the packaged stylesheet also lists Vietnamese and Latin Extended files, which the
+ * service worker would precache for nothing. Families are named here; tokens.css refers to them by these names.
+ */
+@font-face {
+  font-family: 'Fraunces Soft';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('@fontsource-variable/fraunces/files/fraunces-latin-soft-normal.woff2') format('woff2-variations');
+}
+
+@font-face {
+  font-family: 'Fraunces Soft';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('@fontsource-variable/fraunces/files/fraunces-latin-soft-italic.woff2') format('woff2-variations');
+}

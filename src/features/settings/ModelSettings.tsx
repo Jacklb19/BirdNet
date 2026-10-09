@@ -7,6 +7,7 @@ import { useOnline } from '../offline/useQueueStatus';
 import { useModel } from '../offline/useModel';
 import { ProgressBar } from './ProgressBar';
 import { DOWNLOAD_PERCENT_DIGITS } from './settings.config';
+import { downloadBytes } from '../inference/modelManifest';
 import './ModelSettings.css';
 
 interface ModelAction {
@@ -36,7 +37,7 @@ export function ModelSettings(): React.JSX.Element {
   const { installed, available, progress, updateCheck } = model;
   const checking = updateCheck === 'checking';
 
-  const size = (manifest: ModelManifest): string => formatBytes(manifest.size_bytes, locale);
+  const size = (manifest: ModelManifest): string => formatBytes(downloadBytes(manifest), locale);
   const download = (): void => { void model.download(); };
   const runCheck = (): void => { void model.checkForUpdate(); };
   // A different content hash is a different model, whatever its name says.

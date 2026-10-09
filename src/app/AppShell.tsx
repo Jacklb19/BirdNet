@@ -2,6 +2,7 @@ import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import { readPreferences, writePreference } from '../config/storage';
 import { useI18n } from '../i18n';
 import { useListening } from '../features/listen/listeningContext';
+import { enableAutomaticModel } from '../features/offline/modelStore';
 import { LivePlayer } from './LivePlayer';
 import { PageErrorBoundary } from './PageErrorBoundary';
 import { RoutePage } from './pages';
@@ -10,7 +11,7 @@ import { TabBar } from './TabBar';
 import { TopBar } from './TopBar';
 import './AppShell.css';
 
-const WelcomePage = lazy(() => import('../features/welcome/WelcomePage'));
+const HomePage = lazy(() => import('../features/home/HomePage'));
 
 function useDocumentMetadata(title: string, description: string): void {
   useEffect(() => {
@@ -28,17 +29,20 @@ export function AppShell(): React.JSX.Element {
   const [welcomed, setWelcomed] = useState(() => readPreferences().welcomed === true);
   useDocumentMetadata(dict.app.documentTitle, dict.app.description);
 
-  const finishWelcome = useCallback((): void => {
+  // Once the person has entered the app, the model keeps itself installed and up to date without asking (ADR-19).
+  useEffect(() => { if (welcomed) enableAutomaticModel(); }, [welcomed]);
+
+  const enter = useCallback((destination: 'listen' | 'account'): void => {
     writePreference('welcomed', true);
     setWelcomed(true);
-    navigateTo({ name: 'listen' });
+    navigateTo({ name: destination });
   }, []);
 
   const loading = <p className="bn-shell__loading" role="status">{dict.common.loading}</p>;
-  if (!welcomed || route.name === 'welcome') {
+  if (!welcomed || route.name === 'home') {
     return (
-      <main id="main" className="bn-shell__welcome">
-        <Suspense fallback={loading}><WelcomePage onFinish={finishWelcome} /></Suspense>
+      <main id="main" className="bn-shell__home">
+        <Suspense fallback={loading}><HomePage onEnter={enter} /></Suspense>
       </main>
     );
   }

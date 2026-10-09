@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { AUDIO_CONSTANTS } from '../audio/dsp/audio.constants';
 import { AUDIO_UPLOAD_MIME_TYPE } from '../../config/contract';
 import { MIN_QUEUE_BYTES } from './offline.constants';
-import { acknowledgedIds, approximateLocation, assertQueueCapacity, encodeAudio } from './queuePolicy';
+import { acknowledgedIds, approximateLocation, assertQueueCapacity, encodeAudio, recordingLocation, unlocatedAssignment } from './queuePolicy';
+import type { CachedSite, StoredDetection } from './types';
 
 /** Canonical PCM WAV header size and field offsets, from the RIFF/WAVE format specification. */
 const WAV_HEADER_BYTES = 44;
@@ -39,5 +40,30 @@ describe('persistent queue policy', () => {
     expect(header.getUint32(BYTE_RATE_OFFSET, true)).toBe(AUDIO_CONSTANTS.TARGET_SAMPLE_RATE * PCM16_BYTES);
     expect(() => encodeAudio(new Float32Array(2))).toThrow();
     expect(() => encodeAudio(new Float32Array(AUDIO_CONSTANTS.WINDOW_SAMPLES).fill(Infinity))).toThrow();
+  });
+});
+
+// Regression (S6 field test): records stayed "without location" while a site was active and never synchronized.
+describe('location of a recording (ADR-16)', () => {
+  const site: CachedSite = { id: '00000000-0000-4000-8000-0000000000aa', name: 'Humedal', latitude: 4.735, longitude: -74.101 };
+  const device = { latitude: 4.6123, longitude: -74.0711 };
+  const account = '00000000-0000-4000-8000-000000000001';
+
+  it('files records under the active site before the device position', () => {
+    expect(recordingLocation({ activeSiteId: site.id, sites: [site] }, device)).toEqual({ latitude: 4.735, longitude: -74.101 });
+    expect(recordingLocation({ activeSiteId: null, sites: [site] }, device)).toEqual({ latitude: 4.612, longitude: -74.071 });
+    // A site that is no longer cached cannot give a location; the device still can.
+    expect(recordingLocation({ activeSiteId: site.id, sites: [] }, device)).toEqual({ latitude: 4.612, longitude: -74.071 });
+    expect(recordingLocation({ activeSiteId: null }, null)).toBeNull();
+  });
+  it('assigns a site only to unlocated records of the account or of nobody', () => {
+    type Row = Pick<StoredDetection, 'location' | 'owner' | 'siteId'> & { readonly id: string };
+    const located: Row = { id: 'gps', location: { latitude: 1, longitude: 2 }, owner: account, siteId: null };
+    const mine: Row = { id: 'mine', location: null, owner: account, siteId: null };
+    const unclaimed: Row = { id: 'unclaimed', location: null, owner: null, siteId: null };
+    const foreign: Row = { id: 'foreign', location: null, owner: '00000000-0000-4000-8000-000000000009', siteId: null };
+    const assigned = unlocatedAssignment([located, mine, unclaimed, foreign], site, account);
+    expect(assigned.map((record) => record.id)).toEqual(['mine', 'unclaimed']);
+    expect(assigned.every((record) => record.siteId === site.id && record.location.latitude === site.latitude)).toBe(true);
   });
 });

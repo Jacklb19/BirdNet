@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Política de privacidad — BirdNet Local</title>
+  <meta name="description" content="Qué datos guarda BirdNet Local, dónde y para qué." />
+  <!--
+    Static page so it can be read without JavaScript and linked from Google's consent screen (ADR-21).
+    Colors mirror the light tokens of src/styles/tokens.css (paper, ink, secondary text, brand).
+  -->
+  <style>
+    :root { color-scheme: light; }
+    body { margin: 0; background: #EDF1EE; color: #16362F; font: 1rem/1.6 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+    main { max-width: 42rem; margin: 0 auto; padding: 2.5rem 1rem 4rem; }
+    h1 { font-family: Georgia, 'Times New Roman', serif; font-size: 2rem; line-height: 1.15; margin: 0 0 0.5rem; }
+    h2 { font-size: 1.15rem; margin: 2rem 0 0.5rem; }
+    p, li { color: #2C4A43; }
+    .updated { color: #4C625C; font-size: 0.875rem; }
+    a { color: #0B6E4E; font-weight: 600; }
+    section[lang='en'] { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid #D3DCD6; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Política de privacidad</h1>
+    <p class="updated">BirdNet Local · actualizada el 8 de octubre de 2026</p>
+    <p>BirdNet Local es un proyecto académico de la asignatura Programación Orientada a la Web. Identifica aves por su canto con el modelo BirdNET, en el propio teléfono.</p>
+
+    <h2>Audio</h2>
+    <p>El micrófono se analiza en el teléfono y el audio se descarta tras el análisis. Solo se guarda, en el propio teléfono, el fragmento de 3 segundos de las detecciones dudosas, y nunca sale de él sin tu autorización explícita en Ajustes.</p>
+
+    <h2>Ubicación</h2>
+    <p>Cada canto se guarda con una zona aproximada de unos 100 m (la del sitio que elegiste o la del GPS, redondeada en el teléfono antes de guardarla). Nunca se guarda ni se envía tu posición exacta.</p>
+
+    <h2>Cuenta</h2>
+    <p>La cuenta es opcional. Si la creas (con correo y contraseña o con Google), guardamos tu correo, el nombre para mostrar y la foto de perfil que elijas, y los cantos que subas: especie, confianza, momento, zona aproximada y sitio. Con Google solo recibimos tu nombre, tu correo y tu foto pública, para identificarte.</p>
+    <p>En el mapa compartido otras personas ven los cantos sin tu nombre, tu correo ni el nombre de tus sitios.</p>
+
+    <h2>Dónde se guardan</h2>
+    <p>En tu teléfono (almacenamiento del navegador) y, si tienes cuenta, en Supabase (base de datos y archivos) con acceso protegido por usuario. La aplicación se sirve desde Vercel.</p>
+
+    <h2>Terceros</h2>
+    <p>Las fotos y descripciones de las aves se cargan de Wikimedia Commons y Wikipedia, y el mapa de OpenFreeMap; esas peticiones no incluyen tus datos.</p>
+
+    <h2>Tus derechos</h2>
+    <p>Puedes cerrar sesión y borrar los datos del navegador en cualquier momento. Para eliminar tu cuenta y tus cantos de la nube, escribe al responsable del proyecto desde el correo de la cuenta.</p>
+
+    <p><a href="/">Volver a BirdNet Local</a></p>
+
+    <section lang="en">
+      <h2>Privacy policy (English summary)</h2>
+      <p>BirdNet Local is an academic project. Audio is analysed on your phone and never leaves it without your explicit consent; only an approximate ~100 m area is stored, never your exact position. The account is optional: with it we keep your email, display name, profile photo and the songs you upload. With Google we only receive your name, email and public photo. Other people see shared songs without your name, email or site names. Data lives on your device and, with an account, in Supabase; the app is served by Vercel. Bird photos and texts come from Wikimedia and Wikipedia, the map from OpenFreeMap. Contact the project owner from your account email to delete your cloud data.</p>
+    </section>
+  </main>
+</body>
+</html>

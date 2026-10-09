@@ -48,6 +48,12 @@ export const MAP_CLUSTER = Object.freeze({
  */
 export const MAP_CONTROLS = Object.freeze({ navigation: 'bottom-right', attribution: 'bottom-left' } as const);
 
+/**
+ * Most photo stickers on screen at once. Each is a DOM element with an image; past a few dozen a phone spends more
+ * on layout than the pictures add, and clusters already summarise denser areas.
+ */
+export const MAP_PHOTO_MARKERS_MAX = 60;
+
 /** Point popups: their width comes from the stylesheet (component token), not from MapLibre's pixel default. */
 export const MAP_POPUP = Object.freeze({ closeButton: true, maxWidth: 'none', className: 'bn-map-view__popup' } as const);
 

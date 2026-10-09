@@ -1,11 +1,12 @@
 import { appMessages } from '../app/i18n';
 import { accountMessages } from '../features/account/i18n';
+import { homeMessages } from '../features/home/i18n';
 import { listenMessages } from '../features/listen/i18n';
 import { logMessages } from '../features/log/i18n';
 import { mapMessages } from '../features/map/i18n';
 import { settingsMessages } from '../features/settings/i18n';
 import { sitesMessages } from '../features/sites/i18n';
-import { welcomeMessages } from '../features/welcome/i18n';
+import { speciesMessages } from '../features/species/i18n';
 import { commonMessages } from '../shared/i18n';
 import type { MessageModule } from './defineMessages';
 import { LOCALES, type Locale } from './locales';
@@ -20,7 +21,8 @@ const MODULES = {
   sites: sitesMessages,
   account: accountMessages,
   settings: settingsMessages,
-  welcome: welcomeMessages,
+  home: homeMessages,
+  species: speciesMessages,
 } as const;
 
 type Modules = typeof MODULES;

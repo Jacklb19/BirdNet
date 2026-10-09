@@ -1,7 +1,7 @@
 import type { ClassifiedDetection } from '../inference/detectionPolicy';
 import { CONFIDENCE_THRESHOLDS, FIELD_LIMITS, isUuid } from '../../config/contract';
 import { announceQueueChange } from './queueChanges';
-import { approximateLocation, assertQueueCapacity, encodeAudio } from './queuePolicy';
+import { assertQueueCapacity, encodeAudio, recordingLocation, unlocatedAssignment } from './queuePolicy';
 import {
   AUDIO_REVIEW_STATUS, DATABASE_NAME, DATABASE_VERSION, DEFAULT_QUEUE_BYTES, isEditableSettingsKey, QUEUED_STATUS_BY_LOCAL_STATUS,
   SETTINGS_RECORD_KEY, STORES, type EditableSettings, type StoreName,
@@ -151,12 +151,13 @@ function isStorable(candidate: ClassifiedDetection): boolean {
 /** Called by the inference worker before it publishes a successful classification. */
 export async function persistDetections(candidates: readonly ClassifiedDetection[], samples: Float32Array, context: PersistenceContext): Promise<void> {
   if (candidates.length === 0) return;
-  const location = context.location ? approximateLocation(context.location.latitude, context.location.longitude) : null;
   const recordedAt = new Date(context.recordedAt).toISOString();
   if (!context.modelVersion || context.modelVersion.length > FIELD_LIMITS.modelVersion || !candidates.every(isStorable)) throw new Error('Invalid detection context.');
   const audioBlob = candidates.some((candidate) => candidate.status === AUDIO_REVIEW_STATUS) ? encodeAudio(samples) : null;
   await transact([STORES.settings, STORES.detections, STORES.audio], 'readwrite', async (tx) => {
     const settings = await readSettings(tx);
+    // Read with the active site inside the transaction, so a site chosen mid-session applies to the next window.
+    const location = recordingLocation(settings, context.location);
     const existing = await request(tx.objectStore(STORES.detections).getAll()) as StoredDetection[];
     const audio = await request(tx.objectStore(STORES.audio).getAll()) as StoredAudio[];
     const audioId = audioBlob && settings.audioConsent ? crypto.randomUUID() : null;
@@ -170,6 +171,29 @@ export async function persistDetections(candidates: readonly ClassifiedDetection
     if (audioId && audioBlob) await request(tx.objectStore(STORES.audio).add({ id: audioId, blob: audioBlob, bytes: audioBlob.size } satisfies StoredAudio));
   });
   announceQueueChange(['records']);
+}
+
+/**
+ * Files every record still without a location under the cell of the cached site `siteId` (ADR-16), so the
+ * records recorded before a site or the GPS was available can synchronize. Returns how many were assigned.
+ */
+export async function assignSiteToUnlocated(siteId: string): Promise<number> {
+  if (!isUuid(siteId)) throw new Error('Invalid site.');
+  const assigned = await transact([STORES.settings, STORES.detections, STORES.audio], 'readwrite', async (tx) => {
+    const settings = await readSettings(tx);
+    const site = settings.sites?.find((candidate) => candidate.id === siteId);
+    if (!site || !settings.sitesOwner) throw new Error('Invalid site.');
+    const records = await request(tx.objectStore(STORES.detections).getAll()) as StoredDetection[];
+    const audio = await request(tx.objectStore(STORES.audio).getAll()) as StoredAudio[];
+    const updated = unlocatedAssignment(records, site, settings.sitesOwner);
+    for (const record of updated) measureRecord(record);
+    const unchanged = records.filter((record) => !updated.some((row) => row.id === record.id));
+    assertQueueCapacity([...unchanged, ...updated].reduce((sum, row) => sum + row.bytes, 0) + audio.reduce((sum, row) => sum + row.bytes, 0), 0, settings.maxBytes);
+    for (const record of updated) await request(tx.objectStore(STORES.detections).put(record));
+    return updated.length;
+  });
+  if (assigned) announceQueueChange(['records']);
+  return assigned;
 }
 
 /** Metadata acknowledgement is separate from audio delivery; unacknowledged rows stay intact. */

@@ -1,6 +1,6 @@
-/** Letters shown in the avatar; the account only has an e-mail, so they come from its local part. */
+/** Letters shown in the avatar: from the alias when there is one, otherwise from the e-mail's local part. */
 const MAX_INITIALS = 2;
-const NAME_SEPARATORS = /[._\-+]+/;
+const NAME_SEPARATORS = /[\s._\-+]+/;
 // Graphemes, not code units, so accented or composed letters are never split in half.
 const graphemes = (text: string): string[] => Array.from(new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(text), (part) => part.segment);
 

@@ -13,7 +13,7 @@ type PhotoSource =
 export type SpeciesPhotoProps = PhotoSource & {
   /** Accessible description, normally the common name. Empty when the name is already written next to the photo. */
   readonly alt: string;
-  readonly variant?: 'row' | 'hero' | 'round';
+  readonly variant?: 'row' | 'hero' | 'round' | 'sticker';
   readonly className?: string;
 };
 

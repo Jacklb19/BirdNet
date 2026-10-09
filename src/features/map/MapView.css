@@ -206,3 +206,47 @@
   font-size: var(--text-caption);
   line-height: var(--leading-caption);
 }
+
+/* Photo stickers over the unclustered dots (mapMarkers.ts): die-cut edge like the album, the dot stays visible below. */
+.bn-map-photo {
+  display: block;
+  width: var(--map-photo-marker);
+  height: var(--map-photo-marker);
+  padding: 0;
+  overflow: hidden;
+  border: calc(var(--sticker-edge) / 2) solid var(--color-map-photo-ring);
+  border-radius: var(--radius-sticker);
+  background: var(--color-bg-sunken);
+  box-shadow: var(--shadow-sticker);
+  transform: translateY(calc(var(--map-photo-marker) / -2));
+  animation: bn-map-photo-in var(--duration-medium) var(--ease-bounce) both;
+}
+
+.bn-map-photo__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bn-map-photo:focus-visible {
+  outline: var(--focus-width) solid var(--color-brand);
+  outline-offset: var(--focus-offset);
+}
+
+@keyframes bn-map-photo-in {
+  from { opacity: 0; transform: translateY(calc(var(--map-photo-marker) / -2)) scale(0.6); }
+  to { opacity: 1; transform: translateY(calc(var(--map-photo-marker) / -2)); }
+}
+
+.bn-map-popup__own {
+  color: var(--color-brand);
+  font-weight: var(--font-weight-semibold);
+}
+
+.bn-map-popup__card {
+  display: inline-flex;
+  min-height: var(--touch-min);
+  align-items: center;
+  color: var(--color-brand);
+  font-weight: var(--font-weight-semibold);
+}

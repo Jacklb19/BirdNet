@@ -4,7 +4,7 @@ import {
   clampBounds, fetchMapDetections, mapFailure, periodStart, speciesOptions, toFeatureCollection, type MapDetection, type MapFailure,
 } from './mapData';
 
-const row: MapDetection = { id: 'a', species: 'Turdus fuscater', confidence: 0.91, status: 'confirmed', recorded_at: '2026-10-06T12:00:00Z', latitude: 4.679, longitude: -74.123 };
+const row: MapDetection = { id: 'a', species: 'Turdus fuscater', confidence: 0.91, status: 'confirmed', recorded_at: '2026-10-06T12:00:00Z', latitude: 4.679, longitude: -74.123, own: false, site_name: null };
 
 describe('mapData', () => {
   afterEach(() => { vi.unstubAllGlobals(); });
@@ -36,6 +36,16 @@ describe('mapData', () => {
     expect(url).toContain('species=Turdus+fuscater');
     expect(url).toContain('since=2026-10-01T00%3A00%3A00.000Z');
     expect(new Headers(init.headers).get('Authorization')).toBe('Bearer token');
+  });
+
+  // The shared map must never name another person's site, even if a server sent one.
+  it('keeps site names only on the rows of the viewer', async () => {
+    const mine = { ...row, id: 'mine', own: true, site_name: 'Humedal' };
+    const theirs = { ...row, id: 'theirs', own: false, site_name: 'Casa de alguien' };
+    const legacy = { id: 'legacy', species: row.species, confidence: row.confidence, status: row.status, recorded_at: row.recorded_at, latitude: row.latitude, longitude: row.longitude };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ detections: [mine, theirs, legacy], truncated: false })));
+    const result = await fetchMapDetections({ west: -75, south: 4, east: -74, north: 5 }, { species: null, since: null }, 'token', new AbortController().signal);
+    expect(result.detections.map((item) => [item.id, item.own, item.site_name])).toEqual([['mine', true, 'Humedal'], ['theirs', false, null], ['legacy', false, null]]);
   });
 
   it('rejects failed or malformed responses', async () => {

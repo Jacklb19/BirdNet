@@ -1,29 +1,18 @@
-/* Phones: the photo runs edge to edge and the content keeps the page gutter. */
-.bn-page.bn-log-detail {
-  gap: var(--space-5);
+.bn-log-detail__back {
+  display: inline-flex;
+  min-height: var(--touch-min);
+  align-items: center;
+  gap: var(--space-1);
+  justify-self: start;
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
 }
 
-.bn-log-detail__body {
-  display: grid;
-  gap: var(--space-4);
-  padding: 0 var(--space-4);
-}
-
-/* The scientific name reads as part of the title, larger than a page subtitle. */
-.bn-log-detail__scientific {
-  display: block;
-  font-size: var(--text-title-s);
-  line-height: var(--leading-title-s);
-}
-
-/* Wide screens: a reading column under the floating top bar, with the photo as a rounded card. */
-@media (min-width: 64rem) {
-  .bn-page.bn-log-detail {
-    max-width: var(--content-narrow);
-    padding-top: var(--space-6);
-  }
-
-  .bn-log-detail__body {
-    padding: 0;
-  }
+/* The plate's button sits on the plumage color: it takes the plate's text color so it reads on every plate. */
+.bn-log-detail .bn-species-plate .bn-button {
+  justify-self: start;
+  margin-top: var(--space-2);
+  background: var(--on-plate);
+  color: var(--plate);
 }

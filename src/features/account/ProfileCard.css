@@ -1,49 +1,103 @@
 .bn-account-profile {
   display: grid;
   gap: var(--space-4);
-  padding: var(--space-4);
-  border-radius: var(--radius-l);
+  padding: var(--space-5);
+  border-radius: var(--radius-xl);
   background: var(--color-bg-surface);
+  box-shadow: var(--shadow-raised);
 }
 
 .bn-account-profile__identity {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-5);
   padding-bottom: var(--space-4);
   border-bottom: var(--border-width) solid var(--color-border-subtle);
 }
 
+.bn-account-profile__avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* The profile photo is a sticker too: white die-cut edge and the same irregular outline. */
 .bn-account-profile__avatar {
   display: inline-flex;
-  flex-shrink: 0;
-  width: var(--avatar);
-  height: var(--avatar);
+  width: var(--avatar-l);
+  height: var(--avatar-l);
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-pill);
+  border: var(--sticker-edge) solid var(--color-sticker-edge);
+  border-radius: var(--radius-sticker);
   background: var(--color-brand);
+  box-shadow: var(--shadow-sticker);
   color: var(--color-on-brand);
-  font-size: var(--text-title-s);
-  font-weight: var(--font-weight-semibold);
-  line-height: var(--leading-title-s);
+  font-family: var(--font-display);
+  font-size: var(--text-l);
+  font-weight: var(--font-weight-display);
+  object-fit: cover;
+}
+
+.bn-account-profile__photo {
+  position: absolute;
+  right: calc(var(--space-2) * -1);
+  bottom: calc(var(--space-2) * -1);
+  display: inline-flex;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  align-items: center;
+  justify-content: center;
+  border: var(--border-width-strong) solid var(--color-bg-surface);
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.bn-account-profile__photo[aria-disabled='true'] {
+  opacity: var(--state-disabled-opacity);
 }
 
 .bn-account-profile__names {
   display: grid;
   min-width: 0;
+  gap: var(--space-1);
+}
+
+.bn-account-profile__alias {
+  font-size: var(--text-l);
+  line-height: var(--leading-l);
+  overflow-wrap: anywhere;
 }
 
 /* E-mail addresses have no spaces; let them break anywhere instead of widening the page at 360 px. */
 .bn-account-profile__email {
-  font-size: var(--text-title-s);
-  font-weight: var(--font-weight-semibold);
-  line-height: var(--leading-title-s);
-  overflow-wrap: anywhere;
-}
-
-.bn-account-profile__state {
   color: var(--color-text-secondary);
   font-size: var(--text-small);
   line-height: var(--leading-small);
+  overflow-wrap: anywhere;
+}
+
+.bn-account-profile__edit {
+  justify-self: start;
+  min-height: var(--touch-min);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-brand);
+  font-weight: var(--font-weight-semibold);
+}
+
+.bn-account-profile__edit[aria-disabled='true'] {
+  opacity: var(--state-disabled-opacity);
+}
+
+.bn-account-profile__alias-form {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.bn-account-profile__alias-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }

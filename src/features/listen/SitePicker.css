@@ -13,7 +13,7 @@
 
 /* The icons are drawn over the select and let clicks through, so the whole row opens the picker. */
 .bn-listen-site {
-  --listen-site-icon-gap: calc(var(--icon-size-s) + var(--space-2));
+  --listen-site-icon-gap: calc(var(--icon-size-s) + var(--space-3));
 
   position: relative;
   display: inline-flex;
@@ -21,7 +21,10 @@
   min-height: var(--touch-min);
   align-items: center;
   justify-self: start;
-  color: var(--color-text-primary);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-inverse);
+  box-shadow: var(--shadow-raised);
+  color: var(--color-text-inverse);
 }
 
 .bn-listen-site__pin,
@@ -32,21 +35,19 @@
 }
 
 .bn-listen-site__pin {
-  left: 0;
-  color: var(--color-brand);
+  left: var(--space-3);
 }
 
 .bn-listen-site__chevron {
-  right: 0;
-  color: var(--color-text-secondary);
+  right: var(--space-3);
 }
 
 .bn-listen-site__select,
 .bn-listen-site__name {
   overflow: hidden;
-  font-size: var(--text-title-s);
+  font-size: var(--text-small);
   font-weight: var(--font-weight-semibold);
-  line-height: var(--leading-title-s);
+  line-height: var(--leading-small);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -54,10 +55,11 @@
 .bn-listen-site__select {
   max-width: 100%;
   min-height: var(--touch-min);
-  padding: 0 var(--listen-site-icon-gap);
+  padding: 0 calc(var(--listen-site-icon-gap) + var(--space-3));
   border: 0;
-  border-radius: var(--radius-s);
+  border-radius: var(--radius-pill);
   background: transparent;
+  color: inherit;
   appearance: none;
   cursor: pointer;
   /* Sized to the chosen site rather than the longest option, so the chevron follows the name; browsers
@@ -72,8 +74,7 @@
 }
 
 .bn-listen-site--link {
-  padding: 0 var(--listen-site-icon-gap);
-  border-radius: var(--radius-s);
+  padding: 0 calc(var(--listen-site-icon-gap) + var(--space-3));
   text-decoration: none;
 }
 

@@ -4,6 +4,10 @@ export const STORAGE_KEYS = Object.freeze({
   preferences: 'birdnet_settings',
   /** Prefix for cached species photo lookups, one entry per scientific name. */
   photoPrefix: 'birdnet:photo:',
+  /** Prefix for the plate color derived from each species' photo. */
+  plumagePrefix: 'birdnet:plumage:',
+  /** When and for which place the optional regional guide was last saved for offline use. */
+  guide: 'birdnet:guide',
 });
 
 export interface StoredPreferences {

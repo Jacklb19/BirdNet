@@ -6,12 +6,17 @@
   min-height: var(--control-height);
   padding: 0 var(--space-5);
   border: var(--border-width-strong) solid transparent;
-  border-radius: var(--radius-m);
+  border-radius: var(--radius-l);
   font-size: var(--text-body);
   font-weight: var(--font-weight-semibold);
   line-height: var(--leading-body);
   text-decoration: none;
-  transition: background-color var(--duration-fast) var(--ease-standard), opacity var(--duration-fast) var(--ease-standard);
+  transition: background-color var(--duration-fast) var(--ease-standard), opacity var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.bn-button:not(:disabled, [aria-disabled='true']):active {
+  transform: scale(var(--state-pressed-scale));
 }
 
 .bn-button--block {
@@ -19,8 +24,14 @@
 }
 
 .bn-button--primary {
-  background: var(--color-brand);
-  color: var(--color-on-brand);
+  background: var(--color-bg-inverse);
+  color: var(--color-text-inverse);
+}
+
+/* The one call to action of a plate or the home page: the sun yellow of "singing now". */
+.bn-button--accent {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
 }
 
 .bn-button--secondary {
@@ -41,8 +52,10 @@
 }
 
 @media (hover: hover) {
-  .bn-button--primary:not(:disabled, [aria-disabled='true']):hover {
+  .bn-button--primary:not(:disabled, [aria-disabled='true']):hover,
+  .bn-button--accent:not(:disabled, [aria-disabled='true']):hover {
     filter: brightness(var(--state-hover-brightness));
+    transform: translateY(var(--state-hover-lift));
   }
 
   .bn-button--secondary:not(:disabled, [aria-disabled='true']):hover {

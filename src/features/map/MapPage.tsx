@@ -37,7 +37,7 @@ function supportsWebGL(): boolean {
 }
 
 /** Full-bleed map of the community's detections with the "In this area" summary of what is visible. */
-function MapScreen(): React.JSX.Element {
+function MapScreen({ initialSpecies }: { readonly initialSpecies: string | null }): React.JSX.Element {
   const { dict } = useI18n();
   const m = dict.map;
   const { configured, session } = useAccountContext();
@@ -46,7 +46,8 @@ function MapScreen(): React.JSX.Element {
   const { active: listening } = useListening();
   const isDesktop = useIsDesktop();
   const [map, setMap] = useState<MapLibreMap | null>(null);
-  const [species, setSpecies] = useState<string | null>(null);
+  // A species card opens the map already filtered to its species (`#/map?species=…`).
+  const [species, setSpecies] = useState<string | null>(initialSpecies);
   const [period, setPeriod] = useState<Period>(DEFAULT_PERIOD);
   const [listExpanded, setListExpanded] = useState(false);
   const sheetRef = useRef<HTMLElement>(null);
@@ -122,10 +123,10 @@ function MapScreen(): React.JSX.Element {
   );
 }
 
-export default function MapPage(): React.JSX.Element {
+export default function MapPage({ species }: { readonly species: string | null }): React.JSX.Element {
   const { dict } = useI18n();
   const [webgl] = useState(supportsWebGL);
-  if (webgl) return <MapScreen />;
+  if (webgl) return <MapScreen initialSpecies={species} />;
   return (
     <Page width="narrow">
       <PageHeader title={dict.map.title} />

@@ -1,4 +1,5 @@
 import { useId, useState } from 'react';
+import { routeHash } from '../../app/routes';
 import type { Period } from '../../config/contract';
 import { formatCount, formatDate, formatNumber, useI18n } from '../../i18n';
 import { SpeciesRow } from '../../shared/ui/SpeciesRow';
@@ -51,10 +52,10 @@ export function SiteSpeciesList({ stats, period }: { readonly stats: SiteStats; 
             return (
               <li key={entry.species}>
                 {entry.is_new ? (
-                  <SpeciesRow scientificName={entry.species} name={name} tone="brand" status={t.newSpecies}
+                  <SpeciesRow href={routeHash({ name: 'species', species: entry.species })} scientificName={entry.species} name={name} tone="brand" status={t.newSpecies}
                     detail={t.firstSeen(formatDate(firstSeen, locale, firstSeenFormat(firstSeen, until)))} />
                 ) : (
-                  <SpeciesRow scientificName={entry.species} name={name} tone="neutral"
+                  <SpeciesRow href={routeHash({ name: 'species', species: entry.species })} scientificName={entry.species} name={name} tone="neutral"
                     status={formatCount(t.songs, entry.detections, locale)} detail={visits(entry)} />
                 )}
               </li>

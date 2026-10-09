@@ -16,6 +16,16 @@ export function formatModelVersion(manifest: Pick<ModelManifest, 'model_id' | 'v
   return [manifest.model_id, manifest.variant, manifest.sha256].join(MODEL_VERSION_SEPARATOR);
 }
 
+/** Bytes the one-time download transfers: the acoustic model plus, when published, the geographic one. */
+export function downloadBytes(manifest: Pick<ModelManifest, 'size_bytes' | 'geo_size_bytes'>): number {
+  return manifest.size_bytes + (manifest.geo_size_bytes ?? 0);
+}
+
+/** Different content hashes of either model mean a different installation, whatever the names say. */
+export function sameInstallation(a: Pick<ModelManifest, 'sha256' | 'geo_sha256'>, b: Pick<ModelManifest, 'sha256' | 'geo_sha256'>): boolean {
+  return a.sha256 === b.sha256 && a.geo_sha256 === b.geo_sha256;
+}
+
 /**
  * Validates a manifest from the network or the cache before anything trusts it: the audio contract must
  * match what the capture pipeline produces, and the resulting model version must fit the API field.
@@ -35,6 +45,14 @@ export function validateManifest(value: unknown): ModelManifest {
     Number.isSafeInteger(manifest.size_bytes) && (manifest.size_bytes ?? 0) > 0 &&
     formatModelVersion(manifest as ModelManifest).length <= FIELD_LIMITS.modelVersion;
   if (!compatible) throw new Error('Incompatible manifest.');
+  // The geographic model is all or nothing: a partial description would install a file nobody can verify.
+  const geoFields = [manifest.geo_model_file, manifest.geo_sha256, manifest.geo_size_bytes];
+  if (geoFields.some((field) => field !== undefined)) {
+    const validGeo = typeof manifest.geo_model_file === 'string' && manifest.geo_model_file.length > 0 &&
+      typeof manifest.geo_sha256 === 'string' && SHA256_PATTERN.test(manifest.geo_sha256) &&
+      Number.isSafeInteger(manifest.geo_size_bytes) && (manifest.geo_size_bytes ?? 0) > 0;
+    if (!validGeo) throw new Error('Incompatible manifest.');
+  }
   return manifest as ModelManifest;
 }
 

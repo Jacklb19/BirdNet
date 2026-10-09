@@ -1,12 +1,13 @@
 import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { config } from '../../config/env';
+import { STATIC_PAGES } from '../../config/staticPages';
 import { activeModel, availableManifest, downloadModel, requestedManifestUrl } from './modelCache';
 import {
   APP_SHELL_URL, isOfflineOperation, MODEL_CACHE_NAME, MODEL_CACHE_PATH_PREFIX, OFFLINE_OPERATIONS, SYNC_TAG,
   type OfflineOperation, type OfflineProgress, type OfflineReply, type OfflineRequest, type OfflineRequestMessage, type OfflineResult,
 } from './offline.constants';
-import { cachedPhoto, isSpeciesPhotoUrl } from './photoCache';
+import { cachedPhoto, cachedSummary, isSpeciesPhotoUrl, isSpeciesSummaryUrl } from './photoCache';
 import { getSettings, queueStats, updateSettings } from './queueStore';
 import { synchronizeQueue } from './syncQueue';
 
@@ -33,8 +34,8 @@ function pathPrefixPattern(prefix: string): RegExp {
 }
 /** An absolute API base lives on another origin and never reaches the navigation route. */
 const apiPathPrefix = config.apiBaseUrl.startsWith('/') && config.apiBaseUrl !== '/' ? [config.apiBaseUrl] : [];
-/** Paths that must reach the network (API) or the model route instead of the app shell. */
-const NAVIGATION_DENYLIST = [...apiPathPrefix, MODEL_CACHE_PATH_PREFIX].map(pathPrefixPattern);
+/** Paths that must reach the network (API, static pages such as the privacy policy) or the model route instead of the app shell. */
+const NAVIGATION_DENYLIST = [...apiPathPrefix, MODEL_CACHE_PATH_PREFIX, ...STATIC_PAGES].map(pathPrefixPattern);
 
 // workbox-build injects the precache list only where the literal `self.__WB_MANIFEST` appears in the bundle.
 precacheAndRoute((self as unknown as WorkerScope).__WB_MANIFEST);
@@ -47,6 +48,10 @@ registerRoute(
 registerRoute(
   ({ url }) => isSpeciesPhotoUrl(url),
   ({ request, event }: { request: Request; event: ExtendableEvent }) => cachedPhoto(request, (task) => { event.waitUntil(task); }),
+);
+registerRoute(
+  ({ url }) => isSpeciesSummaryUrl(url),
+  ({ request, event }: { request: Request; event: ExtendableEvent }) => cachedSummary(request, (task) => { event.waitUntil(task); }),
 );
 scope.addEventListener('activate', (event) => { event.waitUntil(scope.clients.claim()); });
 

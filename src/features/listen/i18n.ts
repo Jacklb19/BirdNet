@@ -9,7 +9,6 @@ export const listenMessages = defineMessages({
     listeningAt: (site: string) => `Escuchando en ${site}`,
     since: (time: string) => `Desde las ${time}`,
     sinceFor: (time: string, duration: string) => `Desde las ${time} · ${duration}`,
-    live: 'En vivo',
     site: {
       label: 'Sitio de la escucha',
       none: 'Sin sitio',
@@ -30,7 +29,6 @@ export const listenMessages = defineMessages({
         one: (count: string) => `${count} especie`,
         other: (count: string) => `${count} especies`,
       },
-      detail: (confidence: string, heard: string) => `${confidence} · ${heard}`,
       heard: {
         now: 'canta ahora',
         moment: 'hace un momento',
@@ -55,7 +53,6 @@ export const listenMessages = defineMessages({
     hero: {
       now: 'Canta ahora',
       last: 'Último canto',
-      sentence: (status: string, confidence: string, meaning: string) => `${status} · ${confidence}. ${meaning}`,
       confirmed: 'El modelo del teléfono está muy seguro.',
       provisional: 'El modelo del teléfono no está seguro: tómala como un indicio.',
     },
@@ -91,6 +88,32 @@ export const listenMessages = defineMessages({
       },
     },
     openSettings: 'Abrir Ajustes',
+    context: {
+      label: 'Contexto de la escucha',
+      zoneSite: 'Zona del sitio · ~100 m',
+      zoneDevice: 'Zona por GPS · ~100 m',
+      zoneNone: 'Sin ubicación',
+      sky: { dawn: 'Alba', day: 'Día', dusk: 'Atardecer', night: 'Noche' },
+      region: {
+        one: (count: string) => `${count} especie probable aquí esta semana`,
+        other: (count: string) => `${count} especies probables aquí esta semana`,
+      },
+      regionOff: 'Sin filtro por zona',
+    },
+    noLocation: {
+      title: 'Los cantos quedarán sin ubicación',
+      text: 'Elige un sitio arriba o activa «Guardar dónde escuchas» en Ajustes. Sin ubicación los cantos no pueden subirse al mapa (podrás asignarles un sitio después en la Bitácora).',
+      action: 'Abrir Ajustes',
+    },
+    recent: { title: 'Tus últimas aves', open: 'Ver el álbum' },
+    plate: {
+      notes: { confidence: 'Confianza', status: 'Estado', windows: 'Ventanas' },
+      open: 'Ver la ficha',
+    },
+    session: {
+      open: (name: string) => `Abrir la ficha de ${name}`,
+      windows: { one: (count: string) => `${count} ventana`, other: (count: string) => `${count} ventanas` },
+    },
     privacy: {
       local: 'El audio se analiza en el teléfono y no sale de él.',
       fragments: 'El audio se analiza en el teléfono. Solo salen los fragmentos dudosos, porque lo autorizaste en Ajustes.',
@@ -110,7 +133,6 @@ export const listenMessages = defineMessages({
     listeningAt: (site: string) => `Listening at ${site}`,
     since: (time: string) => `Since ${time}`,
     sinceFor: (time: string, duration: string) => `Since ${time} · ${duration}`,
-    live: 'Live',
     site: {
       label: 'Listening site',
       none: 'No site',
@@ -131,7 +153,6 @@ export const listenMessages = defineMessages({
         one: (count: string) => `${count} species`,
         other: (count: string) => `${count} species`,
       },
-      detail: (confidence: string, heard: string) => `${confidence} · ${heard}`,
       heard: {
         now: 'singing now',
         moment: 'moments ago',
@@ -156,7 +177,6 @@ export const listenMessages = defineMessages({
     hero: {
       now: 'Singing now',
       last: 'Last heard',
-      sentence: (status: string, confidence: string, meaning: string) => `${status} · ${confidence}. ${meaning}`,
       confirmed: 'The phone’s model is very sure.',
       provisional: 'The phone’s model is not sure: take it as a hint.',
     },
@@ -192,6 +212,32 @@ export const listenMessages = defineMessages({
       },
     },
     openSettings: 'Open Settings',
+    context: {
+      label: 'Listening context',
+      zoneSite: 'Site area · ~100 m',
+      zoneDevice: 'GPS area · ~100 m',
+      zoneNone: 'No location',
+      sky: { dawn: 'Dawn', day: 'Day', dusk: 'Dusk', night: 'Night' },
+      region: {
+        one: (count: string) => `${count} likely species here this week`,
+        other: (count: string) => `${count} likely species here this week`,
+      },
+      regionOff: 'No area filter',
+    },
+    noLocation: {
+      title: 'Songs will have no location',
+      text: 'Choose a site above or turn on “Save where you listen” in Settings. Without a location songs cannot go to the map (you can assign them a site later in the log).',
+      action: 'Open Settings',
+    },
+    recent: { title: 'Your latest birds', open: 'See the album' },
+    plate: {
+      notes: { confidence: 'Confidence', status: 'Status', windows: 'Windows' },
+      open: 'See the card',
+    },
+    session: {
+      open: (name: string) => `Open the card of ${name}`,
+      windows: { one: (count: string) => `${count} window`, other: (count: string) => `${count} windows` },
+    },
     privacy: {
       local: 'Audio is analyzed on the phone and never leaves it.',
       fragments: 'Audio is analyzed on the phone. Only doubtful fragments leave it, because you allowed it in Settings.',

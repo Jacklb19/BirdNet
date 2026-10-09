@@ -4,6 +4,7 @@ import { Button } from '../../shared/ui/Button';
 import { Notice } from '../../shared/ui/Notice';
 import type { ModelStatus } from '../offline/useModel';
 import { useOnline } from '../offline/useQueueStatus';
+import { downloadBytes } from '../inference/modelManifest';
 import './ModelNotice.css';
 
 export interface ModelNoticeProps {
@@ -42,7 +43,7 @@ export function ModelNotice({ model, active }: ModelNoticeProps): React.JSX.Elem
     content = (
       <Notice tone="info" icon="download" title={t.missingTitle}
         action={online ? <Button icon="download" onClick={() => { run(model.download); }}>{t.download}</Button> : undefined}>
-        <p>{available ? t.missingText(available.model_id, formatBytes(available.size_bytes, locale)) : t.missingTextNoSize}</p>
+        <p>{available ? t.missingText(available.model_id, formatBytes(downloadBytes(available), locale)) : t.missingTextNoSize}</p>
         {!online && <p>{t.offline}</p>}
       </Notice>
     );
