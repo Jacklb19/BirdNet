@@ -70,6 +70,7 @@ export default function SettingsPage(): React.JSX.Element {
         <ListRow label={texts.credits.model} description={texts.credits.modelDetail} />
         <ListRow label={texts.credits.names} description={texts.credits.namesDetail} />
         <ListRow label={texts.credits.photos} description={texts.credits.photosDetail} />
+        <ListRow label={texts.credits.range} description={texts.credits.rangeDetail} />
       </ListGroup>
 
     </Page>

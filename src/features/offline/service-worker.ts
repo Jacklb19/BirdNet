@@ -7,7 +7,7 @@ import {
   APP_SHELL_URL, isOfflineOperation, MODEL_CACHE_NAME, MODEL_CACHE_PATH_PREFIX, OFFLINE_OPERATIONS, SYNC_TAG,
   type OfflineOperation, type OfflineProgress, type OfflineReply, type OfflineRequest, type OfflineRequestMessage, type OfflineResult,
 } from './offline.constants';
-import { cachedPhoto, cachedSummary, isSpeciesPhotoUrl, isSpeciesSummaryUrl } from './photoCache';
+import { cachedPhoto, cachedSummary, cachedTaxon, isSpeciesPhotoUrl, isSpeciesSummaryUrl, isTaxonUrl } from './photoCache';
 import { getSettings, queueStats, updateSettings } from './queueStore';
 import { synchronizeQueue } from './syncQueue';
 
@@ -52,6 +52,10 @@ registerRoute(
 registerRoute(
   ({ url }) => isSpeciesSummaryUrl(url),
   ({ request, event }: { request: Request; event: ExtendableEvent }) => cachedSummary(request, (task) => { event.waitUntil(task); }),
+);
+registerRoute(
+  ({ url }) => isTaxonUrl(url),
+  ({ request, event }: { request: Request; event: ExtendableEvent }) => cachedTaxon(request, (task) => { event.waitUntil(task); }),
 );
 scope.addEventListener('activate', (event) => { event.waitUntil(scope.clients.claim()); });
 

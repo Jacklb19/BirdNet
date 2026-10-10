@@ -81,7 +81,10 @@ function attribute(source: string, pattern: RegExp): string {
 }
 
 function externalUrls(config: AppConfig): string[] {
-  return [config.map.styleLightUrl, config.map.styleDarkUrl, config.photos.lookupApiUrl, config.photos.metadataApiUrl];
+  return [
+    config.map.styleLightUrl, config.map.styleDarkUrl, config.photos.lookupApiUrl, config.photos.metadataApiUrl,
+    config.gbif.apiUrl, config.gbif.tilesUrl,
+  ];
 }
 
 describe('readConfig', () => {
@@ -143,6 +146,8 @@ describe('deployment configuration', () => {
       // <img> loads them, and the service worker's photo cache re-fetches them (Chromium checks connect-src).
       for (const directive of ['img-src', 'connect-src']) expect(allows(csp.get(directive), `https://${host}/`), `${directive} ${host}`).toBe(true);
     }
+    // MapLibre loads the range tiles with fetch (connect-src) or through an <img>, depending on the request and the browser.
+    expect(allows(csp.get('img-src'), defaults.gbif.tilesUrl), 'img-src range tiles').toBe(true);
     expect(csp.get('connect-src')).toContain(SUPABASE_SOURCE);
   });
 

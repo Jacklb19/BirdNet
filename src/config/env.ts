@@ -106,6 +106,14 @@ export interface AppConfig {
     readonly es: string;
     readonly en: string;
   };
+  /**
+   * GBIF (free, no key) for the guide part of the species card: taxonomy and conservation status from `apiUrl`,
+   * and the map of where the species has been recorded from `tilesUrl` (occurrence density tiles).
+   */
+  readonly gbif: {
+    readonly apiUrl: string;
+    readonly tilesUrl: string;
+  };
 }
 
 /** Pure so it can be tested with any environment; throws with the variable name on invalid input. */
@@ -137,6 +145,10 @@ export function readConfig(env: RawEnv): AppConfig {
     summaries: {
       es: url(env, 'VITE_SUMMARY_API_URL_ES', 'https://es.wikipedia.org/api/rest_v1/page/summary'),
       en: url(env, 'VITE_SUMMARY_API_URL_EN', 'https://en.wikipedia.org/api/rest_v1/page/summary'),
+    },
+    gbif: {
+      apiUrl: url(env, 'VITE_GBIF_API_URL', 'https://api.gbif.org/v1'),
+      tilesUrl: url(env, 'VITE_GBIF_TILES_URL', 'https://api.gbif.org/v2/map/occurrence/density'),
     },
   });
 }

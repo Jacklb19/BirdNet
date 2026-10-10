@@ -16,6 +16,7 @@ import { useOnline } from '../offline/useQueueStatus';
 import { useSites } from '../sites/useSites';
 import { albumEntries, matchesSearch } from './album';
 import { guidePlace, useRegionGuide } from './regionGuide';
+import { useRegionPlace } from './useRegionPlace';
 import { ALBUM_MISSING_PREVIEW, GUIDE_BYTES_PER_SPECIES, GUIDE_MAX_SPECIES } from './species.config';
 import { commonName, useSpeciesNames } from './speciesNames';
 import { useOwnSpecies } from './useOwnSpecies';
@@ -38,8 +39,9 @@ export default function AlbumPage(): React.JSX.Element {
 
   const entries = useMemo(() => albumEntries(records ?? [], cloud), [records, cloud]);
   const visible = entries.filter((entry) => matchesSearch(query, entry.species, commonName(names, entry.species, locale)));
-  // The region is the active site's, or the first saved site's: the album never asks for the device position.
-  const place = active ?? sites[0] ?? null;
+  // The region is the active place's, a saved one's or where the latest song was heard: the album never asks for the device position.
+  const site = active ?? sites[0] ?? null;
+  const place = useRegionPlace();
   const region = useRegionSpecies(place, birdnetWeek(new Date()), GUIDE_MAX_SPECIES);
   const guide = useRegionGuide(locale);
   const collected = new Set(entries.map((entry) => entry.species));
@@ -90,12 +92,11 @@ export default function AlbumPage(): React.JSX.Element {
 
       <section className="bn-album__discover" aria-labelledby={discoverId}>
         <h2 id={discoverId} className="bn-album__title display">{texts.discover.title}</h2>
-        {!place && <p className="bn-album__muted">{texts.discover.needsPlace}</p>}
-        {place && region.status === 'loading' && <p className="bn-album__muted" role="status">{texts.discover.loading}</p>}
-        {place && region.status === 'unavailable' && <p className="bn-album__muted">{texts.discover.unavailable}</p>}
-        {place && region.status === 'ready' && (
+        {region.status === 'loading' && <p className="bn-album__muted" role="status">{texts.discover.loading}</p>}
+        {region.status === 'unavailable' && <p className="bn-album__muted">{texts.discover.unavailable}</p>}
+        {region.status === 'ready' && (
           <>
-            <p className="bn-album__muted">{texts.discover.text(place.name)}</p>
+            <p className="bn-album__muted">{site ? texts.discover.text(site.name) : texts.discover.textNear}</p>
             <ul className="bn-album__grid bn-album__grid--missing">
               {shownMissing.map((species) => {
                 const name = commonName(names, species.scientificName, locale, species.commonName);
@@ -117,7 +118,7 @@ export default function AlbumPage(): React.JSX.Element {
         )}
       </section>
 
-      {place && region.status === 'ready' && region.species.length > 0 && (
+      {region.status === 'ready' && region.species.length > 0 && (
         <section className="bn-album__guide" aria-labelledby={guideId}>
           <span className="bn-album__guide-icon" aria-hidden="true"><Icon name="download" /></span>
           <div className="bn-album__guide-body">
