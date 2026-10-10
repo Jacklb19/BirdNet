@@ -23,6 +23,7 @@ const BYTES_PER_MEGABYTE = 1_000_000;
 const HERTZ_PER_KILOHERTZ = 1000;
 
 const MS_PER_MINUTE = 60_000;
+const METERS_PER_KILOMETER = 1000;
 const MS_PER_DAY = 86_400_000;
 const MINUTES_PER_HOUR = 60;
 const HOURS_PER_DAY = 24;
@@ -127,6 +128,15 @@ export function formatBytes(bytes: number, locale: Locale): string {
  */
 export function formatMeters(meters: number, locale: Locale): string {
   return formatUnit(meters, 'meter', locale, { maximumFractionDigits: 0 });
+}
+
+/**
+ * Formats a walked distance: whole metres, or kilometres with one decimal from a kilometre on.
+ * Example: 850 -> "850 m"; 2340 -> "2,3 km" (es) vs "2.3 km" (en).
+ */
+export function formatDistance(meters: number, locale: Locale): string {
+  if (meters < METERS_PER_KILOMETER) return formatMeters(meters, locale);
+  return formatUnit(meters / METERS_PER_KILOMETER, 'kilometer', locale, fixedDigits(DEFAULT_FRACTION_DIGITS));
 }
 
 /** Formats a date and time; `options` replace or extend the default medium date with short time. */

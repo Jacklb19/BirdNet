@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { AUDIO_CONSTANTS } from '../audio/dsp/audio.constants';
 import { AUDIO_UPLOAD_MIME_TYPE } from '../../config/contract';
 import { MIN_QUEUE_BYTES } from './offline.constants';
-import { acknowledgedIds, approximateLocation, assertQueueCapacity, encodeAudio, recordingLocation, sharesMap, unlocatedAssignment } from './queuePolicy';
+import { acknowledgedIds, approximateLocation, assertQueueCapacity, encodeAudio, recordingLocation, recordingSite, sharesMap, unlocatedAssignment } from './queuePolicy';
 import type { CachedSite, StoredDetection } from './types';
 
 /** Canonical PCM WAV header size and field offsets, from the RIFF/WAVE format specification. */
@@ -57,6 +57,16 @@ describe('location of a recording (ADR-16)', () => {
     expect(recordingLocation({ activeSiteId: site.id, sites: [site] }, null)).toEqual({ latitude: 4.735, longitude: -74.101 });
     expect(recordingLocation({ activeSiteId: site.id, sites: [] }, null)).toBeNull();
     expect(recordingLocation({ activeSiteId: null }, null)).toBeNull();
+  });
+  it('files a song under the place chosen by hand, else under the nearest saved place within reach', () => {
+    const far: CachedSite = { ...site, id: '00000000-0000-4000-8000-000000000007', latitude: 4.9, longitude: -74.3 };
+    const nearSite = { latitude: site.latitude + 0.001, longitude: site.longitude };
+    expect(recordingSite({ activeSiteId: far.id, sites: [site, far] }, nearSite)).toBe(far.id);
+    expect(recordingSite({ activeSiteId: null, sites: [far, site] }, nearSite)).toBe(site.id);
+    // About 1.1 km from the place: outside its reach, so the song belongs to no place.
+    expect(recordingSite({ sites: [site] }, { latitude: site.latitude + 0.01, longitude: site.longitude })).toBeNull();
+    expect(recordingSite({ sites: [site] }, null)).toBeNull();
+    expect(recordingSite({}, nearSite)).toBeNull();
   });
   it('shares nothing until the person has chosen to', () => {
     expect(sharesMap({})).toBe(false);

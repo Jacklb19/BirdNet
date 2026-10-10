@@ -15,6 +15,7 @@ export {
   formatSeconds,
   formatDecibels,
   formatBytes,
+  formatDistance,
   formatMeters,
   formatDate,
   selectPlural,

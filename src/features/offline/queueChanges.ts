@@ -7,7 +7,7 @@ import { QUEUE_CHANGE_PARTS, QUEUE_CHANGE_POLL_MS, QUEUE_CHANGED_CHANNEL, type Q
  * Each part has a version that grows with every change announced or received in this context; views read the
  * version as a dependency and re-read the stores when it changes.
  */
-const versions: Record<QueueChangePart, number> = { records: 0, settings: 0 };
+const versions: Record<QueueChangePart, number> = { records: 0, settings: 0, walks: 0 };
 const listeners = new Set<() => void>();
 /** Open only while this context has listeners; BroadcastChannel never delivers to the object that posted. */
 let channel: BroadcastChannel | null = null;

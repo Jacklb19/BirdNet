@@ -1,6 +1,7 @@
 import { AUDIO_CONSTANTS } from '../audio/dsp/audio.constants';
 import { AUDIO_UPLOAD_MIME_TYPE, LOCATION_GRID_DECIMALS } from '../../config/contract';
-import { MIN_QUEUE_BYTES } from './offline.constants';
+import { distanceMeters } from '../walk/walkGeometry';
+import { MIN_QUEUE_BYTES, PLACE_RADIUS_METERS } from './offline.constants';
 import type { ApproximateLocation, CachedSite, OfflineSettings, StoredDetection } from './types';
 
 const MAX_ABS_LATITUDE = 90;
@@ -24,6 +25,22 @@ export function recordingLocation(settings: Pick<OfflineSettings, 'activeSiteId'
   if (device) return approximateLocation(device.latitude, device.longitude);
   const site = settings.activeSiteId ? settings.sites?.find((candidate) => candidate.id === settings.activeSiteId) : undefined;
   return site ? approximateLocation(site.latitude, site.longitude) : null;
+}
+
+/**
+ * Place a new detection counts for (ADR-25). The one chosen by hand comes first. Without one, the nearest saved
+ * place within `PLACE_RADIUS_METERS` of where the song was heard, so places gather the walks through them
+ * without the person choosing anything; a song heard far from every place belongs to none.
+ */
+export function recordingSite(settings: Pick<OfflineSettings, 'activeSiteId' | 'sites'>, location: ApproximateLocation | null): string | null {
+  if (settings.activeSiteId) return settings.activeSiteId;
+  if (!location) return null;
+  let nearest: { readonly id: string; readonly meters: number } | null = null;
+  for (const site of settings.sites ?? []) {
+    const meters = distanceMeters([location.latitude, location.longitude], [site.latitude, site.longitude]);
+    if (meters <= PLACE_RADIUS_METERS && (nearest === null || meters < nearest.meters)) nearest = { id: site.id, meters };
+  }
+  return nearest?.id ?? null;
 }
 
 /**
