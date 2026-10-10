@@ -11,7 +11,6 @@ import { Sticker } from '../../shared/ui/Sticker';
 import { birdnetWeek } from '../inference/geoFilter';
 import { useRegionSpecies, type RegionSpecies } from '../inference/regionSpecies';
 import { formatDayTime } from '../log/logFormat';
-import { LogTabs } from '../log/LogTabs';
 import { useLogRecords } from '../log/useLogRecords';
 import { useOnline } from '../offline/useQueueStatus';
 import { useSites } from '../sites/useSites';
@@ -52,7 +51,6 @@ export default function AlbumPage(): React.JSX.Element {
 
   return (
     <Page className="bn-album">
-      <LogTabs current="album" />
       <PageHeader title={texts.title} subtitle={formatCount(texts.subtitle, entries.length, locale)} />
 
       <div className="bn-album__search">

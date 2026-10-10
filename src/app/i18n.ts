@@ -8,7 +8,8 @@ export const appMessages = defineMessages({
     description: 'Sal a caminar: Trino reconoce las aves por su canto en tu teléfono, sin conexión, y las deja en tu mapa y en tu álbum.',
     skipToContent: 'Saltar al contenido',
     navLabel: 'Secciones',
-    nav: { listen: 'Escuchar', log: 'Bitácora', map: 'Mapa', sites: 'Sitios', account: 'Cuenta' },
+    nav: { listen: 'Escuchar', map: 'Mapa', guide: 'Guía', log: 'Bitácora', account: 'Cuenta' },
+    menu: 'Menú',
     accountButton: 'Cuenta y ajustes',
     live: {
       region: 'Escucha en curso',
@@ -28,7 +29,8 @@ export const appMessages = defineMessages({
     description: 'Go for a walk: Trino recognizes birds by their song on your phone, offline, and puts them on your map and in your album.',
     skipToContent: 'Skip to content',
     navLabel: 'Sections',
-    nav: { listen: 'Listen', log: 'Log', map: 'Map', sites: 'Sites', account: 'Account' },
+    nav: { listen: 'Listen', map: 'Map', guide: 'Guide', log: 'Log', account: 'Account' },
+    menu: 'Menu',
     accountButton: 'Account and settings',
     live: {
       region: 'Listening in progress',

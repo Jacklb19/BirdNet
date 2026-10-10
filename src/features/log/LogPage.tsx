@@ -17,7 +17,6 @@ import { LogDay } from './LogDay';
 import { LogFilters } from './LogFilters';
 import { groupByDay, matchesFilter, syncCounts, todaySummary, type LogFilter } from './logRecords';
 import { LogSyncNotice } from './LogSyncNotice';
-import { LogTabs } from './LogTabs';
 import { useLogRecords } from './useLogRecords';
 import './LogPage.css';
 
@@ -60,7 +59,6 @@ export default function LogPage(): React.JSX.Element {
 
   return (
     <Page width="narrow" className="bn-log">
-      <LogTabs current="log" />
       <PageHeader title={dict.log.title} subtitle={subtitle} />
       {error && (
         <Notice tone="error" action={<Button variant="quiet" onClick={reload}>{dict.common.actions.retry}</Button>}>{dict.log.loadError}</Notice>

@@ -19,11 +19,13 @@ describe('routes', () => {
     // 36 characters is not enough: the identifier must have the UUID layout the API issues.
     expect(parseRoute(`#/sites/${'-'.repeat(36)}`)).toEqual({ name: 'sites' });
     expect(parseRoute('')).toEqual({ name: 'listen' });
-    expect(sectionOf({ name: 'site', id })).toBe('sites');
+    expect(sectionOf({ name: 'site', id })).toBe('map');
+    expect(sectionOf({ name: 'species', species: 'Turdus fuscater' })).toBe('guide');
+    expect(parseRoute('#/log/album')).toEqual({ name: 'album' });
     // Links from before S7 and malformed species names still land somewhere sensible.
     expect(parseRoute('#/welcome')).toEqual({ name: 'home' });
-    expect(parseRoute('#/species/%E0%A4%A')).toEqual({ name: 'log' });
-    expect(parseRoute(`#/species/${'a'.repeat(201)}`)).toEqual({ name: 'log' });
+    expect(parseRoute('#/species/%E0%A4%A')).toEqual({ name: 'album' });
+    expect(parseRoute(`#/species/${'a'.repeat(201)}`)).toEqual({ name: 'album' });
   });
 
   it('ignores the tokens Supabase returns in the hash after Google or a reset link', () => {

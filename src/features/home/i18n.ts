@@ -1,84 +1,124 @@
 import { defineMessages } from '../../i18n/defineMessages';
-import type { HomeFeature, HomePromise, HomeStep } from './home.config';
+import type { HomeCardPart, HomeMapPoint, HomePromise, HomeSection, HomeStep } from './home.config';
 
-/** Texts of the home page (ADR-15). The model size arrives already formatted. */
+/** Texts of the home page (ADR-15, ADR-24). Sizes and distances arrive already formatted. */
 export const homeMessages = defineMessages({
   es: {
+    navLabel: 'Secciones de la página',
+    nav: { guide: 'La guía', how: 'Cómo funciona', map: 'El mapa', privacy: 'Privacidad' } satisfies Record<HomeSection, string>,
     signIn: 'Iniciar sesión',
-    headline: 'Las aves de tu barrio,',
-    headlineAccent: 'por su canto.',
-    lede: 'Trino escucha con el micrófono del teléfono, reconoce las aves con el modelo BirdNET sin conexión y anota cada canto con su hora, su zona y qué tan seguro está.',
-    start: 'Empezar a escuchar',
-    account: 'Iniciar sesión o crear cuenta',
-    collageLabel: 'Algunas aves que se oyen en Bogotá',
-    note: {
-      download: (size: string) => `Al empezar se descarga una sola vez el modelo (${size}). Después funciona sin señal.`,
-      downloadUnknownSize: 'Al empezar se descarga una sola vez el modelo. Después funciona sin señal.',
-      downloading: 'El modelo se está descargando: después funciona sin señal.',
-      ready: 'El modelo ya está en este teléfono: funciona sin señal.',
-      unmanaged: 'En esta versión el modelo se carga cuando empiezas a escuchar.',
+    open: 'Abrir Trino',
+    title: 'Trino reconoce las aves por su canto.',
+    lede: 'Sales a caminar con el teléfono encendido. Trino escucha, reconoce cada ave sin conexión y la deja en tu mapa y en tu álbum.',
+    firstDownload: (size: string) => `La primera vez descarga ${size} para funcionar sin señal.`,
+    scene: {
+      label: 'Ejemplo de una caminata: cinco aves quedan pegadas a lo largo del camino',
+      now: 'Canta ahora',
+      example: 'Ejemplo',
     },
-    howTitle: 'Cómo funciona',
-    steps: {
-      listen: { title: 'Escucha', text: 'Pulsa una vez y deja el teléfono quieto. Analiza ventanas de 3 segundos sin parar.' },
-      identify: { title: 'Reconoce', text: 'BirdNET identifica el canto en el propio teléfono, también sin señal.' },
-      record: { title: 'Registra', text: 'Cada ave queda en tu bitácora con su confianza, su hora y su zona aproximada.' },
-    } satisfies Record<HomeStep, { title: string; text: string }>,
-    featuresTitle: 'Qué puedes hacer',
-    features: {
-      album: { title: 'Llenar tu álbum', text: 'Cada especie que registras se pega como una calcomanía.' },
-      guide: { title: 'Conocer cada ave', text: 'Fichas con foto, descripción y cuándo y dónde la oíste.' },
-      map: { title: 'Ver el mapa de todos', text: 'Los cantos de la comunidad, con la foto de cada ave.' },
-      sites: { title: 'Seguir tus lugares', text: 'Reloj del coro, especies por sitio y exportación a CSV.' },
-    } satisfies Record<HomeFeature, { title: string; text: string }>,
-    privacyTitle: 'Tu privacidad',
-    promises: {
-      audio: 'El audio se analiza en tu teléfono y no se envía a ningún servidor.',
-      location: 'Tu posición se redondea a unos 10 m y tú decides si tus cantos se ven en el mapa de todos.',
-      account: 'La cuenta es opcional: sin ella todo funciona en el teléfono.',
-      offline: 'Funciona sin conexión y sube tus cantos cuando vuelve la señal.',
-    } satisfies Record<HomePromise, string>,
-    privacyLink: 'Leer la política de privacidad',
+    album: {
+      title: 'Tu álbum',
+      page: 'Aves de Bogotá',
+      found: (found: string, total: string) => `${found} de ${total} en esta página`,
+      toFind: 'Por descubrir',
+      cardTitle: 'Y cada ave tiene su ficha',
+      cardText: 'También las que aún no has oído, para saber qué buscar.',
+    },
+    how: {
+      title: 'Cómo funciona',
+      steps: {
+        listen: { title: 'Escucha', text: 'Pulsas una vez. El audio se analiza en tu teléfono y no se guarda.' },
+        identify: { title: 'Reconoce', text: 'Trino identifica el canto y te dice qué tan seguro está.' },
+        collect: { title: 'Colecciona', text: 'Cada ave va a tu álbum y a tu mapa, con su hora y su lugar.' },
+      } satisfies Record<HomeStep, { title: string; text: string }>,
+    },
+    guide: {
+      parts: {
+        about: { title: 'Qué ave es', text: 'Descripción de Wikipedia, familia y estado de conservación.' },
+        range: { title: 'Dónde vive', text: 'Mapa de su distribución con registros de GBIF.' },
+        when: { title: 'Cuándo la oyes', text: 'Tus registros por hora y por lugar.' },
+      } satisfies Record<HomeCardPart, { title: string; text: string }>,
+    },
+    map: {
+      title: 'El mapa',
+      text: 'Sales a caminar con Trino abierto y el mapa se va llenando detrás de ti.',
+      points: {
+        pins: 'Cada ave queda en el punto donde la oíste.',
+        territories: 'Cada zona que recorres toma el color del ave que más oíste en ella.',
+        sharing: 'El recorrido se guarda solo en tu teléfono, y tú decides si tus aves aparecen en el mapa de todos, sin tu nombre.',
+      } satisfies Record<HomeMapPoint, string>,
+      sceneCaption: 'Ejemplo de un barrio a medio explorar',
+    },
+    privacy: {
+      title: 'Privacidad',
+      promises: {
+        audio: 'El audio se analiza en tu teléfono y no se envía a ningún servidor.',
+        account: 'La cuenta es opcional: sin ella todo funciona en el teléfono.',
+        offline: 'Funciona sin conexión y sube tus cantos cuando vuelve la señal.',
+      } satisfies Record<Exclude<HomePromise, 'location'>, string>,
+      location: (distance: string) => `Tu posición se redondea a unos ${distance} y tú decides si tus cantos se ven en el mapa de todos.`,
+      link: 'Leer la política de privacidad',
+    },
     caveat: 'Las detecciones son indicios con su nivel de confianza, no certezas. Que un ave no se detecte no significa que no esté.',
-    credits: 'Modelo BirdNET (K. Lisa Yang Center, Cornell Lab of Ornithology) · Nombres de eBird · Fotos y textos de Wikimedia y Wikipedia',
+    credits: 'Modelo BirdNET (K. Lisa Yang Center, Cornell Lab of Ornithology) · Nombres de eBird · Fotos y textos de Wikimedia y Wikipedia · Distribución de GBIF',
   },
   en: {
+    navLabel: 'Sections of the page',
+    nav: { guide: 'The guide', how: 'How it works', map: 'The map', privacy: 'Privacy' },
     signIn: 'Sign in',
-    headline: 'The birds around you,',
-    headlineAccent: 'by their song.',
-    lede: 'Trino listens through your phone’s microphone, recognizes birds with the BirdNET model offline and logs each song with its time, its area and how sure it is.',
-    start: 'Start listening',
-    account: 'Sign in or create an account',
-    collageLabel: 'Some birds you can hear in Bogotá',
-    note: {
-      download: (size: string) => `When you start, the model (${size}) downloads once. After that it works without signal.`,
-      downloadUnknownSize: 'When you start, the model downloads once. After that it works without signal.',
-      downloading: 'The model is downloading: after that it works without signal.',
-      ready: 'The model is already on this phone: it works without signal.',
-      unmanaged: 'In this version the model loads when you start listening.',
+    open: 'Open Trino',
+    title: 'Trino recognizes birds by their song.',
+    lede: 'You go for a walk with the phone on. Trino listens, recognizes each bird offline and puts it on your map and in your album.',
+    firstDownload: (size: string) => `The first time it downloads ${size} so it works without signal.`,
+    scene: {
+      label: 'Example of a walk: five birds are pinned along the path',
+      now: 'Singing now',
+      example: 'Example',
     },
-    howTitle: 'How it works',
-    steps: {
-      listen: { title: 'Listen', text: 'Tap once and keep the phone still. It analyses 3-second windows non-stop.' },
-      identify: { title: 'Identify', text: 'BirdNET recognizes the song on the phone itself, even without signal.' },
-      record: { title: 'Record', text: 'Each bird goes into your log with its confidence, time and approximate area.' },
+    album: {
+      title: 'Your album',
+      page: 'Birds of Bogotá',
+      found: (found: string, total: string) => `${found} of ${total} on this page`,
+      toFind: 'To find',
+      cardTitle: 'And every bird has its card',
+      cardText: 'Also the ones you have not heard yet, so you know what to look for.',
     },
-    featuresTitle: 'What you can do',
-    features: {
-      album: { title: 'Fill your album', text: 'Every species you record sticks in like a sticker.' },
-      guide: { title: 'Get to know each bird', text: 'Cards with a photo, a description and when and where you heard it.' },
-      map: { title: 'See everyone’s map', text: 'The community’s songs, with each bird’s photo.' },
-      sites: { title: 'Follow your places', text: 'Chorus clock, species per site and CSV export.' },
+    how: {
+      title: 'How it works',
+      steps: {
+        listen: { title: 'Listen', text: 'You tap once. Audio is analysed on your phone and is not kept.' },
+        identify: { title: 'Identify', text: 'Trino recognizes the song and tells you how sure it is.' },
+        collect: { title: 'Collect', text: 'Each bird goes to your album and your map, with its time and place.' },
+      },
     },
-    privacyTitle: 'Your privacy',
-    promises: {
-      audio: 'Audio is analysed on your phone and is not sent to any server.',
-      location: 'Your position is rounded to about 10 m and you decide whether your songs show on everyone’s map.',
-      account: 'The account is optional: without it everything works on the phone.',
-      offline: 'It works offline and uploads your songs when the signal is back.',
+    guide: {
+      parts: {
+        about: { title: 'Which bird it is', text: 'Description from Wikipedia, family and conservation status.' },
+        range: { title: 'Where it lives', text: 'Range map with records from GBIF.' },
+        when: { title: 'When you hear it', text: 'Your records by hour and by place.' },
+      },
     },
-    privacyLink: 'Read the privacy policy',
+    map: {
+      title: 'The map',
+      text: 'You go for a walk with Trino open and the map fills in behind you.',
+      points: {
+        pins: 'Each bird stays at the spot where you heard it.',
+        territories: 'Each area you cover takes the color of the bird you heard most in it.',
+        sharing: 'The path is kept only on your phone, and you decide whether your birds appear on everyone’s map, without your name.',
+      },
+      sceneCaption: 'Example of a half-explored neighbourhood',
+    },
+    privacy: {
+      title: 'Privacy',
+      promises: {
+        audio: 'Audio is analysed on your phone and is not sent to any server.',
+        account: 'The account is optional: without it everything works on the phone.',
+        offline: 'It works offline and uploads your songs when the signal is back.',
+      },
+      location: (distance: string) => `Your position is rounded to about ${distance} and you decide whether your songs show on everyone’s map.`,
+      link: 'Read the privacy policy',
+    },
     caveat: 'Detections are hints with a confidence level, not certainties. A bird that is not detected may still be there.',
-    credits: 'BirdNET model (K. Lisa Yang Center, Cornell Lab of Ornithology) · Names from eBird · Photos and texts from Wikimedia and Wikipedia',
+    credits: 'BirdNET model (K. Lisa Yang Center, Cornell Lab of Ornithology) · Names from eBird · Photos and texts from Wikimedia and Wikipedia · Range from GBIF',
   },
 });

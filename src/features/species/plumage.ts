@@ -175,6 +175,14 @@ function samplePhoto(url: string): Promise<Rgb> {
 }
 
 /**
+ * The plate already known for a species, without waiting for its photo: the hand-picked one, the one snapped from
+ * its photo on an earlier visit, or the stable fallback. For drawings outside React (the map's territories).
+ */
+export function knownPlumage(scientificName: string): Plumage {
+  return PLUMAGE_OVERRIDES[scientificName] ?? memory.get(scientificName) ?? readStored(scientificName) ?? fallbackPlumage(scientificName);
+}
+
+/**
  * The plate of a species: chosen by hand for the region's most common birds (photo backgrounds mislead the
  * automatic choice for some of them), otherwise snapped from its photo once and remembered; until then (or without a photo) a stable
  * fallback, so the screen is never colorless while the photo loads.

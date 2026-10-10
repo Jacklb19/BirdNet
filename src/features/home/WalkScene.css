@@ -1,0 +1,97 @@
+.bn-walk-scene {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1;
+  border-radius: var(--radius-plate);
+  background: var(--scene-land);
+  box-shadow: var(--shadow-float);
+}
+
+.bn-walk-scene__map,
+.bn-walk-scene__map svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.bn-walk-scene__land { fill: var(--scene-land); }
+.bn-walk-scene__park { fill: var(--scene-park); }
+
+.bn-walk-scene__water {
+  fill: none;
+  stroke: var(--scene-water);
+  stroke-width: 6;
+}
+
+.bn-walk-scene__road {
+  fill: none;
+  stroke: var(--scene-road);
+  stroke-width: 1.8;
+}
+
+/* The walked path fades in before the birds land on it: a dotted line like the one of the real map. */
+.bn-walk-scene__path {
+  fill: none;
+  stroke: var(--color-text-primary);
+  stroke-dasharray: 0.006 0.02;
+  stroke-linecap: round;
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+  animation: bn-walk-draw calc(var(--duration-sky) / 2) var(--ease-standard) both;
+}
+
+@keyframes bn-walk-draw {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.bn-walk-scene__pin {
+  position: absolute;
+  top: calc(var(--y) * 1%);
+  left: calc(var(--x) * 1%);
+  transform: translate(-50%, -100%);
+}
+
+/* The stem that plants a sticker on the ground. */
+.bn-walk-scene__pin::after {
+  display: block;
+  width: var(--border-width-strong);
+  height: var(--space-3);
+  margin: 0 auto;
+  border-radius: var(--radius-pill);
+  background: var(--color-sticker-edge);
+  box-shadow: var(--shadow-raised);
+  content: '';
+}
+
+.bn-walk-scene__plate {
+  position: absolute;
+  inset: auto var(--space-3) var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-xl);
+}
+
+.bn-walk-scene__text {
+  display: grid;
+  min-width: 0;
+}
+
+.bn-walk-scene__name {
+  font-size: var(--text-title);
+  line-height: var(--leading-title);
+}
+
+@media (min-width: 40rem) {
+  .bn-walk-scene__pin .bn-sticker {
+    --size: var(--sticker-s);
+  }
+
+  .bn-walk-scene__name {
+    font-size: var(--text-l);
+    line-height: var(--leading-l);
+  }
+}

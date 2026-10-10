@@ -6,8 +6,10 @@ export type Route =
   | { name: 'map'; species?: string } | { name: 'sites' } | { name: 'site'; id: string }
   | { name: 'species'; species: string } | { name: 'account' } | { name: 'settings' } | { name: 'home' };
 
-/** Path segment of the album inside the log section (`#/log/album`). */
-const ALBUM_SEGMENT = 'album';
+/** Path of the guide: the album of recorded species and the birds still to find (`#/guide`). */
+const GUIDE_PATH = 'guide';
+/** Where the album lived in S7 (`#/log/album`); old links still open it. */
+const LEGACY_ALBUM_SEGMENT = 'album';
 /** Query parameter of the map that opens it filtered to one species (`#/map?species=…`). */
 const MAP_SPECIES_PARAM = 'species';
 
@@ -25,8 +27,9 @@ export function parseRoute(hash: string): Route {
   const [section = '', ...rest] = path.split('/');
   const id = rest.join('/');
   switch (section) {
+    case GUIDE_PATH: return { name: 'album' };
     case 'log':
-      if (id === ALBUM_SEGMENT) return { name: 'album' };
+      if (id === LEGACY_ALBUM_SEGMENT) return { name: 'album' };
       return isUuid(id) ? { name: 'detection', id } : { name: 'log' };
     case 'sites': return isUuid(id) ? { name: 'site', id } : { name: 'sites' };
     case 'map': {
@@ -35,7 +38,7 @@ export function parseRoute(hash: string): Route {
     }
     case 'species': {
       const species = speciesFrom(id);
-      return species ? { name: 'species', species } : { name: 'log' };
+      return species ? { name: 'species', species } : { name: 'album' };
     }
     case 'account': return { name: 'account' };
     case 'settings': return { name: 'settings' };
@@ -48,7 +51,7 @@ export function parseRoute(hash: string): Route {
 export function routeHash(route: Route): string {
   switch (route.name) {
     case 'detection': return `#/log/${route.id}`;
-    case 'album': return `#/log/${ALBUM_SEGMENT}`;
+    case 'album': return `#/${GUIDE_PATH}`;
     case 'site': return `#/sites/${route.id}`;
     case 'species': return `#/species/${encodeURIComponent(route.species)}`;
     case 'map': return route.species ? `#/map?${new URLSearchParams({ [MAP_SPECIES_PARAM]: route.species }).toString()}` : '#/map';
@@ -58,11 +61,14 @@ export function routeHash(route: Route): string {
 }
 
 /** Top-level section a route belongs to, for navigation highlighting. */
-export function sectionOf(route: Route): 'listen' | 'log' | 'map' | 'sites' | 'account' {
-  if (route.name === 'detection' || route.name === 'album' || route.name === 'species') return 'log';
-  if (route.name === 'site') return 'sites';
-  if (route.name === 'settings' || route.name === 'home') return 'account';
-  return route.name;
+export function sectionOf(route: Route): 'listen' | 'map' | 'guide' | 'log' | 'account' {
+  switch (route.name) {
+    case 'album': case 'species': return 'guide';
+    case 'detection': return 'log';
+    case 'sites': case 'site': return 'map';
+    case 'settings': case 'home': return 'account';
+    default: return route.name;
+  }
 }
 
 /** Programmatic navigation (after a form or a first-run step); links use `href={routeHash(...)}` instead. */

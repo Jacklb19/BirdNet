@@ -1,174 +1,208 @@
-.bn-home {
+.bn-home__page {
   display: grid;
   width: 100%;
   max-width: var(--content-max);
   margin: 0 auto;
   gap: var(--space-8);
-  padding: var(--space-4) var(--space-4) var(--space-8);
-}
-
-.bn-home__top {
-  display: flex;
-  min-height: var(--touch-min);
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
+  padding: var(--space-5) var(--space-4) var(--space-8);
 }
 
 .bn-home__signin {
-  display: inline-flex;
+  display: none;
   min-height: var(--touch-min);
   align-items: center;
   color: var(--color-text-primary);
   font-weight: var(--font-weight-semibold);
-  text-decoration: underline;
-  text-underline-offset: 0.25em;
 }
 
 .bn-home__hero {
   display: grid;
-  gap: var(--space-7);
+  gap: var(--space-6);
 }
 
 .bn-home__intro {
   display: grid;
-  align-content: start;
-  gap: var(--space-5);
+  align-content: center;
+  gap: var(--space-4);
 }
 
-.bn-home__headline {
-  font-size: var(--text-hero);
-  line-height: var(--leading-hero);
-}
-
-.bn-home__accent {
-  color: var(--color-brand);
-  font-style: italic;
-  font-weight: var(--font-weight-medium);
+/* One plain sentence in one voice: the walk beside it does the convincing. */
+.bn-home__title {
+  font-size: var(--text-xl);
+  line-height: var(--leading-xl);
 }
 
 .bn-home__lede {
-  max-width: 36rem;
+  max-width: 34rem;
   color: var(--color-text-secondary);
   font-size: var(--text-title-s);
   line-height: var(--leading-title);
 }
 
 .bn-home__actions {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-3);
 }
 
-.bn-home__note {
+.bn-home__note,
+.bn-home__muted {
   color: var(--color-text-secondary);
   font-size: var(--text-small);
   line-height: var(--leading-small);
 }
 
-/* Collage: four birds on their plumage blocks, two by two, the second column a little lower like pasted cutouts. */
-.bn-home__collage {
+.bn-home__heading {
+  font-size: var(--text-l);
+  line-height: var(--leading-l);
+}
+
+/* The open album: two pages on the paper, bound in the middle on wide screens. */
+.bn-home__album {
+  display: grid;
+  scroll-margin-top: calc(var(--topbar-height) + var(--space-6));
+  border-radius: var(--radius-plate);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-float);
+}
+
+.bn-home__album-page {
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-5);
+}
+
+.bn-home__album-page + .bn-home__album-page {
+  border-top: var(--border-width-strong) dashed var(--color-border-subtle);
+}
+
+.bn-home__slots {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-5) var(--space-3);
-  padding: var(--space-4) 0;
+  gap: var(--space-5) var(--space-2);
+  margin-top: var(--space-3);
 }
 
-.bn-home__bird {
-  position: relative;
+.bn-home__slot {
   display: grid;
   justify-items: center;
-  gap: var(--space-2);
-  padding: var(--space-4) 0 var(--space-2);
-}
-
-.bn-home__bird:nth-child(even) {
-  transform: translateY(var(--space-6));
-}
-
-.bn-home__blob {
-  position: absolute;
-  inset: 0 var(--space-1) var(--space-6);
-  z-index: -1;
-  border-radius: var(--radius-blob);
-  transform: rotate(var(--blob-tilt));
-}
-
-.bn-home__bird:nth-child(odd) .bn-home__blob {
-  border-radius: var(--radius-sticker);
-}
-
-.bn-home__tag {
-  position: relative;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-s);
-  background: var(--color-bg-surface);
-  box-shadow: var(--shadow-raised);
-  color: var(--color-text-primary);
+  gap: var(--space-1);
   text-align: center;
 }
 
-.bn-home__section {
-  display: grid;
-  gap: var(--space-5);
+.bn-home__slot .bn-sticker {
+  margin-bottom: var(--space-2);
 }
 
-.bn-home__title {
-  font-size: var(--text-xl);
-  line-height: var(--leading-xl);
+.bn-home__slot-name {
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-small);
 }
 
-.bn-home__steps,
-.bn-home__features {
-  display: grid;
-  gap: var(--space-3);
-}
-
-.bn-home__step,
-.bn-home__feature {
-  display: grid;
-  align-content: start;
-  gap: var(--space-2);
-  padding: var(--space-5);
-  border-radius: var(--radius-xl);
-  background: var(--color-bg-surface);
-  box-shadow: var(--shadow-raised);
-  color: var(--color-text-secondary);
-}
-
-.bn-home__step-number {
-  display: inline-flex;
-  width: var(--touch-min);
-  height: var(--touch-min);
+.bn-home__card {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-pill);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  font-family: var(--font-display);
-  font-size: var(--text-title);
-  font-weight: var(--font-weight-display);
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-xl);
 }
 
-.bn-home__step-title,
-.bn-home__feature-title {
-  color: var(--color-text-primary);
+.bn-home__card-text {
+  display: grid;
+  min-width: 0;
+}
+
+.bn-home__card-name {
   font-size: var(--text-title);
   line-height: var(--leading-title);
 }
 
-.bn-home__feature-title {
-  font-weight: var(--font-weight-semibold);
+.bn-home__parts,
+.bn-home__points {
+  display: grid;
+  gap: var(--space-3);
 }
 
-.bn-home__feature-icon {
+.bn-home__part,
+.bn-home__point {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.bn-home__point {
+  align-items: center;
+}
+
+.bn-home__part-icon {
   display: inline-flex;
   width: var(--touch-min);
   height: var(--touch-min);
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-m);
   background: var(--color-brand-soft);
   color: var(--color-brand);
+}
+
+.bn-home__part-text {
+  display: grid;
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-home__part-title {
+  color: var(--color-text-primary);
+  font-size: var(--text-body);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-body);
+}
+
+.bn-home__map-text {
+  display: grid;
+  align-content: center;
+  gap: var(--space-4);
+}
+
+/* Sections stop a little below the bar when a link scrolls to them. */
+.bn-home__section {
+  display: grid;
+  gap: var(--space-4);
+  scroll-margin-top: calc(var(--topbar-height) + var(--space-6));
+}
+
+.bn-home__steps {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.bn-home__step {
+  position: relative;
+  display: grid;
+  align-content: end;
+  gap: var(--space-2);
+  min-height: 12rem;
+  padding: var(--space-5);
+  border-radius: var(--radius-plate);
+}
+
+/* Each step is a plate of its own color, like the birds'. */
+.bn-home__step--listen { background: var(--plumage-esmeralda); color: var(--plumage-esmeralda-on); }
+.bn-home__step--identify { background: var(--plumage-mirla); color: var(--plumage-mirla-on); }
+.bn-home__step--collect { background: var(--plumage-azulejo); color: var(--plumage-azulejo-on); }
+
+.bn-home__step-icon {
+  position: absolute;
+  top: var(--space-5);
+  right: var(--space-5);
+}
+
+.bn-home__step-title {
+  font-size: var(--text-l);
+  line-height: var(--leading-l);
 }
 
 .bn-home__privacy {
@@ -206,6 +240,7 @@
 
 .bn-home__footer {
   display: grid;
+  justify-items: start;
   gap: var(--space-3);
   color: var(--color-text-secondary);
   font-size: var(--text-small);
@@ -218,43 +253,57 @@
 }
 
 @media (min-width: 40rem) {
-  .bn-home__actions {
-    display: flex;
-    flex-wrap: wrap;
+  .bn-home__signin {
+    display: inline-flex;
+  }
+
+  .bn-home__slots {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .bn-home__steps {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .bn-home__features,
   .bn-home__promises {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (min-width: 64rem) {
-  .bn-home {
+  .bn-home__page {
     gap: var(--space-9);
-    padding: var(--space-6) var(--space-6) var(--space-9);
+    padding: var(--space-7) var(--space-6) var(--space-9);
   }
 
   .bn-home__hero {
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-8);
     align-items: center;
   }
 
-  .bn-home__headline {
+  .bn-home__title {
     font-size: var(--text-display);
     line-height: var(--leading-display);
   }
 
-  .bn-home__collage .bn-sticker {
-    --size: var(--sticker-l);
+  .bn-home__album {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
   }
 
-  .bn-home__features {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  .bn-home__map {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 26rem);
+    gap: var(--space-8);
+    align-items: center;
+  }
+
+  .bn-home__album-page {
+    padding: var(--space-7);
+  }
+
+  .bn-home__album-page + .bn-home__album-page {
+    border-top: 0;
+    border-left: var(--border-width-strong) dashed var(--color-border-subtle);
   }
 
   .bn-home__privacy {

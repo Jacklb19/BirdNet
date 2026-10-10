@@ -69,6 +69,12 @@
   --sky-top: var(--sky-day);
   --sky-band-height: 30rem;
 
+  /* Scene — the drawn map of the home page and of an empty walk: land, park, water, streets */
+  --scene-land: #E4EBDD;
+  --scene-park: #CFE0C6;
+  --scene-water: #BFD9EA;
+  --scene-road: #FFFFFF;
+
   /*
    * Plumage — the color a bird paints its plate with (src/features/species/plumage.ts snaps each photo to the nearest
    * one). Every plate has the text color that keeps 4.5:1 on it.
@@ -216,6 +222,18 @@
   --chorus-value-size-compact: 52px;
   --chorus-unit-size: 12px;
 
+  /*
+   * IUCN Red List — the category colors fixed by IUCN's own guidelines, the same in both themes. They only paint the
+   * dots of the threat scale on the species card; the category is always written next to them.
+   */
+  --color-iucn-lc: #60C659;
+  --color-iucn-nt: #CCE226;
+  --color-iucn-vu: #F9E814;
+  --color-iucn-en: #FC7F3F;
+  --color-iucn-cr: #D81E05;
+  --color-iucn-ew: #542344;
+  --color-iucn-ex: #000000;
+
   /* Elevation */
   --shadow-raised: 0 1px 3px var(--color-shadow);
   --shadow-float: 0 8px 24px var(--color-shadow), 0 1px 3px var(--color-shadow);
@@ -249,6 +267,9 @@
   --map-point-radius: 8px;
   --map-marker-stroke-width: 2px;
   --map-label-size: 13px;
+  --map-track-width: 4px;
+  --map-territory-opacity: 0.42;
+  --map-you-size: 1.125rem;
 }
 
 :root[data-sky='dawn'] { --sky-top: var(--sky-dawn); }
@@ -295,5 +316,9 @@
   --sky-day: #183040;
   --sky-dusk: #3B2536;
   --sky-night: #161A3A;
+  --scene-land: #1B2A25;
+  --scene-park: #21352C;
+  --scene-water: #1C3442;
+  --scene-road: #2A3B35;
   --texture-grain-opacity: 0.25;
 }
