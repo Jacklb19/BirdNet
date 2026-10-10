@@ -16,8 +16,8 @@ export interface SitePickerProps {
 }
 
 /**
- * The site new detections are attributed to. A native select keeps the platform's accessible picker; with no
- * sites yet, the control leads to Sites, where one is created.
+ * The place new detections count for: the nearest saved one by default (ADR-25), or one chosen by hand. A native
+ * select keeps the platform's accessible picker; with no places yet, the control leads to Places, where one is created.
  */
 export function SitePicker({ sites, ready, activeId, onSelect }: SitePickerProps): React.JSX.Element {
   const { dict } = useI18n();
@@ -54,7 +54,7 @@ export function SitePicker({ sites, ready, activeId, onSelect }: SitePickerProps
         <span className="bn-listen-site__pin"><Icon name="sites" size="s" /></span>
         <label className="visually-hidden" htmlFor={id}>{t.label}</label>
         <select id={id} className="bn-listen-site__select" value={activeId ?? ''} onChange={choose}>
-          <option value="">{t.none}</option>
+          <option value="">{t.nearest}</option>
           {sites.map((site) => <option key={site.id} value={site.id}>{site.name}</option>)}
         </select>
         <span className="bn-listen-site__chevron"><Icon name="down" size="s" /></span>

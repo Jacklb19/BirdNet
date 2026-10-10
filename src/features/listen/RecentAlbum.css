@@ -50,3 +50,9 @@
   line-height: var(--leading-caption);
   overflow-wrap: anywhere;
 }
+
+.bn-listen-recent__note {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}

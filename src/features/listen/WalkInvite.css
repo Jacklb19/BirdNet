@@ -1,0 +1,38 @@
+/* A plate of its own color, so it reads as an invitation and not as one more card of data. */
+.bn-listen-walk {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-xl);
+  background: var(--plumage-azulejo);
+  color: var(--plumage-azulejo-on);
+}
+
+.bn-listen-walk__icon {
+  display: inline-flex;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-blob);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.bn-listen-walk__body {
+  display: grid;
+  min-width: 0;
+  justify-items: start;
+  gap: var(--space-3);
+}
+
+.bn-listen-walk__title {
+  font-size: var(--text-title);
+  line-height: var(--leading-title);
+}
+
+.bn-listen-walk__error {
+  font-weight: var(--font-weight-semibold);
+}

@@ -15,3 +15,6 @@ export const CONTEXT_CLOCK_REFRESH_MS = 20_000;
 
 /** Latest album stickers shown beside the plate while no session is running (two rows of three). */
 export const RECENT_ALBUM_COUNT = 6;
+
+/** Likely birds of the area still to hear, shown beside the plate while no session is running (two rows of three). */
+export const LIKELY_BIRDS_COUNT = 6;

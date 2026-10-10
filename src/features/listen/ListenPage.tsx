@@ -1,6 +1,7 @@
-import { routeHash } from '../../app/routes';
+import { useState } from 'react';
+import { APPROX_CELL_METERS } from '../../config/contract';
 import { useIsDesktop } from '../../config/layout';
-import { formatCount, useI18n } from '../../i18n';
+import { formatCount, formatMeters, useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
 import { Notice } from '../../shared/ui/Notice';
 import { Page } from '../../shared/ui/Page';
@@ -8,9 +9,9 @@ import { PageHeader } from '../../shared/ui/PageHeader';
 import { ShareChoiceCard } from '../account/ShareChoiceCard';
 import { useOfflineSettings } from '../offline/useOfflineSettings';
 import { useModel } from '../offline/useModel';
-import { requestSettingsSection } from '../settings/settingsSections';
 import { useSites } from '../sites/useSites';
 import { ListenContext, type ZoneSource } from './ListenContext';
+import { LikelyBirds } from './LikelyBirds';
 import { ListenSpectrogram } from './ListenSpectrogram';
 import { useListening } from './listeningContext';
 import { sessionPhase, showsSessionError, startBlocker, type SessionPhase } from './listenState';
@@ -23,6 +24,7 @@ import { SessionErrorNotice } from './SessionErrorNotice';
 import { SessionSince } from './SessionSince';
 import { SingingPlate } from './SingingPlate';
 import { SitePicker } from './SitePicker';
+import { WalkInvite } from './WalkInvite';
 import './ListenPage.css';
 
 type AnnouncedPhase = Extract<SessionPhase, 'preparingModel' | 'waitingMicrophone' | 'listening'>;
@@ -41,7 +43,8 @@ export default function ListenPage(): React.JSX.Element {
   const session = useListening();
   const model = useModel();
   const sites = useSites();
-  const { settings } = useOfflineSettings();
+  const { settings, update } = useOfflineSettings();
+  const [locationFailed, setLocationFailed] = useState(false);
   const isDesktop = useIsDesktop();
   const { species, active, startedAt, sessionError, regionSpecies } = session;
   const phase = sessionPhase(session);
@@ -81,8 +84,9 @@ export default function ListenPage(): React.JSX.Element {
       <ModelNotice model={model} active={active} />
       {zone === 'none' && sites.ready && (
         <Notice tone="caution" icon="sites" title={t.noLocation.title}
-          action={<Button variant="quiet" href={routeHash({ name: 'settings' })} onClick={() => { requestSettingsSection('permissions'); }}>{t.noLocation.action}</Button>}>
-          {t.noLocation.text}
+          action={<Button variant="quiet" onClick={() => { void update({ locationEnabled: true }).then((saved) => { setLocationFailed(!saved); }); }}>{t.noLocation.action}</Button>}>
+          {t.noLocation.text(formatMeters(APPROX_CELL_METERS, locale))}
+          {locationFailed && <p role="alert">{t.noLocation.failed}</p>}
         </Notice>
       )}
 
@@ -93,7 +97,9 @@ export default function ListenPage(): React.JSX.Element {
         </div>
         <div className="bn-listen__side">
           <SessionAlbum species={species} active={active} />
+          {!active && <WalkInvite blockedReason={blocker ? t.record[blocker] : null} />}
           {species.length === 0 && <RecentAlbum />}
+          {!active && <LikelyBirds />}
           <PrivacyNote />
         </div>
       </div>

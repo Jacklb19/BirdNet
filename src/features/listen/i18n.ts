@@ -10,10 +10,11 @@ export const listenMessages = defineMessages({
     since: (time: string) => `Desde las ${time}`,
     sinceFor: (time: string, duration: string) => `Desde las ${time} · ${duration}`,
     site: {
-      label: 'Sitio de la escucha',
-      none: 'Sin sitio',
-      create: 'Sin sitio. Crea uno en Sitios',
-      error: 'No se pudo cambiar el sitio. Inténtalo de nuevo.',
+      label: 'Lugar de la escucha',
+      none: 'Sin lugar',
+      nearest: 'Lugar más cercano',
+      create: 'Sin lugar. Crea uno en Lugares',
+      error: 'No se pudo cambiar el lugar. Inténtalo de nuevo.',
     },
     spectrogram: {
       label: (span: string, low: string, high: string) =>
@@ -101,11 +102,23 @@ export const listenMessages = defineMessages({
       regionOff: 'Sin filtro por zona',
     },
     noLocation: {
-      title: 'Los cantos quedarán sin ubicación',
-      text: 'Elige un sitio arriba o activa «Guardar dónde escuchas» en Ajustes. Sin ubicación los cantos no pueden subirse al mapa (podrás asignarles un sitio después en la Bitácora).',
-      action: 'Abrir Ajustes',
+      title: 'Tus aves aún no tienen lugar en el mapa',
+      text: (distance: string) => `Con la ubicación activada cada canto queda en el punto donde lo oíste, redondeado a unos ${distance}. Sin ella se guarda en el teléfono y puedes asignarle un lugar después en la Bitácora.`,
+      action: 'Usar mi ubicación',
+      failed: 'No se pudo guardar la preferencia en este teléfono.',
     },
     recent: { title: 'Tus últimas aves', open: 'Ver el álbum' },
+    likely: {
+      title: 'Para buscar esta semana',
+      open: 'Ver la guía',
+      text: 'Las aves más probables de tu zona que aún no has oído, según el modelo geográfico.',
+    },
+    walk: {
+      title: 'Sal a caminar',
+      text: (distance: string) => `En modo caminata el mapa dibuja tu recorrido y deja cada ave donde la oíste, a unos ${distance}.`,
+      start: 'Empezar caminata',
+      failed: 'No se pudo activar la ubicación en este teléfono. Actívala en Ajustes e inténtalo de nuevo.',
+    },
     plate: {
       notes: { confidence: 'Confianza', status: 'Estado', windows: 'Ventanas' },
       open: 'Ver la ficha',
@@ -134,10 +147,11 @@ export const listenMessages = defineMessages({
     since: (time: string) => `Since ${time}`,
     sinceFor: (time: string, duration: string) => `Since ${time} · ${duration}`,
     site: {
-      label: 'Listening site',
-      none: 'No site',
-      create: 'No site. Create one in Sites',
-      error: 'The site could not be changed. Try again.',
+      label: 'Listening place',
+      none: 'No place',
+      nearest: 'Nearest place',
+      create: 'No place. Create one in Places',
+      error: 'The place could not be changed. Try again.',
     },
     spectrogram: {
       label: (span: string, low: string, high: string) =>
@@ -225,11 +239,23 @@ export const listenMessages = defineMessages({
       regionOff: 'No area filter',
     },
     noLocation: {
-      title: 'Songs will have no location',
-      text: 'Choose a site above or turn on “Save where you listen” in Settings. Without a location songs cannot go to the map (you can assign them a site later in the log).',
-      action: 'Open Settings',
+      title: 'Your birds have no place on the map yet',
+      text: (distance: string) => `With location on, each song stays where you heard it, rounded to about ${distance}. Without it the song is kept on the phone and you can assign it a place later in the Log.`,
+      action: 'Use my location',
+      failed: 'The preference could not be saved on this phone.',
     },
     recent: { title: 'Your latest birds', open: 'See the album' },
+    likely: {
+      title: 'To look for this week',
+      open: 'See the guide',
+      text: 'The likeliest birds of your area that you have not heard yet, according to the geographic model.',
+    },
+    walk: {
+      title: 'Go for a walk',
+      text: (distance: string) => `In walk mode the map draws your path and leaves each bird where you heard it, within about ${distance}.`,
+      start: 'Start a walk',
+      failed: 'Location could not be turned on for this phone. Turn it on in Settings and try again.',
+    },
     plate: {
       notes: { confidence: 'Confidence', status: 'Status', windows: 'Windows' },
       open: 'See the card',
