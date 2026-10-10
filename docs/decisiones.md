@@ -224,3 +224,67 @@ Elegida por el dueño entre dos propuestas (`diseno-s7/` en la carpeta de trabaj
 - Totales propios en Cuenta (`GET /v1/me/summary`) y lista de especies para el álbum (`GET /v1/me/species`).
 - En el mapa colectivo, el nombre del sitio solo aparece en las detecciones propias (`own`, `site_name`).
 - La verificación en dos pasos queda pendiente.
+
+---
+
+## ADR-22. Ubicación a ~10 m, el GPS primero, y cada persona decide si comparte (Sprint 8, modifica ADR-04 y ADR-16)
+
+### Contexto
+El dueño quiere un mapa donde cada ave quede en el punto en que se oyó al caminar. La celda de ~100 m (ADR-04) y la regla «el sitio manda sobre el GPS» (ADR-16) lo impedían. La decisión es suya (2026-10-10) y cambió también la regla de dominio de `AGENTS.md`.
+
+### Decisión
+- La rejilla pasa de 3 a 4 decimales (celda de ~10 m), en el teléfono y en la API. Sigue sin guardarse ni enviarse la coordenada cruda del dispositivo.
+- Orden de `recordingLocation`: la posición del teléfono (GPS con alta precisión), luego la celda del lugar activo, si no ninguna.
+- Compartir es una elección explícita: `shareMap` en los ajustes locales, sin valor hasta que la persona responde (tarjeta en Escuchar e interruptor en Ajustes). Se lee al sincronizar, de modo que cubre también lo grabado antes; `POST /v1/me/sharing` la aplica a lo ya subido. Mientras no responda, nada se comparte.
+- El mapa de todos solo devuelve filas compartidas o propias (consulta y política RLS `detections_select_shared_or_own`).
+- La interfaz dice con verdad qué se comparte: sin nombre y a unos 10 m. Nunca presenta como privado algo que otros pueden ver.
+
+### Consecuencias
+Una celda de 10 m puede señalar una casa: por eso compartir es opcional y está apagado por defecto. Migración `20261010000000_fine_location_and_sharing.sql`; debe aplicarse antes de desplegar la API, y la API antes que la web.
+
+---
+
+## ADR-23. Índice de fotos incluido en la app y miniaturas más pequeñas (Sprint 8)
+
+### Decisión
+- `public/models/species-photos.json` (1611 fotos, ~370 kB, generado con `npm run data:species-photos`) trae la URL, el autor y la licencia de la foto de las especies de la región; se guarda con la app. Una foto conocida ya no necesita dos consultas a Wikipedia antes de pedir la imagen.
+- Las miniaturas se piden a 500 px (antes 960). Las casillas «Por descubrir» muestran la foto atenuada con contorno punteado en lugar de un espacio vacío.
+
+---
+
+## ADR-24. La app se llama Trino; un sitio que la presenta y una sola barra (Sprint 8, modifica ADR-15)
+
+### Decisión
+- Nombre elegido por el dueño: **Trino**. El modelo sigue siendo BirdNET y se acredita como tal.
+- La página de inicio es un sitio con secciones propias (La guía, Cómo funciona, El mapa, Privacidad) y una barra plana con enlaces a ellas. La misma barra, con las secciones de la app, es la de la app en pantallas anchas, de modo que entrar no cambia de marco. En teléfonos la app usa la barra inferior.
+- La portada demuestra en vez de anunciar: una caminata dibujada donde las aves quedan pegadas, el álbum abierto con una ficha y un barrio a medio explorar. El titular es una sola frase llana, sin el recurso de la frase partida en dos estilos. Todo ejemplo va rotulado como ejemplo.
+- Navegación de la app: Escuchar, Mapa, Guía (álbum y fichas, en `#/guide`), Bitácora y Cuenta. Los lugares se abren desde el mapa.
+- Se quitan de la portada y de los ajustes visibles los detalles técnicos del modelo (quedan en «Opciones técnicas»).
+
+---
+
+## ADR-25. Modo caminata, «Mi mapa» con sendero y territorios, y lugares que agrupan solos (Sprint 8)
+
+### Contexto
+Una página web deja de escuchar cuando el teléfono se bloquea o el navegador pasa a segundo plano; una app nativa quedó descartada. El dueño eligió la propuesta «Sendero» y pidió integrar la idea de los territorios.
+
+### Decisión
+- **Modo caminata**: una sesión de escucha que mantiene la pantalla encendida (Screen Wake Lock, retomado al volver a la pestaña), sigue la posición y dibuja el recorrido. Empezarla activa la preferencia de ubicación. Termina con la sesión, sea como sea que acabe.
+- **El recorrido se guarda solo en el teléfono** (base IndexedDB propia `trino-walks-v1`, hasta 60 caminatas de 2000 celdas; aparte de la cola de sincronización para no subirle la versión, que dejaría sin acceso al Service Worker de la versión anterior durante una actualización): nunca se envía. Los cantos oídos durante la caminata son detecciones normales.
+- **Mi mapa** (vista por defecto): se lee del teléfono, así que funciona sin cuenta y sin conexión. Muestra los cantos propios con su foto, los recorridos como sendero punteado y los **territorios**: hexágonos de ~60 m teñidos con el color del ave más oída en cada uno; un hexágono sin cantos no se dibuja, porque de él no se sabe nada. «De todos» es el mapa compartido de siempre.
+- Para que los cantos sincronizados sigan en «Mi mapa», el historial local conserva su celda (antes se descartaba).
+- **Lugares** (antes Sitios): sin lugar elegido a mano, un canto cuenta para el lugar guardado más cercano a menos de 300 m (`recordingSite`); así los lugares reúnen las caminatas sin que la persona elija nada. Elegir uno a mano sigue mandando.
+- Escuchar invita a caminar y muestra las aves probables de la zona que faltan en el álbum; la Bitácora abre con un resumen (especies, cantos, nuevas de la semana, hora con más cantos) y las últimas caminatas.
+
+### Consecuencias
+La caminata gasta batería (pantalla, GPS y micrófono a la vez) y la interfaz lo dice. El comportamiento con la pantalla bloqueada y la precisión real del GPS solo se comprueban en campo.
+
+---
+
+## ADR-26. Guía de aves: clasificación, estado de conservación y mapa de distribución de GBIF (Sprint 8, amplía ADR-17)
+
+### Decisión
+- La ficha de especie se ordena como una guía: lámina, ficha (orden, familia, estado en la Lista Roja de la UICN), descripción de Wikipedia, «Dónde vive» y, aparte, «Tus registros».
+- Los datos vienen de GBIF (gratuito, sin clave, con CORS): coincidencia exacta del nombre científico (`/v1/species/match`; las coincidencias aproximadas se rechazan y los sinónimos usan la clave aceptada), categoría UICN y teselas de densidad de registros. El mapa muestra dónde se ha observado la especie, no un límite de distribución, y lo dice.
+- Las respuestas de clasificación se guardan para usarlas sin conexión; las teselas no. Si GBIF no responde, la ficha lo indica con una línea y no muestra un mapa vacío.
+- Las aves probables de la zona se calculan para el lugar activo, un lugar guardado, el último canto con ubicación o, a falta de todo, el centro configurado del despliegue: el álbum ya no exige tener un lugar ni pide la posición.
