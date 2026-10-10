@@ -11,11 +11,12 @@ export interface MapFiltersProps {
   /** Scientific names available in the current area. */
   readonly options: readonly string[];
   readonly onSpeciesChange: (species: string | null) => void;
-  readonly period: Period;
-  readonly onPeriodChange: (period: Period) => void;
+  /** Without a period the chips are left out: the person's own map always shows everything they have. */
+  readonly period?: Period;
+  readonly onPeriodChange?: (period: Period) => void;
 }
 
-/** Floating species picker and period chips over the map. */
+/** Floating species picker and, for the shared map, period chips. */
 export function MapFilters({ species, options, onSpeciesChange, period, onPeriodChange }: MapFiltersProps): React.JSX.Element {
   const { dict, locale } = useI18n();
   const m = dict.map.filters;
@@ -48,7 +49,9 @@ export function MapFilters({ species, options, onSpeciesChange, period, onPeriod
         </select>
         <span className="bn-map-filters__icon bn-map-filters__icon--trail"><Icon name="down" size="s" /></span>
       </div>
-      <Segmented variant="chips" options={periodChoices} value={period} onChange={onPeriodChange} label={m.period} />
+      {period !== undefined && onPeriodChange && (
+        <Segmented variant="chips" options={periodChoices} value={period} onChange={onPeriodChange} label={m.period} />
+      )}
     </div>
   );
 }

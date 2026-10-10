@@ -10,7 +10,7 @@
   --map-panel-width: 24rem; /* a species row with its count fits; most of a laptop screen stays map */
   --map-filter-width: 20rem;
   --map-sheet-height: 42%; /* title, totals and about two species, as in the design */
-  --map-filters-height: calc(var(--control-height) + var(--space-3) + var(--touch-min)); /* species field, gap, chips */
+  --map-filters-height: calc(2 * var(--control-height) + 2 * var(--space-3) + var(--touch-min)); /* scope row, species field, period chips, and their gaps */
   /* Enlarged, the sheet stops just under the filters, which stay usable above it. */
   --map-sheet-height-expanded: calc(100% - var(--map-top) - var(--map-filters-height) - var(--space-3));
   --map-sheet-handle-width: var(--space-7);
@@ -43,6 +43,43 @@
 
 .bn-map__overlay > * {
   pointer-events: auto;
+}
+
+/* Whose songs are shown, and the two round tools at the end of the row: territories and places. */
+.bn-map__scope {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  pointer-events: none;
+}
+
+.bn-map__scope > * {
+  pointer-events: auto;
+}
+
+.bn-map__tools {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-2);
+}
+
+.bn-map__tool {
+  display: inline-flex;
+  width: var(--control-height);
+  height: var(--control-height);
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-float);
+}
+
+.bn-map__tool[aria-pressed='true'] {
+  background: var(--color-bg-inverse);
+  color: var(--color-text-inverse);
 }
 
 .bn-map__message {

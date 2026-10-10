@@ -1,0 +1,123 @@
+.bn-walk-start {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* The bird of the moment: a small plate that links to its card. */
+.bn-walk-now {
+  display: flex;
+  min-height: calc(var(--sticker-xs) + 2 * var(--space-3));
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-xl);
+  text-decoration: none;
+}
+
+.bn-walk-now--waiting {
+  background: var(--color-bg-sunken);
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-walk-now__text {
+  display: grid;
+  min-width: 0;
+}
+
+.bn-walk-now__name {
+  color: inherit;
+  font-size: var(--text-title);
+  line-height: var(--leading-title);
+  overflow-wrap: anywhere;
+}
+
+.bn-walk-now--waiting .bn-walk-now__name {
+  color: var(--color-text-primary);
+}
+
+/* Two rings that widen slowly: the phone is listening even when nothing sings. */
+.bn-walk-now__rings {
+  position: relative;
+  width: var(--sticker-xs);
+  height: var(--sticker-xs);
+  flex-shrink: 0;
+}
+
+.bn-walk-now__rings span {
+  position: absolute;
+  inset: 0;
+  border: var(--border-width-strong) solid var(--color-brand);
+  border-radius: var(--radius-pill);
+  animation: bn-walk-ring var(--duration-sky) var(--ease-standard) infinite;
+}
+
+.bn-walk-now__rings span + span {
+  animation-delay: calc(var(--duration-sky) / 2);
+}
+
+@keyframes bn-walk-ring {
+  from { opacity: 0.9; transform: scale(0.3); }
+  to { opacity: 0; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bn-walk-now__rings span {
+    opacity: 0.5;
+    animation: none;
+  }
+
+  .bn-walk-now__rings span + span {
+    transform: scale(0.55);
+  }
+}
+
+/* Time, distance and species in one line: figures first, their names small underneath. */
+.bn-walk-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.bn-walk-stats > div {
+  display: grid;
+  min-width: 0;
+}
+
+.bn-walk-stats > div + div {
+  padding-left: var(--space-3);
+  border-left: var(--border-width) solid var(--color-border-subtle);
+}
+
+/* The figure reads first; the markup keeps the term before its value, as a description list requires. */
+.bn-walk-stats dt {
+  order: 1;
+  color: var(--color-text-secondary);
+}
+
+.bn-walk-stats dd {
+  font-size: var(--text-title-s);
+  line-height: var(--leading-title-s);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.bn-walk-heading {
+  color: var(--color-text-secondary);
+}
+
+.bn-walk-legend {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.bn-walk-legend .bn-icon {
+  flex-shrink: 0;
+}
+
+.bn-walk-link {
+  color: var(--color-brand);
+  font-weight: var(--font-weight-semibold);
+}

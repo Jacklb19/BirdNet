@@ -23,6 +23,24 @@ export const MAP_LAYERS = Object.freeze({
   points: 'points',
 } as const);
 
+/** Sources and layers of the person's own map (ADR-25): explored territories and walked paths, under the songs. */
+export const MAP_WALK_SOURCES = Object.freeze({ territories: 'walk-territories', tracks: 'walk-tracks' } as const);
+export const MAP_WALK_LAYERS = Object.freeze({
+  territoryFill: 'walk-territory-fill',
+  territoryEdge: 'walk-territory-edge',
+  tracks: 'walk-tracks',
+} as const);
+
+/** Dash pattern of a walked path, in line widths: a dot and a gap, so it reads as a trail and not as a road. */
+export const MAP_TRACK_DASH: readonly number[] = Object.freeze([0.1, 2]);
+
+/** Whose songs the map shows: the person's own, read from the phone, or everyone's, asked to the server. */
+export const MAP_SCOPES = Object.freeze(['mine', 'everyone'] as const);
+export type MapScope = (typeof MAP_SCOPES)[number];
+
+/** Framing of the person's own songs and paths when their map opens. */
+export const MAP_OWN_FIT = Object.freeze({ paddingPx: 40, maxZoom: 16 });
+
 /** Layers that react to the pointer: a cluster zooms in, a point opens its details. */
 export const MAP_INTERACTIVE_LAYERS = Object.freeze([MAP_LAYERS.clusters, MAP_LAYERS.points] as const);
 
@@ -106,4 +124,7 @@ export const MAP_TOKENS = Object.freeze({
   pointRadius: '--map-point-radius',
   markerStrokeWidth: '--map-marker-stroke-width',
   labelSize: '--map-label-size',
+  track: '--color-text-primary',
+  trackWidth: '--map-track-width',
+  territoryOpacity: '--map-territory-opacity',
 } as const);
