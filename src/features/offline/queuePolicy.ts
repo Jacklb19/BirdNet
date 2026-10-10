@@ -16,14 +16,23 @@ export function approximateLocation(latitude: number, longitude: number): Approx
 }
 
 /**
- * Cell a new detection is filed under (ADR-16). The active site wins over the device position, so everything
- * heard while a site is chosen counts in that site's statistics even when the GPS drifts into a neighbouring cell;
- * without a site the device cell is used, and with neither the record waits for a site to be assigned.
+ * Cell a new detection is filed under (ADR-16, revised by ADR-22). The device position comes first, so songs are
+ * pinned along the walk; without a position the active place gives its own cell, so a session indoors or without
+ * GPS still has a location; with neither the record waits for a place to be assigned.
  */
 export function recordingLocation(settings: Pick<OfflineSettings, 'activeSiteId' | 'sites'>, device: ApproximateLocation | null): ApproximateLocation | null {
+  if (device) return approximateLocation(device.latitude, device.longitude);
   const site = settings.activeSiteId ? settings.sites?.find((candidate) => candidate.id === settings.activeSiteId) : undefined;
-  if (site) return approximateLocation(site.latitude, site.longitude);
-  return device ? approximateLocation(device.latitude, device.longitude) : null;
+  return site ? approximateLocation(site.latitude, site.longitude) : null;
+}
+
+/**
+ * Whether the person's songs go to everyone's map (ADR-22). Sharing is a choice they make explicitly: until they
+ * have answered, nothing is shared. It is read when a record is sent, so the current answer also covers what was
+ * recorded before it.
+ */
+export function sharesMap(settings: Pick<OfflineSettings, 'shareMap'>): boolean {
+  return settings.shareMap === true;
 }
 
 /**

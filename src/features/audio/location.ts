@@ -2,15 +2,14 @@ import { approximateLocation } from '../offline/queuePolicy';
 import type { ApproximateLocation } from '../offline/types';
 
 /**
- * Geolocation options of every position request (ADR-04): the listening session's watch and the one-off
- * fix of a new site. Only a ~100 m cell is ever kept, so a GPS-grade fix adds no information while
- * draining the battery and exposing a precise position to the page: coarse accuracy is requested.
- * Cached fixes are refused because one could come from a previous place and file data in the wrong
- * cell. The timeout bounds each acquisition attempt so a device without a fix reports it instead of
- * waiting indefinitely.
+ * Geolocation options of every position request (ADR-22): the listening session's watch and the one-off
+ * fix of a new place. Songs are pinned to a cell of about ten metres along a walk, which a network fix
+ * (hundreds of metres off) cannot give, so the GPS is requested. Cached fixes are refused because one
+ * could come from a previous place and file data in the wrong cell. The timeout bounds each acquisition
+ * attempt so a device without a fix reports it instead of waiting indefinitely.
  */
 export const LOCATION_OPTIONS: Readonly<PositionOptions> = Object.freeze({
-  enableHighAccuracy: false,
+  enableHighAccuracy: true,
   maximumAge: 0,
   timeout: 30_000,
 });

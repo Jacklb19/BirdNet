@@ -121,7 +121,13 @@ export const accountMessages = defineMessages({
       decline: 'Ahora no',
       done: 'Listo: se sumaron a tus aportes.',
     },
-    links: { settings: 'Ajustes', privacy: 'Privacidad y datos' },
+    share: {
+      title: '¿Compartir tus cantos en el mapa de todos?',
+      text: (distance: string) => `Otras personas verán tus aves en el mapa, sin tu nombre, a unos ${distance} de donde las oíste. Si escuchas en tu casa, ese punto también se verá. Puedes cambiarlo cuando quieras en Ajustes.`,
+      accept: 'Compartir',
+      decline: 'Solo para mí',
+    },
+    links: { settings: 'Ajustes' },
     signOut: 'Cerrar sesión',
   },
   en: {
@@ -242,7 +248,13 @@ export const accountMessages = defineMessages({
       decline: 'Not now',
       done: 'Done: they were added to your contributions.',
     },
-    links: { settings: 'Settings', privacy: 'Privacy and data' },
+    share: {
+      title: 'Share your songs on everyone’s map?',
+      text: (distance: string) => `Other people will see your birds on the map, without your name, about ${distance} from where you heard them. If you listen at home, that spot shows too. You can change it any time in Settings.`,
+      accept: 'Share',
+      decline: 'Only for me',
+    },
+    links: { settings: 'Settings' },
     signOut: 'Sign out',
   },
 });

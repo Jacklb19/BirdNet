@@ -5,6 +5,7 @@ import { Button } from '../../shared/ui/Button';
 import { Notice } from '../../shared/ui/Notice';
 import { Page } from '../../shared/ui/Page';
 import { PageHeader } from '../../shared/ui/PageHeader';
+import { ShareChoiceCard } from '../account/ShareChoiceCard';
 import { useOfflineSettings } from '../offline/useOfflineSettings';
 import { useModel } from '../offline/useModel';
 import { requestSettingsSection } from '../settings/settingsSections';
@@ -46,8 +47,8 @@ export default function ListenPage(): React.JSX.Element {
   const phase = sessionPhase(session);
   const siteName = sites.active?.name ?? null;
   const count = formatCount(t.list.count, species.length, locale);
-  // Same rule as the stored records (ADR-16): the site's cell first, then the device's, otherwise none.
-  const zone: ZoneSource = sites.active ? 'site' : settings?.locationEnabled ? 'device' : 'none';
+  // Same rule as the stored records (ADR-16, ADR-22): the device's cell first, then the active place's, otherwise none.
+  const zone: ZoneSource = settings?.locationEnabled ? 'device' : sites.active ? 'site' : 'none';
 
   const title = active
     ? (siteName ? t.listeningAt(siteName) : t.listening)
@@ -75,6 +76,7 @@ export default function ListenPage(): React.JSX.Element {
       {isDesktop ? header : <div className="visually-hidden">{header}</div>}
       <ListenContext picker={picker} zone={zone} regionSpecies={regionSpecies} active={active} />
 
+      <ShareChoiceCard />
       {sessionError !== null && showsSessionError(sessionError, model.state) && <SessionErrorNotice error={sessionError} />}
       <ModelNotice model={model} active={active} />
       {zone === 'none' && sites.ready && (

@@ -90,8 +90,8 @@ export const listenMessages = defineMessages({
     openSettings: 'Abrir Ajustes',
     context: {
       label: 'Contexto de la escucha',
-      zoneSite: 'Zona del sitio · ~100 m',
-      zoneDevice: 'Zona por GPS · ~100 m',
+      zoneSite: (distance: string) => `Zona del lugar · ~${distance}`,
+      zoneDevice: (distance: string) => `GPS · ~${distance}`,
       zoneNone: 'Sin ubicación',
       sky: { dawn: 'Alba', day: 'Día', dusk: 'Atardecer', night: 'Noche' },
       region: {
@@ -214,8 +214,8 @@ export const listenMessages = defineMessages({
     openSettings: 'Open Settings',
     context: {
       label: 'Listening context',
-      zoneSite: 'Site area · ~100 m',
-      zoneDevice: 'GPS area · ~100 m',
+      zoneSite: (distance: string) => `Place area · ~${distance}`,
+      zoneDevice: (distance: string) => `GPS · ~${distance}`,
       zoneNone: 'No location',
       sky: { dawn: 'Dawn', day: 'Day', dusk: 'Dusk', night: 'Night' },
       region: {

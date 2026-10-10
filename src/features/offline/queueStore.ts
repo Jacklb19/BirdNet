@@ -67,7 +67,8 @@ export async function updateSettings(changes: EditableSettings): Promise<void> {
     const records = await request(tx.objectStore(STORES.detections).getAll()) as StoredDetection[];
     const audio = await request(tx.objectStore(STORES.audio).getAll()) as StoredAudio[];
     assertQueueCapacity(records.reduce((total, row) => total + row.bytes, 0) + audio.reduce((total, row) => total + row.bytes, 0), 0, next.maxBytes);
-    if (typeof next.audioConsent !== 'boolean' || typeof next.locationEnabled !== 'boolean') throw new Error('Invalid preferences.');
+    if (typeof next.audioConsent !== 'boolean' || typeof next.locationEnabled !== 'boolean' ||
+        (next.shareMap !== undefined && typeof next.shareMap !== 'boolean')) throw new Error('Invalid preferences.');
     await writeSettings(tx, next);
   });
   announceQueueChange(['settings']);

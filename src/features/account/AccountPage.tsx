@@ -7,7 +7,6 @@ import { Page } from '../../shared/ui/Page';
 import { PageHeader } from '../../shared/ui/PageHeader';
 import { useOfflineSettings } from '../offline/useOfflineSettings';
 import { useQueueStatus } from '../offline/useQueueStatus';
-import { requestSettingsSection } from '../settings/settingsSections';
 import { useSites } from '../sites/useSites';
 import { useAccountContext } from './accountContext';
 import { AccountSummaryCard } from './AccountSummaryCard';
@@ -16,6 +15,7 @@ import { LocalStatsCard } from './LocalStatsCard';
 import { localTotals } from './localTotals';
 import { ProfileCard } from './ProfileCard';
 import { RecoveryForm } from './RecoveryForm';
+import { ShareChoiceCard } from './ShareChoiceCard';
 import { SignInForm } from './SignInForm';
 import { SyncRow } from './SyncRow';
 import { pendingSync } from './syncStatus';
@@ -52,6 +52,7 @@ export default function AccountPage(): React.JSX.Element {
       {account.configured && !session && <SignInForm account={account} />}
 
       {session && account.recovering && <RecoveryForm account={account} />}
+      <ShareChoiceCard />
 
       {session && (
         <>
@@ -73,8 +74,6 @@ export default function AccountPage(): React.JSX.Element {
 
       <ListGroup>
         <ListRow icon="settings" label={texts.links.settings} href={routeHash({ name: 'settings' })} />
-        <ListRow icon="privacy" label={texts.links.privacy} href={routeHash({ name: 'settings' })}
-          onClick={() => { requestSettingsSection('permissions'); }} />
       </ListGroup>
 
       {session && (

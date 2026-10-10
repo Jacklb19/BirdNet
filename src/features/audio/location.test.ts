@@ -38,15 +38,15 @@ const position = (latitude: number, longitude: number): GeolocationPosition => (
 describe('watchApproximateLocation', () => {
   afterEach(() => { vi.unstubAllGlobals(); });
 
-  it('requests coarse fixes, reports only the ~100 m cell and stops the watch', () => {
+  it('requests GPS fixes, reports only the ~10 m cell and stops the watch', () => {
     const device = stubGeolocation(7);
     const onChange = vi.fn();
     const stop = watchApproximateLocation(onChange);
     expect(device.options()).toBe(LOCATION_OPTIONS);
-    expect(LOCATION_OPTIONS.enableHighAccuracy).toBe(false);
+    expect(LOCATION_OPTIONS.enableHighAccuracy).toBe(true);
 
     device.report(position(4.6512345, -74.0834567));
-    expect(onChange).toHaveBeenLastCalledWith({ latitude: 4.651, longitude: -74.083 });
+    expect(onChange).toHaveBeenLastCalledWith({ latitude: 4.6512, longitude: -74.0835 });
 
     stop();
     expect(device.clearWatch).toHaveBeenCalledWith(7);

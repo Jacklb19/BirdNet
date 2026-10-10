@@ -1,0 +1,30 @@
+.bn-settings-advanced {
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-raised);
+}
+
+.bn-settings-advanced__summary {
+  display: grid;
+  min-height: var(--touch-min);
+  gap: var(--space-1);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-xl);
+  cursor: pointer;
+}
+
+.bn-settings-advanced__title {
+  font-weight: var(--font-weight-semibold);
+}
+
+.bn-settings-advanced__detail {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-settings-advanced__body {
+  display: grid;
+  gap: var(--space-5);
+  padding: 0 var(--space-4) var(--space-5);
+}

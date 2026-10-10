@@ -36,6 +36,8 @@ export interface OfflineSettings {
   locationEnabled: boolean;
   session: SyncSession | null;
   activeSiteId?: string | null;
+  /** The person's answer to "share my songs on everyone's map"; absent until they have answered. */
+  shareMap?: boolean;
   /** Last site list fetched online, so a site can be chosen while offline. */
   sites?: CachedSite[];
   /** Account that fetched `sites`; absent on lists cached before it was recorded. */

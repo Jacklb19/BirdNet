@@ -37,6 +37,8 @@ describe('synchronization trust and retry boundaries', () => {
     const body = JSON.parse(vi.mocked(fetch).mock.calls[0]?.[1]?.body as string) as { detections: Record<string, unknown>[] };
     expect(body.detections[0]).not.toHaveProperty('owner');
     expect(body.detections[0]).not.toHaveProperty('audioId');
+    // Nothing goes to everyone's map until the person has chosen to share (ADR-22).
+    expect(body.detections[0]).toMatchObject({ shared: false });
   });
   it.each(['http', 'network', 'unexpected'])('preserves records when delivery cannot be confirmed: %s', async (failure) => {
     if (failure === 'http') vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 503 }));

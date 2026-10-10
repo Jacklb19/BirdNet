@@ -6,6 +6,10 @@ export const settingsMessages = defineMessages({
   es: {
     title: 'Ajustes',
     back: 'Cuenta',
+    advanced: {
+      title: 'Opciones técnicas',
+      detail: 'El modelo de identificación y el espacio que usa la app. Se cuidan solos.',
+    },
     model: {
       title: 'Modelo de identificación',
       checking: 'Comprobando el modelo…',
@@ -35,7 +39,10 @@ export const settingsMessages = defineMessages({
     permissions: {
       title: 'Permisos',
       location: 'Guardar dónde escuchas',
-      locationDetail: (distance: string) => `Solo una zona aproximada (unos ${distance}), nunca tu posición exacta.`,
+      locationDetail: (distance: string) => `Tu posición redondeada a unos ${distance}, para clavar cada canto en el mapa. La coordenada exacta del teléfono nunca se guarda.`,
+      share: 'Compartir mis cantos en el mapa de todos',
+      shareDetail: (distance: string) => `Otras personas los ven sin tu nombre, a unos ${distance} de donde estabas. Apagado, solo los ves tú.`,
+      sharePending: 'El cambio vale para los cantos nuevos. Los que ya subiste se actualizarán cuando lo cambies de nuevo con conexión y sesión iniciada.',
       audio: 'Enviar cantos dudosos',
       audioDetail: 'Para verificarlos con un modelo más grande en la nube. Solo los de confianza media; el resto del audio nunca sale del teléfono.',
     },
@@ -66,12 +73,15 @@ export const settingsMessages = defineMessages({
       photos: 'Fotos',
       photosDetail: 'Imagen principal del artículo de Wikipedia de cada especie, desde Wikimedia Commons. Cada foto muestra su autor y su licencia.',
     },
-    intro: 'Ver la página de inicio',
     saveError: 'No se pudieron leer o guardar tus ajustes en el teléfono. Inténtalo de nuevo.',
   },
   en: {
     title: 'Settings',
     back: 'Account',
+    advanced: {
+      title: 'Technical options',
+      detail: 'The identification model and the space the app uses. They look after themselves.',
+    },
     model: {
       title: 'Identification model',
       checking: 'Checking the model…',
@@ -101,7 +111,10 @@ export const settingsMessages = defineMessages({
     permissions: {
       title: 'Permissions',
       location: 'Save where you listen',
-      locationDetail: (distance: string) => `Only an approximate area (about ${distance}), never your exact position.`,
+      locationDetail: (distance: string) => `Your position rounded to about ${distance}, to pin each song on the map. The phone’s exact coordinate is never stored.`,
+      share: 'Share my songs on everyone’s map',
+      shareDetail: (distance: string) => `Other people see them without your name, about ${distance} from where you were. Off, only you see them.`,
+      sharePending: 'The change applies to new songs. The ones already uploaded will follow when you change it again online and signed in.',
       audio: 'Send doubtful songs',
       audioDetail: 'To check them with a larger model in the cloud. Only medium-confidence ones; the rest of the audio never leaves the phone.',
     },
@@ -132,7 +145,6 @@ export const settingsMessages = defineMessages({
       photos: 'Photos',
       photosDetail: 'The main image of each species’ Wikipedia article, from Wikimedia Commons. Every photo shows its author and license.',
     },
-    intro: 'See the home page',
     saveError: 'Your settings could not be read or saved on the phone. Try again.',
   },
 });

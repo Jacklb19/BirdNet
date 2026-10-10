@@ -1,7 +1,7 @@
 import { API_ROUTES, apiFetch } from '../../config/api';
 import { AUDIO_UPLOAD_MIME_TYPE, audioObjectPath, SYNC_BATCH_SIZE } from '../../config/contract';
 import { config } from '../../config/env';
-import { acknowledgedIds } from './queuePolicy';
+import { acknowledgedIds, sharesMap } from './queuePolicy';
 import { acknowledge, getAudio, getSettings, listDetections } from './queueStore';
 import { JSON_HEADERS, SYNC_LOCK_NAME } from './offline.constants';
 import { isTrustedStorageUrl } from './trustedStorage';
@@ -11,13 +11,15 @@ import type { StoredDetection, SyncSession } from './types';
 const UPSERT_HEADERS = { 'x-upsert': 'true' } as const;
 const MILLISECONDS_PER_SECOND = 1000;
 
-function payload(row: StoredDetection, audioPath?: string): object {
-  return { id: row.id, species: row.species, confidence: row.confidence, status: row.status, recorded_at: row.recorded_at, location: row.location, model_version: row.model_version, ...(audioPath ? { audio_path: audioPath } : {}), ...(row.siteId ? { site_id: row.siteId } : {}) };
+function payload(row: StoredDetection, shared: boolean, audioPath?: string): object {
+  return { id: row.id, species: row.species, confidence: row.confidence, status: row.status, recorded_at: row.recorded_at, location: row.location, model_version: row.model_version, ...(audioPath ? { audio_path: audioPath } : {}), ...(row.siteId ? { site_id: row.siteId } : {}), shared };
 }
 async function send(rows: StoredDetection[], session: SyncSession, audioPath?: string): Promise<string[]> {
+  // Read at the moment of sending: the person's current answer applies to everything still on the phone.
+  const shared = sharesMap(await getSettings());
   const response = await apiFetch(API_ROUTES.detectionsBatch, {
     method: 'POST', token: session.accessToken, headers: JSON_HEADERS,
-    body: JSON.stringify({ detections: rows.map((row) => payload(row, audioPath)) }),
+    body: JSON.stringify({ detections: rows.map((row) => payload(row, shared, audioPath)) }),
   });
   return acknowledgedIds(await response.json(), rows.map((row) => row.id));
 }
