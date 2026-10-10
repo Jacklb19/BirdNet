@@ -10,20 +10,20 @@ export interface SpeciesPhoto {
   readonly license: string;
 }
 
-/** `--photo-hero` of src/styles/tokens.css, in rem: the largest box a photo fills (species.test.ts keeps both equal). */
-export const PHOTO_HERO_REM = 18;
-
-/** CSS pixels per rem at the browsers' default root font size. */
-const DEFAULT_ROOT_FONT_PX = 16;
-
-/** Device pixels per CSS pixel the thumbnail is sized for, so it stays sharp on high-density phone screens. */
-const THUMBNAIL_PIXEL_DENSITY = 2;
+/**
+ * Requested thumbnail width in pixels. Commons serves thumbnails only at a few standard widths; this one covers the
+ * largest sticker (`--sticker-xl`, checked by species.test.ts) at twice the density, and every smaller use reuses
+ * it, so a species costs one small image. Part of every cached entry and of the bundled index
+ * (scripts/build-species-photos.py), so changing it refetches the photos instead of serving the old size.
+ */
+export const THUMBNAIL_WIDTH_PX = 500;
 
 /**
- * Requested thumbnail width in pixels: the hero box at twice the density; rows (--photo-row) and avatars are
- * smaller and reuse it. Part of every cached entry, so changing it refetches the photos instead of serving the old size.
+ * Photos of the birds likely in the deployment region, written by scripts/build-species-photos.py and precached by
+ * the service worker (ADR-23): those species show their photo without any lookup. The file name mirrors
+ * MODEL_FILES.speciesPhotos in build.config.mjs (checked by species.test.ts).
  */
-export const THUMBNAIL_WIDTH_PX = PHOTO_HERO_REM * DEFAULT_ROOT_FONT_PX * THUMBNAIL_PIXEL_DENSITY;
+export const SPECIES_PHOTOS_URL = `${config.modelAssetsBaseUrl}/species-photos.json`;
 
 /**
  * MediaWiki Action API requests (https://www.mediawiki.org/wiki/API:Query). `origin: '*'` is what allows an
@@ -58,6 +58,36 @@ export class PhotoLookupError extends Error {}
 
 const memory = new Map<string, SpeciesPhoto | null>();
 const inflight = new Map<string, Promise<SpeciesPhoto | null>>();
+
+/**
+ * The bundled index as a lookup table (each entry is `[thumbnail URL, author or null, license]`), or an empty one when the file is missing, was built for another thumbnail
+ * width or cannot be read: species then fall back to the live lookup, exactly as before the index existed.
+ */
+export function parsePhotoIndex(body: unknown): ReadonlyMap<string, SpeciesPhoto> {
+  const index = new Map<string, SpeciesPhoto>();
+  const file = body as { width?: unknown; photos?: unknown } | null;
+  if (!file || file.width !== THUMBNAIL_WIDTH_PX || !file.photos || typeof file.photos !== 'object') return index;
+  for (const [scientificName, entry] of Object.entries(file.photos as Record<string, unknown>)) {
+    if (!Array.isArray(entry)) continue;
+    const [url, author, license] = entry as unknown[];
+    if (typeof url !== 'string' || typeof license !== 'string' || !license || (author !== null && typeof author !== 'string')) continue;
+    // Same rule as the live lookup: only the configured image hosts, so every indexed photo can be cached offline.
+    try { if (!isSpeciesPhotoUrl(new URL(url))) continue; } catch { continue; }
+    index.set(scientificName, { url, author, license });
+  }
+  return index;
+}
+
+let photoIndex: Promise<ReadonlyMap<string, SpeciesPhoto>> | null = null;
+
+/** Loaded once per page; any failure yields an empty index and is retried on the next page load. */
+function loadPhotoIndex(): Promise<ReadonlyMap<string, SpeciesPhoto>> {
+  photoIndex ??= fetch(SPECIES_PHOTOS_URL)
+    .then((response) => (response.ok ? response.json() as Promise<unknown> : null))
+    .then(parsePhotoIndex)
+    .catch(() => new Map<string, SpeciesPhoto>());
+  return photoIndex;
+}
 
 function stripHtml(value: unknown): string {
   return typeof value === 'string' ? value.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim() : '';
@@ -141,7 +171,7 @@ async function getJson(base: string, params: Readonly<Record<string, string>>): 
 }
 
 /**
- * Looks the photo up once; a confirmed absence (no page image, file not on Commons, no license) is remembered.
+ * The photo of a species: from the bundled regional index when it is there, otherwise looked up once; a confirmed absence (no page image, file not on Commons, no license) is remembered.
  * Network failures and unusable answers reject without caching anything, so they are retried on the next visit.
  */
 export function fetchSpeciesPhoto(scientificName: string): Promise<SpeciesPhoto | null> {
@@ -151,6 +181,8 @@ export function fetchSpeciesPhoto(scientificName: string): Promise<SpeciesPhoto 
   const pending = inflight.get(scientificName);
   if (pending) return pending;
   const lookup = (async () => {
+    const indexed = (await loadPhotoIndex()).get(scientificName);
+    if (indexed) { memory.set(scientificName, indexed); return indexed; }
     const file = parsePageImage(await getJson(config.photos.lookupApiUrl, { ...MEDIAWIKI.pageImage, titles: scientificName }));
     const photo = file ? parseImageInfo(await getJson(config.photos.metadataApiUrl, {
       ...MEDIAWIKI.imageInfo, iiurlwidth: String(THUMBNAIL_WIDTH_PX), titles: `${MEDIAWIKI.fileNamespace}${file}`,

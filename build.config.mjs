@@ -45,11 +45,12 @@ export const ICONS_DIR = 'icons';
  * VITE_MODEL_ASSETS_BASE_URL in src/config/env.ts.
  */
 export const MODEL_ASSETS_DIR = 'models';
-/** File names inside MODEL_ASSETS_DIR written by scripts/prepare-model.py and scripts/build-species-names.mjs. */
+/** File names inside MODEL_ASSETS_DIR written by scripts/prepare-model.py, build-species-names.mjs and build-species-photos.py. */
 export const MODEL_FILES = Object.freeze({
   manifest: 'manifest.json',
   labels: 'labels.txt',
   speciesNames: 'species-names.json',
+  speciesPhotos: 'species-photos.json',
 });
 
 /** Rollup name of the service worker entry (src/features/offline/service-worker.ts). */
@@ -116,6 +117,7 @@ export const PRECACHE_GLOB_PATTERNS = Object.freeze([
   WEB_MANIFEST,
   `${MODEL_ASSETS_DIR}/${MODEL_FILES.manifest}`,
   `${MODEL_ASSETS_DIR}/${MODEL_FILES.speciesNames}`,
+  `${MODEL_ASSETS_DIR}/${MODEL_FILES.speciesPhotos}`,
   `${ICONS_DIR}/*.svg`,
   `${ASSETS_DIR}/**/*.{${PRECACHE_ASSET_EXTENSIONS.join(',')}}`,
 ]);
