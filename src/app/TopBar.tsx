@@ -17,7 +17,7 @@ export function TopBar({ current }: { readonly current: Section }): React.JSX.El
     <header className="bn-topbar">
       <div className="bn-topbar__inner">
         <a className="bn-topbar__brand" href={routeHash({ name: 'listen' })}>
-          <BrandMark name={dict.app.name} edition={dict.app.edition} />
+          <BrandMark name={dict.app.name} />
         </a>
         <nav className="bn-topbar__nav" aria-label={dict.app.navLabel}>
           <ul>

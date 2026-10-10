@@ -173,8 +173,9 @@ describe('deployment configuration', () => {
     expect(webManifest.theme_color?.toUpperCase()).toBe(lightToken('--color-bg-canvas'));
     expect(webManifest.background_color?.toUpperCase()).toBe(lightToken('--color-bg-canvas'));
     expect(attribute(indexHtml, /<meta name="theme-color" content="([^"]+)"/)).toBe(lightToken('--color-bg-canvas'));
-    expect(attribute(appIcon, /<rect[^>]*fill="([^"]+)"/)).toBe(lightToken('--color-brand'));
-    expect(attribute(appIcon, /<path[^>]*fill="([^"]+)"/)).toBe(lightToken('--color-on-brand'));
+    // The icon is the brand mark: the bird in ink on the sun yellow of "singing now".
+    expect(attribute(appIcon, /<rect[^>]*fill="([^"]+)"/)).toBe(lightToken('--color-accent'));
+    expect(attribute(appIcon, /<path[^>]*fill="([^"]+)"/)).toBe(lightToken('--color-on-accent'));
   });
 
   it('shows the default-locale title and description before the app starts', () => {

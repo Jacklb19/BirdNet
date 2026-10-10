@@ -52,6 +52,11 @@
   --color-sono-mark: #0B6E4E;
   --color-scrim: rgb(22 54 47 / 40%);
   --color-shadow: rgb(22 54 47 / 16%);
+  /* Google's own logo colors, fixed by its brand guidelines: used only inside the "Continue with Google" mark. */
+  --color-google-blue: #4285F4;
+  --color-google-red: #EA4335;
+  --color-google-yellow: #FBBC05;
+  --color-google-green: #34A853;
   --color-sticker-edge: #FFFFFF;
   --color-sticker-shadow: rgb(22 54 47 / 35%);
   --color-map-photo-ring: #FFFFFF;
@@ -174,6 +179,8 @@
   --sticker-l: 12rem;
   --sticker-xl: 15rem;
   --sticker-tilt: 4deg;
+  --sticker-missing-filter: grayscale(1) contrast(0.7);
+  --sticker-missing-opacity: 0.55;
   --blob-tilt: -6deg;
   --album-cell: 9rem;
   --swatch-height: 6.5rem;
@@ -185,7 +192,6 @@
 
   /* Shell — brand mark, tab indicator, live player */
   --brand-mark-size: 2.25rem;
-  --brand-tick-width: 2;
   --tab-indicator-height: 0.125rem;
   --live-player-height: 3.5rem;
   --live-photo-size: 2.5rem;

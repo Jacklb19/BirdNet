@@ -3,10 +3,9 @@ import { defineMessages } from '../i18n/defineMessages';
 /** Application shell: document metadata, navigation, the live player and page-level fallbacks. */
 export const appMessages = defineMessages({
   es: {
-    name: 'BirdNet',
-    edition: 'Local',
-    documentTitle: 'BirdNet Local — Monitoreo acústico de aves',
-    description: 'Escucha, identifica y registra aves en el teléfono, incluso sin conexión.',
+    name: 'Trino',
+    documentTitle: 'Trino — Reconoce las aves por su canto',
+    description: 'Sal a caminar: Trino reconoce las aves por su canto en tu teléfono, sin conexión, y las deja en tu mapa y en tu álbum.',
     skipToContent: 'Saltar al contenido',
     navLabel: 'Secciones',
     nav: { listen: 'Escuchar', log: 'Bitácora', map: 'Mapa', sites: 'Sitios', account: 'Cuenta' },
@@ -24,10 +23,9 @@ export const appMessages = defineMessages({
     reload: 'Recargar',
   },
   en: {
-    name: 'BirdNet',
-    edition: 'Local',
-    documentTitle: 'BirdNet Local — Acoustic bird monitoring',
-    description: 'Listen to, identify and log birds on your phone, even offline.',
+    name: 'Trino',
+    documentTitle: 'Trino — Know the birds by their song',
+    description: 'Go for a walk: Trino recognizes birds by their song on your phone, offline, and puts them on your map and in your album.',
     skipToContent: 'Skip to content',
     navLabel: 'Sections',
     nav: { listen: 'Listen', log: 'Log', map: 'Map', sites: 'Sites', account: 'Account' },

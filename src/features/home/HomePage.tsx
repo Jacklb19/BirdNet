@@ -32,7 +32,7 @@ export interface HomePageProps {
 }
 
 /**
- * Home page (ADR-15): what BirdNet Local is, how it works and how it treats privacy, with the two ways in. The first
+ * Home page (ADR-15): what Trino is, how it works and how it treats privacy, with the two ways in. The first
  * "start" also starts the one model download (ADR-19); nothing else is downloaded without being asked for.
  */
 export default function HomePage({ onEnter }: HomePageProps): React.JSX.Element {
@@ -58,7 +58,7 @@ export default function HomePage({ onEnter }: HomePageProps): React.JSX.Element 
   return (
     <div className="bn-home">
       <header className="bn-home__top">
-        <BrandMark name={dict.app.name} edition={dict.app.edition} />
+        <BrandMark name={dict.app.name} />
         <a className="bn-home__signin" href={routeHash({ name: 'account' })} onClick={(event) => { event.preventDefault(); onEnter('account'); }}>
           {texts.signIn}
         </a>
