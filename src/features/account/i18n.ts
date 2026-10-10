@@ -11,7 +11,7 @@ export const accountMessages = defineMessages({
     },
     signIn: {
       title: 'Suma tus cantos al mapa',
-      intro: 'Con una cuenta, tus cantos se suben al mapa compartido y a las estadísticas de tus sitios. Sin ella, todo sigue funcionando en este teléfono.',
+      intro: 'Con una cuenta, tus cantos se suben al mapa compartido y a las estadísticas de tus lugares. Sin ella, todo sigue funcionando en este teléfono.',
       modeLabel: 'Qué quieres hacer',
       modes: { signIn: 'Iniciar sesión', signUp: 'Crear cuenta' },
       email: 'Correo electrónico',
@@ -66,7 +66,7 @@ export const accountMessages = defineMessages({
       title: 'Tus aportes',
       songs: { one: 'canto', other: 'cantos' },
       species: { one: 'especie', other: 'especies' },
-      sites: { one: 'sitio', other: 'sitios' },
+      sites: { one: 'lugar', other: 'lugares' },
       days: { one: 'día con cantos', other: 'días con cantos' },
       since: (date: string) => `Registras desde el ${date}.`,
       album: 'Abrir mi álbum',
@@ -108,7 +108,7 @@ export const accountMessages = defineMessages({
       title: 'En este teléfono',
       songs: { one: 'canto', other: 'cantos' },
       species: { one: 'especie', other: 'especies' },
-      sites: { one: 'sitio', other: 'sitios' },
+      sites: { one: 'lugar', other: 'lugares' },
       error: 'No se pudieron leer los datos guardados en el teléfono.',
     },
     claim: {
@@ -138,7 +138,7 @@ export const accountMessages = defineMessages({
     },
     signIn: {
       title: 'Add your songs to the map',
-      intro: 'With an account, your songs are uploaded to the shared map and to your sites’ statistics. Without one, everything keeps working on this phone.',
+      intro: 'With an account, your songs are uploaded to the shared map and to your places’ statistics. Without one, everything keeps working on this phone.',
       modeLabel: 'What do you want to do',
       modes: { signIn: 'Sign in', signUp: 'Create account' },
       email: 'Email',
@@ -193,7 +193,7 @@ export const accountMessages = defineMessages({
       title: 'Your contributions',
       songs: { one: 'song', other: 'songs' },
       species: { one: 'species', other: 'species' },
-      sites: { one: 'site', other: 'sites' },
+      sites: { one: 'place', other: 'places' },
       days: { one: 'day with songs', other: 'days with songs' },
       since: (date: string) => `Recording since ${date}.`,
       album: 'Open my album',
@@ -235,7 +235,7 @@ export const accountMessages = defineMessages({
       title: 'On this phone',
       songs: { one: 'song', other: 'songs' },
       species: { one: 'species', other: 'species' },
-      sites: { one: 'site', other: 'sites' },
+      sites: { one: 'place', other: 'places' },
       error: 'The data kept on the phone could not be read.',
     },
     claim: {
