@@ -3,13 +3,14 @@ import { useAudioCapture } from '../audio/hooks/useAudioCapture';
 import type { ClassifiedDetection } from '../inference/detectionPolicy';
 import { mergeSession, type SessionSpecies } from './session';
 import {
-  ListeningContext, ListeningSignalContext, type ListeningContextValue, type ListeningSignalValue,
+  ListeningContext, ListeningSignalContext, type ListeningContextValue, type ListeningMode, type ListeningSignalValue,
 } from './listeningContext';
 
 /** Owns the one listening session of the app; screens read it through useListening() / useListeningSignal(). */
 export function ListeningProvider({ children }: { readonly children: ReactNode }): React.JSX.Element {
   const [species, setSpecies] = useState<readonly SessionSpecies[]>([]);
   const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [mode, setMode] = useState<ListeningMode>('listen');
 
   // Every analysed window, including silent ones, refreshes who is singing now.
   const onWindowAnalysed = useCallback((detections: readonly ClassifiedDetection[], analysedAt: number): void => {
@@ -21,8 +22,9 @@ export function ListeningProvider({ children }: { readonly children: ReactNode }
     rmsLevel, peakLevel, latestSpectrogram, sampleRate, windowCount, droppedWindows, spectrogramLatencyMs, inferenceLatencyMs, endToEndLatencyMs,
   } = useAudioCapture({ onWindowAnalysed });
 
-  const start = useCallback(async (): Promise<void> => {
+  const start = useCallback(async (next: ListeningMode = 'listen'): Promise<void> => {
     setSpecies([]);
+    setMode(next);
     setStartedAt(Date.now());
     await startListening();
   }, [startListening]);
@@ -44,9 +46,10 @@ export function ListeningProvider({ children }: { readonly children: ReactNode }
     singing: active ? species.find((row) => row.singingNow) ?? null : null,
     startedAt: active ? startedAt : null,
     active,
+    walking: active && mode === 'walk',
     start,
     stop,
-  }), [captureState, modelStatus, sessionError, regionSpecies, species, active, startedAt, start, stop]);
+  }), [captureState, modelStatus, sessionError, regionSpecies, species, active, mode, startedAt, start, stop]);
 
   const signal = useMemo<ListeningSignalValue>(() => ({
     rmsLevel, peakLevel, latestSpectrogram, sampleRate, windowCount, droppedWindows, spectrogramLatencyMs, inferenceLatencyMs, endToEndLatencyMs,

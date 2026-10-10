@@ -22,7 +22,7 @@ export interface PhotoMarkerOptions {
   readonly rows: () => readonly MapDetection[];
 }
 
-function stickerElement(row: MapDetection, options: PhotoMarkerOptions): HTMLButtonElement {
+function stickerElement(row: MapDetection, options: PhotoMarkerOptions): HTMLElement {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'bn-map-photo';
@@ -39,7 +39,12 @@ function stickerElement(row: MapDetection, options: PhotoMarkerOptions): HTMLBut
     image.src = photo.url;
     button.append(image);
   }).catch(() => undefined);
-  return button;
+  // MapLibre positions a marker through its element's transform, which the sticker's own lift and landing
+  // animation would override; so the marker is a plain anchor and the sticker moves inside it.
+  const anchor = document.createElement('span');
+  anchor.className = 'bn-map-photo-anchor';
+  anchor.append(button);
+  return anchor;
 }
 
 export function photoMarkers(map: MapLibreMap, options: PhotoMarkerOptions): PhotoMarkers {

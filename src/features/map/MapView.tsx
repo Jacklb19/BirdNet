@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  AttributionControl, Map as MapLibreMap, NavigationControl, Popup, setWorkerUrl,
+  AttributionControl, Map as MapLibreMap, Marker, NavigationControl, Popup, setWorkerUrl,
   type GeoJSONSource, type IControl, type MapLayerMouseEvent,
 } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -11,11 +11,13 @@ import { config } from '../../config/env';
 import { APPROX_CELL_METERS } from '../../config/contract';
 import { formatDate, formatMeters, formatPercent, useI18n, type Locale, type Messages } from '../../i18n';
 import { useTheme } from '../../theme';
+import type { ApproximateLocation } from '../offline/types';
 import { commonName, useSpeciesNames } from '../species/speciesNames';
 import { toFeatureCollection, type MapDetection, type MapResult } from './mapData';
 import { photoMarkers, type PhotoMarkers } from './mapMarkers';
 import { addDetectionLayers, repaintDetectionLayers } from './mapLayers';
 import { popupContent } from './mapPopup';
+import { addWalkLayers, NO_WALK_OVERLAY, repaintWalkLayers, setWalkOverlay, type WalkOverlay } from './mapWalkLayers';
 import {
   MAP_CONFIDENCE_FRACTION_DIGITS, MAP_CONTROLS, MAP_INTERACTIVE_LAYERS, MAP_LAYERS, MAP_POINTER_CLASS, MAP_POPUP,
   MAP_SOURCE_ID, MAP_STYLE_URLS,
@@ -80,10 +82,14 @@ export interface MapViewProps {
   readonly overlay?: ReactNode;
   /** Extra control rendered in the corner of the zoom buttons. */
   readonly control?: ReactNode;
+  /** Paths and territories of the person's own map, drawn under the songs. */
+  readonly walk?: WalkOverlay;
+  /** Cell the person is in during a walk; null hides the marker. */
+  readonly position?: ApproximateLocation | null;
 }
 
 /** MapLibre canvas with clustered detections; colors and sizes follow the active theme's tokens. */
-export function MapView({ result, onReady, focusOffset, overlay, control }: MapViewProps): React.JSX.Element {
+export function MapView({ result, onReady, focusOffset, overlay, control, walk = NO_WALK_OVERLAY, position = null }: MapViewProps): React.JSX.Element {
   const { dict, locale } = useI18n();
   const names = useSpeciesNames();
   const { resolved } = useTheme();
@@ -91,6 +97,8 @@ export function MapView({ result, onReady, focusOffset, overlay, control }: MapV
   const mapRef = useRef<MapLibreMap | null>(null);
   const markersRef = useRef<PhotoMarkers | null>(null);
   const resultRef = useRef(result);
+  const walkRef = useRef(walk);
+  const youRef = useRef<Marker | null>(null);
   const textRef = useRef<PopupText>({ dict, locale, names });
   // Map handlers are bound once per map; refs give them the latest values without recreating the map.
   const focusRef = useRef(focusOffset);
@@ -116,6 +124,11 @@ export function MapView({ result, onReady, focusOffset, overlay, control }: MapV
   }, [result]);
 
   useEffect(() => {
+    walkRef.current = walk;
+    if (mapRef.current) setWalkOverlay(mapRef.current, walk);
+  }, [walk]);
+
+  useEffect(() => {
     if (!container.current) return;
     const map = new MapLibreMap({
       container: container.current, style: styleRef.current, locale: localeRef.current,
@@ -131,7 +144,10 @@ export function MapView({ result, onReady, focusOffset, overlay, control }: MapV
     // Bottom corners stack upwards in reverse order: the zoom buttons end up above the locate button.
     map.addControl(new SlotControl(slot), MAP_CONTROLS.navigation);
     map.addControl(new NavigationControl({ showCompass: false }), MAP_CONTROLS.navigation);
-    map.on('style.load', () => { addDetectionLayers(map, resultRef.current, textRef.current.locale); });
+    map.on('style.load', () => {
+      addWalkLayers(map, walkRef.current);
+      addDetectionLayers(map, resultRef.current, textRef.current.locale);
+    });
     map.on('click', MAP_LAYERS.clusters, (event: MapLayerMouseEvent) => {
       const clusterId: unknown = event.features?.[0]?.properties.cluster_id;
       if (typeof clusterId !== 'number') return;
@@ -160,8 +176,27 @@ export function MapView({ result, onReady, focusOffset, overlay, control }: MapV
     // The visible area is known as soon as the map exists, so detections load while the basemap is still on its
     // way (or if it never arrives); the layers pick up the latest result when the style loads.
     onReady(map);
-    return () => { markers.clear(); markersRef.current = null; mapRef.current = null; onReady(null); map.remove(); };
+    return () => { markers.clear(); markersRef.current = null; youRef.current = null; mapRef.current = null; onReady(null); map.remove(); };
   }, [slot, onReady]);
+
+  // The "you are here" marker of a walk: a DOM element, so it can pulse and follows the theme's tokens.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (!position) {
+      youRef.current?.remove();
+      youRef.current = null;
+      return;
+    }
+    if (!youRef.current) {
+      const element = document.createElement('span');
+      element.className = 'bn-map-you';
+      element.setAttribute('aria-hidden', 'true');
+      youRef.current = new Marker({ element }).setLngLat([position.longitude, position.latitude]).addTo(map);
+    } else {
+      youRef.current.setLngLat([position.longitude, position.latitude]);
+    }
+  }, [position]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -176,7 +211,10 @@ export function MapView({ result, onReady, focusOffset, overlay, control }: MapV
     }
     // Both themes share one basemap: only the detection layers change. The theme provider applies the new tokens in
     // its own effect, which runs after this one, so they are read on the next frame.
-    const frame = window.requestAnimationFrame(() => { repaintDetectionLayers(map, resultRef.current, textRef.current.locale); });
+    const frame = window.requestAnimationFrame(() => {
+      repaintDetectionLayers(map, resultRef.current, textRef.current.locale);
+      repaintWalkLayers(map, walkRef.current);
+    });
     return () => { window.cancelAnimationFrame(frame); };
   }, [resolved]);
 

@@ -6,6 +6,7 @@ import { Segmented } from '../../shared/ui/Segmented';
 import { useOnline } from '../offline/useQueueStatus';
 import { PASSWORD_MIN_LENGTH, passwordsMatch } from './account.constants';
 import { PasswordField, TextField } from './FormField';
+import { GoogleMark } from './GoogleMark';
 import type { AccountState } from './useAccount';
 import './SignInForm.css';
 
@@ -72,10 +73,11 @@ export function SignInForm({ account }: { readonly account: AccountState }): Rea
 
       {mode !== 'reset' && (
         <>
-          <Button variant="secondary" block aria-disabled={blocked} aria-busy={account.working}
+          <button type="button" className="bn-account-google" aria-disabled={blocked} aria-busy={account.working}
             onClick={() => { if (!blocked) void account.signInWithGoogle(); }}>
-            {texts.google}
-          </Button>
+            <GoogleMark />
+            <span>{texts.google}</span>
+          </button>
           <p className="bn-account-signin__divider" aria-hidden="true"><span>{texts.or}</span></p>
           <Segmented label={texts.modeLabel} value={mode} onChange={changeMode}
             options={MODES.map((value) => ({ value, label: texts.modes[value] }))} />

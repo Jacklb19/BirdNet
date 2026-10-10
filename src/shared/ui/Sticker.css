@@ -24,20 +24,17 @@
   border-radius: var(--radius-sticker);
 }
 
-/* An empty slot: dashed outline on the paper, the place a sticker will go. */
+/* A slot still to fill: dashed outline on the paper and the bird faded to grey, like a printed album before the sticker. */
 .bn-sticker--missing {
   background: transparent;
   box-shadow: none;
-  outline: var(--border-width-strong) dashed var(--color-border-subtle);
+  outline: var(--border-width-strong) dashed var(--color-text-secondary);
   outline-offset: calc(var(--sticker-edge) * -1);
 }
 
-.bn-sticker__slot {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border-radius: var(--radius-sticker);
-  background: var(--color-bg-sunken);
+.bn-sticker--missing .bn-photo--sticker {
+  filter: var(--sticker-missing-filter);
+  opacity: var(--sticker-missing-opacity);
 }
 
 .bn-sticker--drop {

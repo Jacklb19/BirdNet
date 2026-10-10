@@ -5,18 +5,25 @@ import { toFeatureCollection, type MapResult } from './mapData';
 import { MAP_CLUSTER, MAP_LABEL_FONT, MAP_LAYERS, MAP_SOURCE_ID, MAP_TOKENS, STATUS_COLOR_TOKEN } from './map.config';
 
 /** MapLibre paints on a canvas, so colors and sizes are read from the active theme's design tokens. */
-function token(name: string): string {
+export function token(name: string): string {
   const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   if (!value) throw new Error(`Design token ${name} is not defined; src/styles/tokens.css must be loaded.`);
   return value;
 }
 
 /** Map size tokens are declared in px, the unit MapLibre paint properties use. */
-function pixelToken(name: string): number {
+export function pixelToken(name: string): number {
   const value = token(name);
   const pixels = Number.parseFloat(value);
   if (!value.endsWith('px') || !Number.isFinite(pixels)) throw new Error(`Design token ${name} must be a length in px.`);
   return pixels;
+}
+
+/** Unitless tokens (an opacity). */
+export function numberToken(name: string): number {
+  const value = Number(token(name));
+  if (!Number.isFinite(value)) throw new Error(`Design token ${name} must be a number.`);
+  return value;
 }
 
 function statusColor(): ExpressionSpecification {

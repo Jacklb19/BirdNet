@@ -45,12 +45,18 @@ export const STORES = Object.freeze({
 
 export type StoreName = (typeof STORES)[keyof typeof STORES];
 
+/**
+ * How near a saved place a song must be heard to be filed under it when no place was chosen by hand (ADR-25):
+ * about the size of a park, so a walk through it counts for it and the next neighbourhood does not.
+ */
+export const PLACE_RADIUS_METERS = 300;
+
 /** Key of the single record in `STORES.settings`. */
 export const SETTINGS_RECORD_KEY = 'preferences';
 
 /** Preferences the interface may change; the session and cached sites are written by dedicated functions. */
 export const EDITABLE_SETTINGS_KEYS = Object.freeze(
-  ['maxBytes', 'audioConsent', 'locationEnabled', 'activeSiteId'] as const satisfies readonly (keyof OfflineSettings)[],
+  ['maxBytes', 'audioConsent', 'locationEnabled', 'activeSiteId', 'shareMap'] as const satisfies readonly (keyof OfflineSettings)[],
 );
 
 export type EditableSettingsKey = (typeof EDITABLE_SETTINGS_KEYS)[number];
@@ -109,10 +115,11 @@ export const JSON_HEADERS = Object.freeze({ 'Content-Type': JSON_MIME_TYPE });
 export const QUEUE_CHANGED_CHANNEL = 'birdnet-queue-changed';
 
 /**
- * What a committed write changed: the queued and synchronized records, or the stored settings (preferences,
- * sync session, cached sites). Views re-read only the part they show.
+ * What a committed write changed: the queued and synchronized records, the stored settings (preferences,
+ * sync session, cached sites) or the walks (kept in their own database, announced on the same channel). Views
+ * re-read only the part they show.
  */
-export const QUEUE_CHANGE_PARTS = Object.freeze(['records', 'settings'] as const);
+export const QUEUE_CHANGE_PARTS = Object.freeze(['records', 'settings', 'walks'] as const);
 
 export type QueueChangePart = (typeof QUEUE_CHANGE_PARTS)[number];
 
@@ -161,6 +168,12 @@ export const SUMMARY_CACHE_NAME = 'birdnet-summaries-v1';
 
 /** A summary is a few kB, so the cache can hold the regional guide in both languages and every bird seen. */
 export const SUMMARY_CACHE_MAX_ENTRIES = 800;
+
+/** Taxonomy and conservation status of the species (GBIF API) kept for offline reading of the cards. */
+export const TAXON_CACHE_NAME = 'birdnet-taxa-v1';
+
+/** Two small answers per species (name match and Red List category); the same number of cards as the summaries in one language. */
+export const TAXON_CACHE_MAX_ENTRIES = 800;
 
 // ─── Page ↔ service worker protocol ──────────────────────────────────────
 

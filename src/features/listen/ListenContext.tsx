@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { formatCount, useI18n } from '../../i18n';
+import { APPROX_CELL_METERS } from '../../config/contract';
+import { formatCount, formatMeters, useI18n } from '../../i18n';
 import { Icon } from '../../shared/ui/Icon';
 import { useNow } from '../../shared/useNow';
 import { skyPhase } from '../../theme/sky';
@@ -24,7 +25,8 @@ export function ListenContext({ picker, zone, regionSpecies, active }: ListenCon
   const { dict, locale } = useI18n();
   const t = dict.listen.context;
   const now = useNow(CONTEXT_CLOCK_REFRESH_MS, true);
-  const zoneText = zone === 'site' ? t.zoneSite : zone === 'device' ? t.zoneDevice : t.zoneNone;
+  const distance = formatMeters(APPROX_CELL_METERS, locale);
+  const zoneText = zone === 'site' ? t.zoneSite(distance) : zone === 'device' ? t.zoneDevice(distance) : t.zoneNone;
   return (
     <div className="bn-listen-context" role="group" aria-label={t.label}>
       {picker}

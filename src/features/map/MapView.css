@@ -208,6 +208,12 @@
 }
 
 /* Photo stickers over the unclustered dots (mapMarkers.ts): die-cut edge like the album, the dot stays visible below. */
+.bn-map-photo-anchor {
+  display: block;
+  width: var(--map-photo-marker);
+  height: var(--map-photo-marker);
+}
+
 .bn-map-photo {
   display: block;
   width: var(--map-photo-marker);
@@ -249,4 +255,36 @@
   align-items: center;
   color: var(--color-brand);
   font-weight: var(--font-weight-semibold);
+}
+
+/* Where the person is during a walk: a dot with a slow ring, the size of the cell it stands for at walking zoom. */
+.bn-map-you {
+  display: block;
+  width: var(--map-you-size);
+  height: var(--map-you-size);
+  border: var(--border-width-strong) solid var(--color-bg-surface);
+  border-radius: var(--radius-pill);
+  background: var(--color-brand);
+  box-shadow: var(--shadow-raised);
+}
+
+.bn-map-you::after {
+  position: absolute;
+  inset: calc(var(--map-you-size) / -2);
+  border: var(--border-width-strong) solid var(--color-brand);
+  border-radius: var(--radius-pill);
+  animation: bn-map-you-ring var(--duration-sky) var(--ease-standard) infinite;
+  content: '';
+}
+
+@keyframes bn-map-you-ring {
+  from { opacity: 0.8; transform: scale(0.5); }
+  to { opacity: 0; transform: scale(1.4); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bn-map-you::after {
+    opacity: 0.4;
+    animation: none;
+  }
 }

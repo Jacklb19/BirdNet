@@ -10,6 +10,17 @@ export const logMessages = defineMessages({
       species: { one: (count: string) => `${count} especie`, other: (count: string) => `${count} especies` },
       none: 'Hoy aún no hay detecciones.',
     },
+    summary: {
+      label: 'Resumen de la bitácora',
+      species: 'Especies',
+      songs: 'Cantos',
+      newThisWeek: 'Nuevas esta semana',
+      busiestHour: 'Hora con más cantos',
+      newTitle: 'Nuevas en tu álbum',
+      walksTitle: 'Últimas caminatas',
+      walkDetail: (distance: string, duration: string, species: string) => `${distance} · ${duration} · ${species}`,
+      walkInterrupted: 'interrumpida',
+    },
     sync: {
       waitingOffline: {
         one: (count: string) => `${count} espera conexión. Se subirá sola.`,
@@ -48,9 +59,9 @@ export const logMessages = defineMessages({
     search: {
       label: 'Buscar en la bitácora',
       placeholder: 'Buscar especie',
-      site: 'Sitio',
-      allSites: 'Todos los sitios',
-      noSite: 'Sin sitio',
+      site: 'Lugar',
+      allSites: 'Todos los lugares',
+      noSite: 'Sin lugar',
       empty: 'Ningún registro coincide con la búsqueda.',
     },
     assign: {
@@ -59,10 +70,10 @@ export const logMessages = defineMessages({
         one: (count: string) => `${count} canto sin ubicación`,
         other: (count: string) => `${count} cantos sin ubicación`,
       },
-      text: 'Se guardaron sin sitio ni GPS, así que no pueden subirse al mapa. Asígnalos al sitio donde los grabaste: tomarán su zona de ~100 m y se subirán solos.',
-      select: 'Sitio al que asignarlos',
+      text: 'Se guardaron sin lugar ni GPS, así que no pueden subirse al mapa. Asígnalos al lugar donde los grabaste: tomarán su ubicación y se subirán solos.',
+      select: 'Lugar al que asignarlos',
       action: 'Asignar y subir',
-      createSite: 'Crear un sitio',
+      createSite: 'Crear un lugar',
       done: {
         one: (count: string) => `Listo: ${count} canto asignado. Se subirá con la próxima sincronización.`,
         other: (count: string) => `Listo: ${count} cantos asignados. Se subirán con la próxima sincronización.`,
@@ -132,6 +143,17 @@ export const logMessages = defineMessages({
       species: { one: (count: string) => `${count} species`, other: (count: string) => `${count} species` },
       none: 'No detections yet today.',
     },
+    summary: {
+      label: 'Summary of the log',
+      species: 'Species',
+      songs: 'Songs',
+      newThisWeek: 'New this week',
+      busiestHour: 'Hour with most songs',
+      newTitle: 'New in your album',
+      walksTitle: 'Latest walks',
+      walkDetail: (distance: string, duration: string, species: string) => `${distance} · ${duration} · ${species}`,
+      walkInterrupted: 'interrupted',
+    },
     sync: {
       waitingOffline: {
         one: (count: string) => `${count} is waiting for a connection. It will upload on its own.`,
@@ -170,9 +192,9 @@ export const logMessages = defineMessages({
     search: {
       label: 'Search the log',
       placeholder: 'Search species',
-      site: 'Site',
-      allSites: 'All sites',
-      noSite: 'No site',
+      site: 'Place',
+      allSites: 'All places',
+      noSite: 'No place',
       empty: 'No record matches the search.',
     },
     assign: {
@@ -181,10 +203,10 @@ export const logMessages = defineMessages({
         one: (count: string) => `${count} song without a location`,
         other: (count: string) => `${count} songs without a location`,
       },
-      text: 'They were saved without a site or GPS, so they cannot go to the map. Assign them to the site where you recorded them: they take its ~100 m area and upload on their own.',
-      select: 'Site to assign them to',
+      text: 'They were saved without a place or GPS, so they cannot go to the map. Assign them to the place where you recorded them: they take its location and upload on their own.',
+      select: 'Place to assign them to',
       action: 'Assign and upload',
-      createSite: 'Create a site',
+      createSite: 'Create a place',
       done: {
         one: (count: string) => `Done: ${count} song assigned. It uploads with the next synchronization.`,
         other: (count: string) => `Done: ${count} songs assigned. They upload with the next synchronization.`,

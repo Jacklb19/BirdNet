@@ -17,7 +17,7 @@ export interface StickerProps {
   readonly drop?: boolean;
   /** Position in a group that drops together, so the stickers land one after another. */
   readonly order?: number;
-  /** An empty album slot: the outline of a sticker still to collect, without the photo. */
+  /** An album slot still to fill: the bird's photo faded behind a dashed outline, so the person knows what to look for. */
   readonly missing?: boolean;
   readonly className?: string;
 }
@@ -32,11 +32,9 @@ export function Sticker({ scientificName, alt, size = 'm', load, drop = false, o
     .filter(Boolean).join(' ');
   return (
     <span className={classes} style={style}>
-      {missing
-        ? <span className="bn-sticker__slot" role={alt ? 'img' : undefined} aria-label={alt || undefined} aria-hidden={alt ? undefined : true} />
-        : load
-          ? <SpeciesPhoto load={load} alt={alt} variant="sticker" />
-          : <SpeciesPhoto scientificName={scientificName} alt={alt} variant="sticker" />}
+      {load
+        ? <SpeciesPhoto load={load} alt={alt} variant="sticker" />
+        : <SpeciesPhoto scientificName={scientificName} alt={alt} variant="sticker" />}
     </span>
   );
 }

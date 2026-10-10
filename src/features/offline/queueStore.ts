@@ -1,7 +1,7 @@
 import type { ClassifiedDetection } from '../inference/detectionPolicy';
 import { CONFIDENCE_THRESHOLDS, FIELD_LIMITS, isUuid } from '../../config/contract';
 import { announceQueueChange } from './queueChanges';
-import { assertQueueCapacity, encodeAudio, recordingLocation, unlocatedAssignment } from './queuePolicy';
+import { assertQueueCapacity, encodeAudio, recordingLocation, recordingSite, unlocatedAssignment } from './queuePolicy';
 import {
   AUDIO_REVIEW_STATUS, DATABASE_NAME, DATABASE_VERSION, DEFAULT_QUEUE_BYTES, isEditableSettingsKey, QUEUED_STATUS_BY_LOCAL_STATUS,
   SETTINGS_RECORD_KEY, STORES, type EditableSettings, type StoreName,
@@ -67,7 +67,8 @@ export async function updateSettings(changes: EditableSettings): Promise<void> {
     const records = await request(tx.objectStore(STORES.detections).getAll()) as StoredDetection[];
     const audio = await request(tx.objectStore(STORES.audio).getAll()) as StoredAudio[];
     assertQueueCapacity(records.reduce((total, row) => total + row.bytes, 0) + audio.reduce((total, row) => total + row.bytes, 0), 0, next.maxBytes);
-    if (typeof next.audioConsent !== 'boolean' || typeof next.locationEnabled !== 'boolean') throw new Error('Invalid preferences.');
+    if (typeof next.audioConsent !== 'boolean' || typeof next.locationEnabled !== 'boolean' ||
+        (next.shareMap !== undefined && typeof next.shareMap !== 'boolean')) throw new Error('Invalid preferences.');
     await writeSettings(tx, next);
   });
   announceQueueChange(['settings']);
@@ -158,11 +159,12 @@ export async function persistDetections(candidates: readonly ClassifiedDetection
     const settings = await readSettings(tx);
     // Read with the active site inside the transaction, so a site chosen mid-session applies to the next window.
     const location = recordingLocation(settings, context.location);
+    const siteId = recordingSite(settings, location);
     const existing = await request(tx.objectStore(STORES.detections).getAll()) as StoredDetection[];
     const audio = await request(tx.objectStore(STORES.audio).getAll()) as StoredAudio[];
     const audioId = audioBlob && settings.audioConsent ? crypto.randomUUID() : null;
     const records = candidates.map((candidate): StoredDetection => {
-      const record: StoredDetection = { id: crypto.randomUUID(), species: candidate.scientificName, confidence: candidate.confidence, status: QUEUED_STATUS_BY_LOCAL_STATUS[candidate.status], recorded_at: recordedAt, location, model_version: context.modelVersion, owner: settings.session?.userId ?? null, audioId: candidate.status === AUDIO_REVIEW_STATUS ? audioId : null, metadataSynced: false, bytes: 0, siteId: settings.activeSiteId ?? null };
+      const record: StoredDetection = { id: crypto.randomUUID(), species: candidate.scientificName, confidence: candidate.confidence, status: QUEUED_STATUS_BY_LOCAL_STATUS[candidate.status], recorded_at: recordedAt, location, model_version: context.modelVersion, owner: settings.session?.userId ?? null, audioId: candidate.status === AUDIO_REVIEW_STATUS ? audioId : null, metadataSynced: false, bytes: 0, siteId };
       measureRecord(record);
       return record;
     });
@@ -207,7 +209,7 @@ export async function acknowledge(ids: readonly string[], audioDelivered = false
       if (!row) continue;
       if (row.audioId && !audioDelivered) await request(store.put({ ...row, metadataSynced: true }));
       else {
-        await request(history.put({ id: row.id, species: row.species, confidence: row.confidence, status: row.status, recorded_at: row.recorded_at, siteId: row.siteId ?? null, syncedAt } satisfies HistoryEntry));
+        await request(history.put({ id: row.id, species: row.species, confidence: row.confidence, status: row.status, recorded_at: row.recorded_at, siteId: row.siteId ?? null, syncedAt, location: row.location } satisfies HistoryEntry));
         await request(store.delete(id));
       }
     }

@@ -24,7 +24,7 @@ function useDocumentMetadata(title: string, description: string): void {
 export function AppShell(): React.JSX.Element {
   const { dict } = useI18n();
   const [route] = useRoute();
-  const { active } = useListening();
+  const { active, walking } = useListening();
   const mainRef = useRef<HTMLElement>(null);
   const [welcomed, setWelcomed] = useState(() => readPreferences().welcomed === true);
   useDocumentMetadata(dict.app.documentTitle, dict.app.description);
@@ -48,8 +48,10 @@ export function AppShell(): React.JSX.Element {
   }
 
   const section = sectionOf(route);
+  // The listening screen and the map of a walk carry the session's own controls; elsewhere the live player does.
+  const player = active && route.name !== 'listen' && !(walking && route.name === 'map');
   return (
-    <div className={`bn-shell${active && route.name !== 'listen' ? ' bn-shell--with-player' : ''}`}>
+    <div className={`bn-shell${player ? ' bn-shell--with-player' : ''}`}>
       {/* A hash link would be read as a route, so the skip link moves focus itself. */}
       <a className="bn-shell__skip" href="#main" onClick={(event) => { event.preventDefault(); mainRef.current?.focus(); }}>
         {dict.app.skipToContent}
@@ -60,7 +62,7 @@ export function AppShell(): React.JSX.Element {
           <Suspense fallback={loading}><RoutePage route={route} /></Suspense>
         </PageErrorBoundary>
       </main>
-      {route.name !== 'listen' && <LivePlayer variant="bar" />}
+      {player && <LivePlayer variant="bar" />}
       <TabBar current={section} />
     </div>
   );

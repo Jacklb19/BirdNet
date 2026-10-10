@@ -27,3 +27,9 @@ export const WAVEFORM_MIN_BAR = 0.08;
 
 /** Share of each bar slot left empty between bars. */
 export const WAVEFORM_BAR_GAP = 0.35;
+
+/** Walks listed in the log's summary; the map shows them all. */
+export const LOG_WALKS_SHOWN = 3;
+
+/** New species of the week named in the log's summary; the figure beside them counts them all. */
+export const LOG_NEW_SPECIES_SHOWN = 6;

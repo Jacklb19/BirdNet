@@ -16,6 +16,7 @@ export const API_ROUTES = {
   meAvatarUrl: `${VERSION}/me/avatar-url`,
   meSummary: `${VERSION}/me/summary`,
   meSpecies: `${VERSION}/me/species`,
+  meSharing: `${VERSION}/me/sharing`,
   meSpeciesRecord: (species: string): string => `${VERSION}/me/species/${encodeURIComponent(species)}`,
 } as const;
 

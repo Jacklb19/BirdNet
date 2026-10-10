@@ -11,13 +11,14 @@ import { useQueueStatus } from '../offline/useQueueStatus';
 import { useSites } from '../sites/useSites';
 import { matchesSearch } from '../species/album';
 import { commonName, useSpeciesNames } from '../species/speciesNames';
+import { useWalkData } from '../walk/useWalkData';
 import { AssignSiteCard } from './AssignSiteCard';
 import { LOG_PAGE_SIZE } from './log.config';
 import { LogDay } from './LogDay';
 import { LogFilters } from './LogFilters';
 import { groupByDay, matchesFilter, syncCounts, todaySummary, type LogFilter } from './logRecords';
+import { LogSummary } from './LogSummary';
 import { LogSyncNotice } from './LogSyncNotice';
-import { LogTabs } from './LogTabs';
 import { useLogRecords } from './useLogRecords';
 import './LogPage.css';
 
@@ -32,6 +33,7 @@ export default function LogPage(): React.JSX.Element {
   const names = useSpeciesNames();
   const { sites, active } = useSites();
   const { records, readAt, error, reload } = useLogRecords();
+  const { walks } = useWalkData();
   const [filter, setFilter] = useState<LogFilter>('all');
   const [query, setQuery] = useState('');
   const [site, setSite] = useState(ALL_SITES);
@@ -60,7 +62,6 @@ export default function LogPage(): React.JSX.Element {
 
   return (
     <Page width="narrow" className="bn-log">
-      <LogTabs current="log" />
       <PageHeader title={dict.log.title} subtitle={subtitle} />
       {error && (
         <Notice tone="error" action={<Button variant="quiet" onClick={reload}>{dict.common.actions.retry}</Button>}>{dict.log.loadError}</Notice>
@@ -75,6 +76,7 @@ export default function LogPage(): React.JSX.Element {
       {records?.length ? (
         <>
           {unlocated > 0 && <AssignSiteCard count={unlocated} sites={sites} activeSiteId={active?.id ?? null} />}
+          <LogSummary records={records} walks={walks} now={readAt} />
           <LogSyncNotice records={records} online={queue.online} syncFailed={queue.syncFailed} syncing={queue.syncing} onRetry={() => { void queue.syncNow(); }} />
           <div className="bn-log__search" role="search" aria-label={dict.log.search.label}>
             <div className="bn-log__query">

@@ -2,6 +2,9 @@ import { createContext, useContext } from 'react';
 import type { UseAudioCaptureReturn } from '../audio/hooks/useAudioCapture';
 import type { SessionSpecies } from './session';
 
+/** How a session runs: listening in place, or on a walk with the screen kept on and the path drawn (ADR-25). */
+export type ListeningMode = 'listen' | 'walk';
+
 /** Session state that changes at most once per analysed window; safe for the shell and any screen. */
 export interface ListeningContextValue {
   readonly captureState: UseAudioCaptureReturn['state'];
@@ -17,7 +20,9 @@ export interface ListeningContextValue {
   readonly startedAt: number | null;
   /** True from the moment the person presses start until they stop or an error ends the session. */
   readonly active: boolean;
-  readonly start: () => Promise<void>;
+  /** The active session is a walk. It ends with the session, however that happens. */
+  readonly walking: boolean;
+  readonly start: (mode?: ListeningMode) => Promise<void>;
   readonly stop: () => Promise<void>;
 }
 

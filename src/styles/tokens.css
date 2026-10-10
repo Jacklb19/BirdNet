@@ -52,6 +52,11 @@
   --color-sono-mark: #0B6E4E;
   --color-scrim: rgb(22 54 47 / 40%);
   --color-shadow: rgb(22 54 47 / 16%);
+  /* Google's own logo colors, fixed by its brand guidelines: used only inside the "Continue with Google" mark. */
+  --color-google-blue: #4285F4;
+  --color-google-red: #EA4335;
+  --color-google-yellow: #FBBC05;
+  --color-google-green: #34A853;
   --color-sticker-edge: #FFFFFF;
   --color-sticker-shadow: rgb(22 54 47 / 35%);
   --color-map-photo-ring: #FFFFFF;
@@ -63,6 +68,12 @@
   --sky-night: #CCC8EE;
   --sky-top: var(--sky-day);
   --sky-band-height: 30rem;
+
+  /* Scene — the drawn map of the home page and of an empty walk: land, park, water, streets */
+  --scene-land: #E4EBDD;
+  --scene-park: #CFE0C6;
+  --scene-water: #BFD9EA;
+  --scene-road: #FFFFFF;
 
   /*
    * Plumage — the color a bird paints its plate with (src/features/species/plumage.ts snaps each photo to the nearest
@@ -174,6 +185,8 @@
   --sticker-l: 12rem;
   --sticker-xl: 15rem;
   --sticker-tilt: 4deg;
+  --sticker-missing-filter: grayscale(1) contrast(0.7);
+  --sticker-missing-opacity: 0.55;
   --blob-tilt: -6deg;
   --album-cell: 9rem;
   --swatch-height: 6.5rem;
@@ -185,7 +198,6 @@
 
   /* Shell — brand mark, tab indicator, live player */
   --brand-mark-size: 2.25rem;
-  --brand-tick-width: 2;
   --tab-indicator-height: 0.125rem;
   --live-player-height: 3.5rem;
   --live-photo-size: 2.5rem;
@@ -209,6 +221,18 @@
   /* Small cards draw only the number: about 18 CSS px on a 5.5rem clock, three digits still clear of the inner ticks */
   --chorus-value-size-compact: 52px;
   --chorus-unit-size: 12px;
+
+  /*
+   * IUCN Red List — the category colors fixed by IUCN's own guidelines, the same in both themes. They only paint the
+   * dots of the threat scale on the species card; the category is always written next to them.
+   */
+  --color-iucn-lc: #60C659;
+  --color-iucn-nt: #CCE226;
+  --color-iucn-vu: #F9E814;
+  --color-iucn-en: #FC7F3F;
+  --color-iucn-cr: #D81E05;
+  --color-iucn-ew: #542344;
+  --color-iucn-ex: #000000;
 
   /* Elevation */
   --shadow-raised: 0 1px 3px var(--color-shadow);
@@ -243,6 +267,9 @@
   --map-point-radius: 8px;
   --map-marker-stroke-width: 2px;
   --map-label-size: 13px;
+  --map-track-width: 4px;
+  --map-territory-opacity: 0.42;
+  --map-you-size: 1.125rem;
 }
 
 :root[data-sky='dawn'] { --sky-top: var(--sky-dawn); }
@@ -289,5 +316,9 @@
   --sky-day: #183040;
   --sky-dusk: #3B2536;
   --sky-night: #161A3A;
+  --scene-land: #1B2A25;
+  --scene-park: #21352C;
+  --scene-water: #1C3442;
+  --scene-road: #2A3B35;
   --texture-grain-opacity: 0.25;
 }

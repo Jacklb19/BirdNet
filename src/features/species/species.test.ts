@@ -5,8 +5,8 @@ import { MODEL_FILES } from '../../../build.config.mjs';
 import { STORAGE_KEYS } from '../../config/storage';
 import { SPECIES_NAMES_URL, commonName } from './speciesNames';
 import {
-  PHOTO_HERO_REM, PhotoLookupError, THUMBNAIL_WIDTH_PX, fetchSpeciesPhoto, parseCachedPhoto, parseImageInfo, parsePageImage, serializeCachedPhoto,
-  useSpeciesPhoto,
+  PhotoLookupError, SPECIES_PHOTOS_URL, THUMBNAIL_WIDTH_PX, fetchSpeciesPhoto, parseCachedPhoto, parseImageInfo, parsePageImage, parsePhotoIndex,
+  serializeCachedPhoto, useSpeciesPhoto,
 } from './speciesPhotos';
 
 describe('species names', () => {
@@ -29,9 +29,29 @@ const info = (thumburl: string, license = 'CC BY-SA 4.0', artist = '<a href="x">
   ({ query: { pages: { '9': { imageinfo: [{ thumburl, extmetadata: { LicenseShortName: { value: license }, Artist: { value: artist } } }] } } } });
 
 describe('species photos', () => {
-  it('sizes thumbnails from the hero photo token', () => {
-    const hero = /--photo-hero:\s*([\d.]+)rem\s*;/.exec(readFileSync('src/styles/tokens.css', 'utf8'))?.[1];
-    expect(Number(hero)).toBe(PHOTO_HERO_REM);
+  it('requests thumbnails that cover the largest sticker at twice the density', () => {
+    const sticker = /--sticker-xl:\s*([\d.]+)rem\s*;/.exec(readFileSync('src/styles/tokens.css', 'utf8'))?.[1];
+    const ROOT_FONT_PX = 16;
+    expect(Number(sticker) * ROOT_FONT_PX * 2).toBeLessThanOrEqual(THUMBNAIL_WIDTH_PX);
+  });
+
+  it('reads the bundled regional index and ignores what it cannot trust', () => {
+    expect(SPECIES_PHOTOS_URL.endsWith(`/${MODEL_FILES.speciesPhotos}`)).toBe(true);
+    const good = ['https://thumb.wikimedia.org/a/500px-a.jpg', 'Ana', 'CC BY 4.0'];
+    const index = parsePhotoIndex({ width: THUMBNAIL_WIDTH_PX, photos: {
+      'Turdus fuscater': good, 'No author': ['https://upload.wikimedia.org/b.jpg', null, 'CC0'],
+      'Foreign host': ['https://tracker.example/c.jpg', 'X', 'CC0'], 'No license': ['https://thumb.wikimedia.org/d.jpg', 'X', ''], Broken: 'x',
+    } });
+    expect([...index.keys()]).toEqual(['Turdus fuscater', 'No author']);
+    expect(index.get('Turdus fuscater')).toEqual({ url: good[0], author: 'Ana', license: 'CC BY 4.0' });
+    // An index built for another thumbnail size is not used: its pictures would be the wrong files.
+    expect(parsePhotoIndex({ width: THUMBNAIL_WIDTH_PX + 1, photos: { 'Turdus fuscater': good } }).size).toBe(0);
+    expect(parsePhotoIndex(null).size).toBe(0);
+  });
+
+  it('ships an index whose every photo passes those rules', () => {
+    const file = JSON.parse(readFileSync(`public/models/${MODEL_FILES.speciesPhotos}`, 'utf8')) as { photos: Record<string, unknown> };
+    expect(parsePhotoIndex(file).size).toBe(Object.keys(file.photos).length);
   });
 
   it('reads the lead image of a Wikipedia article', () => {
@@ -57,6 +77,9 @@ describe('species photos', () => {
     afterEach(() => { vi.unstubAllGlobals(); localStorage.clear(); });
 
     const answer = (body: unknown): Response => new Response(JSON.stringify(body));
+    /** Requests to Wikipedia and Commons; the bundled index is fetched once per page and is not a lookup. */
+    const lookups = (fetch: ReturnType<typeof vi.fn>): number =>
+      fetch.mock.calls.filter(([url]) => typeof url === 'string' && !url.includes(MODEL_FILES.speciesPhotos)).length;
     const stubLookups = (thumburl: string) => {
       const fetch = vi.fn((url: string) => Promise.resolve(answer(
         url.includes('pageimages') ? { query: { pages: { '1': { pageimage: 'Bird.jpg' } } } } : info(thumburl),
@@ -71,7 +94,7 @@ describe('species photos', () => {
       expect(localStorage.getItem(`${STORAGE_KEYS.photoPrefix}Rejecta hostis`)).toBeNull();
       await expect(fetchSpeciesPhoto('Rejecta hostis')).rejects.toThrow(PhotoLookupError);
       // Looked up again (page image and image information) instead of answering from a cached absence.
-      expect(fetch).toHaveBeenCalledTimes(4);
+      expect(lookups(fetch)).toBe(4);
     });
 
     it('does not remember a network failure, and remembers a confirmed answer', async () => {
@@ -81,7 +104,7 @@ describe('species photos', () => {
       const fetch = stubLookups('https://thumb.wikimedia.org/a.jpg');
       expect((await fetchSpeciesPhoto('Turdus fuscater'))?.url).toBe('https://thumb.wikimedia.org/a.jpg');
       expect(await fetchSpeciesPhoto('Turdus fuscater')).not.toBeNull();
-      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(lookups(fetch)).toBe(2);
     });
 
     it('never keeps the previous species photo while the next one is looked up', async () => {

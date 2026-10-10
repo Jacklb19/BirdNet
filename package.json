@@ -16,6 +16,7 @@
     "test:coverage": "vitest run --coverage",
     "test:offline": "node scripts/prepare-offline-check.mjs && playwright test",
     "data:species-names": "node scripts/build-species-names.mjs",
+    "data:species-photos": "python scripts/build-species-photos.py",
     "model:prepare": "python scripts/prepare-model.py"
   },
   "dependencies": {

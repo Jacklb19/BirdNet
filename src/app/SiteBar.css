@@ -1,0 +1,141 @@
+/*
+ * One flat bar for the home page and the app. It sits on the sky at the top of the page and, once the page
+ * scrolls under it, on a veil of the paper color so links stay readable over any content.
+ */
+.bn-sitebar {
+  position: sticky;
+  top: 0;
+  z-index: var(--layer-nav);
+  background: color-mix(in srgb, var(--sky-top) 82%, transparent);
+  backdrop-filter: blur(var(--space-3));
+}
+
+/* Inside the app, phones navigate with the tab bar. */
+.bn-sitebar--app {
+  display: none;
+}
+
+.bn-sitebar__inner {
+  display: flex;
+  max-width: var(--content-max);
+  min-height: var(--topbar-height);
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  margin: 0 auto;
+  padding: var(--space-2) var(--space-4);
+}
+
+.bn-sitebar__brand {
+  display: inline-flex;
+  min-height: var(--touch-min);
+  align-items: center;
+  margin-right: auto;
+  border-radius: var(--radius-s);
+  color: inherit;
+  text-decoration: none;
+}
+
+.bn-sitebar__toggle {
+  display: inline-flex;
+  min-height: var(--touch-min);
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border: var(--border-width-strong) solid var(--color-border-strong);
+  border-radius: var(--radius-m);
+  background: transparent;
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Phones: the links of the home page fold under the bar until the menu is opened. */
+.bn-sitebar__nav {
+  display: none;
+  flex-basis: 100%;
+  order: 3;
+}
+
+.bn-sitebar__nav--open {
+  display: block;
+}
+
+.bn-sitebar__nav ul {
+  display: grid;
+  padding-bottom: var(--space-2);
+}
+
+.bn-sitebar__link {
+  display: inline-flex;
+  width: 100%;
+  min-height: var(--touch-min);
+  align-items: center;
+  padding: 0 var(--space-1);
+  border: 0;
+  background: none;
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+  text-align: left;
+  text-decoration: none;
+}
+
+/* The current place is underlined, as on a printed index, instead of filled like a button. */
+.bn-sitebar__link[aria-current] {
+  text-decoration: underline;
+  text-decoration-thickness: var(--tab-indicator-height);
+  text-underline-offset: var(--space-2);
+}
+
+.bn-sitebar__end {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+@media (hover: hover) {
+  .bn-sitebar__link:hover {
+    text-decoration: underline;
+    text-decoration-thickness: var(--border-width);
+    text-underline-offset: var(--space-2);
+  }
+}
+
+@media (min-width: 64rem) {
+  .bn-sitebar--app {
+    display: block;
+  }
+
+  .bn-sitebar__inner {
+    flex-wrap: nowrap;
+    gap: var(--space-6);
+    padding: var(--space-3) var(--space-6);
+  }
+
+  .bn-sitebar__toggle {
+    display: none;
+  }
+
+  .bn-sitebar__nav,
+  .bn-sitebar__nav--open {
+    display: block;
+    flex-basis: auto;
+    order: 0;
+    margin-right: auto;
+  }
+
+  .bn-sitebar__nav ul {
+    display: flex;
+    gap: var(--space-6);
+    padding: 0;
+  }
+
+  .bn-sitebar__link {
+    width: auto;
+    padding: 0;
+  }
+
+  .bn-sitebar__brand {
+    margin-right: var(--space-4);
+  }
+}

@@ -6,11 +6,14 @@
 /** Table 7 of the specification: below `discardBelow` nothing is kept; from `confirmedFrom` it is confirmed locally. */
 export const CONFIDENCE_THRESHOLDS = Object.freeze({ discardBelow: 0.45, confirmedFrom: 0.8 });
 
-/** Coordinates are rounded to this many decimals before they are stored or sent. */
-export const LOCATION_GRID_DECIMALS = 3;
+/**
+ * Coordinates are rounded to this many decimals before they are stored or sent (ADR-22: fine enough to pin a song on
+ * the path of a walk, while the raw device coordinate still never leaves the phone).
+ */
+export const LOCATION_GRID_DECIMALS = 4;
 
-/** Approximate size of the resulting cell (10^-3 degrees of latitude ≈ 111 m), as explained to people. */
-export const APPROX_CELL_METERS = 100;
+/** Approximate size of the resulting cell (10^-4 degrees of latitude ≈ 11 m), as explained to people. */
+export const APPROX_CELL_METERS = 10;
 
 export const FIELD_LIMITS = Object.freeze({ speciesName: 200, modelVersion: 200, siteName: 80, alias: 40 });
 

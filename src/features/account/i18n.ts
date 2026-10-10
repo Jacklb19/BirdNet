@@ -11,7 +11,7 @@ export const accountMessages = defineMessages({
     },
     signIn: {
       title: 'Suma tus cantos al mapa',
-      intro: 'Con una cuenta, tus cantos se suben al mapa compartido y a las estadísticas de tus sitios. Sin ella, todo sigue funcionando en este teléfono.',
+      intro: 'Con una cuenta, tus cantos se suben al mapa compartido y a las estadísticas de tus lugares. Sin ella, todo sigue funcionando en este teléfono.',
       modeLabel: 'Qué quieres hacer',
       modes: { signIn: 'Iniciar sesión', signUp: 'Crear cuenta' },
       email: 'Correo electrónico',
@@ -66,7 +66,7 @@ export const accountMessages = defineMessages({
       title: 'Tus aportes',
       songs: { one: 'canto', other: 'cantos' },
       species: { one: 'especie', other: 'especies' },
-      sites: { one: 'sitio', other: 'sitios' },
+      sites: { one: 'lugar', other: 'lugares' },
       days: { one: 'día con cantos', other: 'días con cantos' },
       since: (date: string) => `Registras desde el ${date}.`,
       album: 'Abrir mi álbum',
@@ -108,7 +108,7 @@ export const accountMessages = defineMessages({
       title: 'En este teléfono',
       songs: { one: 'canto', other: 'cantos' },
       species: { one: 'especie', other: 'especies' },
-      sites: { one: 'sitio', other: 'sitios' },
+      sites: { one: 'lugar', other: 'lugares' },
       error: 'No se pudieron leer los datos guardados en el teléfono.',
     },
     claim: {
@@ -121,7 +121,13 @@ export const accountMessages = defineMessages({
       decline: 'Ahora no',
       done: 'Listo: se sumaron a tus aportes.',
     },
-    links: { settings: 'Ajustes', privacy: 'Privacidad y datos' },
+    share: {
+      title: '¿Compartir tus cantos en el mapa de todos?',
+      text: (distance: string) => `Otras personas verán tus aves en el mapa, sin tu nombre, a unos ${distance} de donde las oíste. Si escuchas en tu casa, ese punto también se verá. Puedes cambiarlo cuando quieras en Ajustes.`,
+      accept: 'Compartir',
+      decline: 'Solo para mí',
+    },
+    links: { settings: 'Ajustes' },
     signOut: 'Cerrar sesión',
   },
   en: {
@@ -132,7 +138,7 @@ export const accountMessages = defineMessages({
     },
     signIn: {
       title: 'Add your songs to the map',
-      intro: 'With an account, your songs are uploaded to the shared map and to your sites’ statistics. Without one, everything keeps working on this phone.',
+      intro: 'With an account, your songs are uploaded to the shared map and to your places’ statistics. Without one, everything keeps working on this phone.',
       modeLabel: 'What do you want to do',
       modes: { signIn: 'Sign in', signUp: 'Create account' },
       email: 'Email',
@@ -187,7 +193,7 @@ export const accountMessages = defineMessages({
       title: 'Your contributions',
       songs: { one: 'song', other: 'songs' },
       species: { one: 'species', other: 'species' },
-      sites: { one: 'site', other: 'sites' },
+      sites: { one: 'place', other: 'places' },
       days: { one: 'day with songs', other: 'days with songs' },
       since: (date: string) => `Recording since ${date}.`,
       album: 'Open my album',
@@ -229,7 +235,7 @@ export const accountMessages = defineMessages({
       title: 'On this phone',
       songs: { one: 'song', other: 'songs' },
       species: { one: 'species', other: 'species' },
-      sites: { one: 'site', other: 'sites' },
+      sites: { one: 'place', other: 'places' },
       error: 'The data kept on the phone could not be read.',
     },
     claim: {
@@ -242,7 +248,13 @@ export const accountMessages = defineMessages({
       decline: 'Not now',
       done: 'Done: they were added to your contributions.',
     },
-    links: { settings: 'Settings', privacy: 'Privacy and data' },
+    share: {
+      title: 'Share your songs on everyone’s map?',
+      text: (distance: string) => `Other people will see your birds on the map, without your name, about ${distance} from where you heard them. If you listen at home, that spot shows too. You can change it any time in Settings.`,
+      accept: 'Share',
+      decline: 'Only for me',
+    },
+    links: { settings: 'Settings' },
     signOut: 'Sign out',
   },
 });

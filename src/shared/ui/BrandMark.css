@@ -7,36 +7,27 @@
 
 .bn-brand__mark {
   width: var(--brand-mark-size);
-  height: auto;
+  height: var(--brand-mark-size);
+  flex-shrink: 0;
 }
 
-.bn-brand__tick {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: var(--brand-tick-width);
-  stroke-linecap: round;
-}
-
+/* The sun keeps its yellow and the bird its ink in both themes: the mark is a picture, not interface text. */
 .bn-brand__sun {
-  fill: var(--color-status-provisional);
+  fill: var(--color-accent);
 }
 
 .bn-brand__bird {
-  fill: var(--color-brand);
+  fill: var(--color-on-accent);
 }
 
-.bn-brand__text {
-  display: grid;
-}
-
+/* The wordmark is written in lower case italics, like a signature; the text itself keeps its capital for assistive technology. */
 .bn-brand__name {
-  font-size: var(--text-title-s);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--leading-title-s);
-}
-
-.bn-brand__edition {
-  color: var(--color-text-secondary);
-  font-size: var(--text-caption);
-  line-height: var(--leading-caption);
+  font-family: var(--font-display);
+  font-size: var(--text-l);
+  font-style: italic;
+  font-variation-settings: var(--display-softness);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-l);
+  text-transform: lowercase;
 }

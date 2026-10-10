@@ -1,0 +1,182 @@
+/*
+ * Range map of the species card. MapLibre ships its controls with fixed colors and pixel sizes; they are restyled
+ * here with the design tokens, as MapView.css does for the shared map, so both themes match and buttons meet --touch-min.
+ * MapLibre's stylesheet is fetched with the library, after this one, so every override names the map container twice
+ * (.bn-range-map__canvas.maplibregl-map): it must win by specificity, not by order.
+ */
+.bn-range-map {
+  --range-map-height: 18rem; /* tall enough for a continent on a phone without pushing the caption off screen */
+  --range-map-layer-opacity: 0.85; /* read by RangeMap.tsx: rivers and borders stay visible through the hexagons */
+
+  display: grid;
+  min-height: 0;
+  grid-template-rows: minmax(var(--range-map-height), 1fr) auto;
+  gap: var(--space-3);
+}
+
+.bn-range-map__frame {
+  position: relative;
+  display: grid;
+  overflow: hidden;
+  min-height: 0;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  border-radius: var(--radius-l);
+  background: var(--color-bg-sunken);
+  isolation: isolate;
+}
+
+.bn-range-map .bn-range-map__canvas {
+  grid-area: 1 / 1;
+  font-family: var(--font-family);
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+}
+
+.bn-range-map__loading {
+  z-index: 1;
+  grid-area: 1 / 1;
+  place-self: center;
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-range-map__note,
+.bn-range-map__caption {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-range-map__caption {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.bn-range-map__caption a {
+  color: var(--color-brand);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* The canvas takes keyboard focus (arrows pan, + and - zoom); the ring is drawn inside so the frame does not clip it. */
+.bn-range-map__canvas.maplibregl-map .maplibregl-canvas:focus-visible {
+  outline: var(--focus-width) solid var(--color-brand);
+  outline-offset: calc(-1 * var(--focus-width));
+}
+
+.bn-range-map__canvas.maplibregl-map .maplibregl-ctrl-bottom-right > .maplibregl-ctrl {
+  margin: 0 var(--space-3) var(--space-3) 0;
+}
+
+.bn-range-map__canvas.maplibregl-map .maplibregl-ctrl-bottom-left > .maplibregl-ctrl {
+  margin: 0 0 var(--space-3) var(--space-3);
+}
+
+.bn-range-map__canvas.maplibregl-map .maplibregl-ctrl-group,
+.bn-range-map__canvas.maplibregl-map .maplibregl-ctrl-group:not(:empty) {
+  overflow: hidden;
+  border-radius: var(--radius-m);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-float);
+}
+
+.bn-range-map__canvas.maplibregl-map .maplibregl-ctrl-group button {
+  width: var(--touch-min);
+  height: var(--touch-min);
+}
+
+.bn-range-map__canvas.maplibregl-map .maplibregl-ctrl-group button + button {
+  border-top: var(--border-width) solid var(--color-border-subtle);
+}
+
+/* MapLibre removes the outline and draws its own blue ring; the app's focus ring is used instead. */
+.bn-range-map__canvas.maplibregl-map .maplibregl-ctrl-group button:focus:focus-visible,
+.bn-range-map__canvas.maplibregl-map .maplibregl-ctrl-attrib-button:focus:focus-visible {
+  box-shadow: none;
+  outline: var(--focus-width) solid var(--color-brand);
+  outline-offset: calc(-1 * var(--focus-width));
+}
+
+/* The zoom icons are dark data-URI drawings; inverted they stay legible on the dark surface. */
+:root[data-theme='dark'] .bn-range-map__canvas.maplibregl-map .maplibregl-ctrl-group .maplibregl-ctrl-icon {
+  filter: invert(1);
+}
+
+@media (hover: hover) {
+  .bn-range-map__canvas.maplibregl-map .maplibregl-ctrl-group button:not(:disabled):hover {
+    background-color: var(--color-bg-sunken);
+  }
+}
+
+/* Credits: the basemap's and GBIF's licences require them on screen; the toggle grows to --touch-min. */
+.bn-range-map__canvas.maplibregl-map .maplibregl-ctrl-attrib {
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+}
+
+.bn-range-map__canvas.maplibregl-map .maplibregl-ctrl-attrib.maplibregl-compact {
+  box-sizing: border-box;
+  min-height: var(--touch-min);
+  padding: 0 var(--touch-min) 0 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  box-shadow: var(--shadow-raised);
+}
+
+.bn-range-map__canvas.maplibregl-map .maplibregl-ctrl-attrib.maplibregl-compact-show {
+  padding: calc((var(--touch-min) - var(--leading-caption)) / 2) var(--space-4) calc((var(--touch-min) - var(--leading-caption)) / 2) var(--touch-min);
+  border-radius: var(--radius-l);
+}
+
+/* The credits wrap before they reach the zoom buttons on the right. */
+.bn-range-map__canvas.maplibregl-map .maplibregl-ctrl-bottom-left {
+  max-width: calc(100% - var(--touch-min) - 3 * var(--space-3));
+}
+
+.bn-range-map__canvas.maplibregl-map .maplibregl-ctrl-attrib a {
+  color: var(--color-text-primary);
+}
+
+.bn-range-map__canvas.maplibregl-map .maplibregl-ctrl-attrib-button {
+  width: var(--touch-min);
+  height: var(--touch-min);
+  border-radius: var(--radius-pill);
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* As in MapView.css: inverting the button would invert its focus ring, so only a copy of the icon is inverted. */
+:root[data-theme='dark'] .bn-range-map__canvas.maplibregl-map .maplibregl-ctrl-attrib-button {
+  background-size: 0 0;
+}
+
+:root[data-theme='dark'] .bn-range-map__canvas.maplibregl-map .maplibregl-ctrl-attrib-button::before {
+  position: absolute;
+  inset: 0;
+  background-image: inherit;
+  background-position: center;
+  background-repeat: no-repeat;
+  content: '';
+  filter: invert(1);
+}
+
+/*
+ * "Use two fingers to move the map": the hint MapLibre shows when one finger or the plain wheel scrolls the page.
+ * Its own white text on a light scrim fails contrast over a pale basemap, so it gets the inverse pair, nearly opaque.
+ */
+.bn-range-map__canvas.maplibregl-map .maplibregl-cooperative-gesture-screen {
+  padding: var(--space-4);
+  background: color-mix(in srgb, var(--color-bg-inverse) 85%, transparent);
+  color: var(--color-text-inverse);
+  font-size: var(--text-body);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-body);
+  text-align: center;
+}
+
+@media (min-width: 64rem) {
+  .bn-range-map {
+    --range-map-height: 22rem;
+  }
+}

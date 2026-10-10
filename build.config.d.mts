@@ -13,7 +13,7 @@ export declare const APP_SHELL_HTML: string;
 export declare const WEB_MANIFEST: string;
 export declare const ICONS_DIR: string;
 export declare const MODEL_ASSETS_DIR: string;
-export declare const MODEL_FILES: Readonly<{ manifest: string; labels: string; speciesNames: string }>;
+export declare const MODEL_FILES: Readonly<{ manifest: string; labels: string; speciesNames: string; speciesPhotos: string }>;
 
 export declare const SW_ENTRY: string;
 export declare const SW_SOURCE: string;

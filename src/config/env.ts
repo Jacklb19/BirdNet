@@ -68,13 +68,18 @@ function hostList(env: RawEnv, key: string, fallback: readonly string[]): readon
 }
 
 export interface AppConfig {
-  /** Base of the BirdNet API; "/api" is proxied to the API deployment by vercel.json and by Vite in development. */
+  /** Base of the Trino API; "/api" is proxied to the API deployment by vercel.json and by Vite in development. */
   readonly apiBaseUrl: string;
   readonly apiTimeoutMs: number;
   /** Null when the build has no cloud account configuration; the app then works fully on the device. */
   readonly supabase: { readonly url: string; readonly anonKey: string } | null;
   /** Where e-mail confirmation links return; null means the origin the person signed up from. */
   readonly authRedirectUrl: string | null;
+  /**
+   * OAuth client ID of "Sign in with Google" (public by design). With it the browser's own account chooser is used
+   * where available; null keeps the redirect through Supabase for everyone.
+   */
+  readonly googleClientId: string | null;
   /** Versioned model resources served with the app (manifest, labels, species names). */
   readonly modelAssetsBaseUrl: string;
   readonly map: {
@@ -101,6 +106,14 @@ export interface AppConfig {
     readonly es: string;
     readonly en: string;
   };
+  /**
+   * GBIF (free, no key) for the guide part of the species card: taxonomy and conservation status from `apiUrl`,
+   * and the map of where the species has been recorded from `tilesUrl` (occurrence density tiles).
+   */
+  readonly gbif: {
+    readonly apiUrl: string;
+    readonly tilesUrl: string;
+  };
 }
 
 /** Pure so it can be tested with any environment; throws with the variable name on invalid input. */
@@ -112,6 +125,7 @@ export function readConfig(env: RawEnv): AppConfig {
     apiTimeoutMs: positiveInteger(env, 'VITE_API_TIMEOUT_MS', 20_000),
     supabase: supabaseUrl && supabaseAnonKey ? { url: url(env, 'VITE_SUPABASE_URL', supabaseUrl), anonKey: supabaseAnonKey } : null,
     authRedirectUrl: text(env, 'VITE_AUTH_REDIRECT_URL') ? url(env, 'VITE_AUTH_REDIRECT_URL', '/') : null,
+    googleClientId: text(env, 'VITE_GOOGLE_CLIENT_ID'),
     modelAssetsBaseUrl: url(env, 'VITE_MODEL_ASSETS_BASE_URL', '/models'),
     map: {
       styleLightUrl: url(env, 'VITE_MAP_STYLE_LIGHT_URL', 'https://tiles.openfreemap.org/styles/liberty'),
@@ -131,6 +145,10 @@ export function readConfig(env: RawEnv): AppConfig {
     summaries: {
       es: url(env, 'VITE_SUMMARY_API_URL_ES', 'https://es.wikipedia.org/api/rest_v1/page/summary'),
       en: url(env, 'VITE_SUMMARY_API_URL_EN', 'https://en.wikipedia.org/api/rest_v1/page/summary'),
+    },
+    gbif: {
+      apiUrl: url(env, 'VITE_GBIF_API_URL', 'https://api.gbif.org/v1'),
+      tilesUrl: url(env, 'VITE_GBIF_TILES_URL', 'https://api.gbif.org/v2/map/occurrence/density'),
     },
   });
 }
