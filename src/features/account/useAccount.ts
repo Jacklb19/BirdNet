@@ -7,6 +7,7 @@ import { bindSyncSession, keepSitesOf, listDetections } from '../offline/queueSt
 import {
   GENERIC_ACCOUNT_FAILURE, GOOGLE_PROVIDER, PASSWORD_RECOVERY_EVENT, SIGNED_OUT_EVENT, type AccountFailure,
 } from './account.constants';
+import { requestGoogleIdToken, supportsFederatedSignIn, wasDismissed } from './googleSignIn';
 import { encodeAvatar, fetchProfile, normalizeAlias, updateProfile, uploadAvatar, type Profile } from './profileApi';
 import { accountFailure, supabase, toSyncSession } from './supabaseClient';
 
@@ -25,7 +26,7 @@ export interface AccountState {
   readonly error: AccountError;
   readonly working: boolean;
   signIn(email: string, password: string): Promise<void>;
-  /** Leaves the page for Google's consent screen; Supabase brings the person back signed in. */
+  /** Opens the browser's Google account chooser; where there is none, leaves for Google's page and Supabase brings the person back. */
   signInWithGoogle(): Promise<void>;
   /** Resolves true when the account still needs email confirmation. */
   signUp(email: string, password: string): Promise<boolean>;
@@ -125,7 +126,19 @@ export function useAccount(): AccountState {
   }, undefined), [run]);
 
   const signInWithGoogle = useCallback(() => run(async () => {
-    const { error: failure } = await requireClient().auth.signInWithOAuth({ provider: GOOGLE_PROVIDER, options: { redirectTo: authRedirectUrl() } });
+    const auth = requireClient().auth;
+    if (config.googleClientId && supportsFederatedSignIn()) {
+      try {
+        const { token: idToken, nonce } = await requestGoogleIdToken(config.googleClientId);
+        const { error: failure } = await auth.signInWithIdToken({ provider: GOOGLE_PROVIDER, token: idToken, nonce });
+        if (failure) throw failure;
+        return;
+      } catch (caught) {
+        // Closing the chooser is the person's answer; any other failure falls back to the redirect, which always works.
+        if (wasDismissed(caught)) return;
+      }
+    }
+    const { error: failure } = await auth.signInWithOAuth({ provider: GOOGLE_PROVIDER, options: { redirectTo: authRedirectUrl() } });
     if (failure) throw failure;
   }, undefined), [run]);
 

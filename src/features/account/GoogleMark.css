@@ -1,0 +1,37 @@
+.bn-google-mark {
+  width: var(--icon-size);
+  height: var(--icon-size);
+  flex-shrink: 0;
+}
+
+.bn-google-mark__blue { fill: var(--color-google-blue); }
+.bn-google-mark__red { fill: var(--color-google-red); }
+.bn-google-mark__yellow { fill: var(--color-google-yellow); }
+.bn-google-mark__green { fill: var(--color-google-green); }
+
+/* Google's guidelines ask for a neutral button around its mark: white in the light theme, the surface in the dark one. */
+.bn-account-google {
+  display: inline-flex;
+  width: 100%;
+  min-height: var(--control-height);
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-5);
+  border: var(--border-width) solid var(--color-text-secondary);
+  border-radius: var(--radius-l);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.bn-account-google[aria-disabled='true'] {
+  opacity: var(--state-disabled-opacity);
+}
+
+@media (hover: hover) {
+  .bn-account-google:not([aria-disabled='true']):hover {
+    background: var(--color-bg-sunken);
+  }
+}
