@@ -1,12 +1,11 @@
 /*
- * The map screen takes the whole viewport above the tab bar (phones) or under the floating top bar (wide
- * screens). It is fixed rather than in the page flow so the shell's bottom padding never makes it scroll:
+ * The map screen takes the whole viewport, under the bar and above the phone's tab bar. It is fixed rather than in the page flow so the shell's bottom padding never makes it scroll:
  * dragging the map must never scroll the page instead. The "In this area" panel floats over the map and never
  * resizes it, so a panel that grows or shrinks with its content does not move the camera or reload the data.
  */
 .bn-page.bn-map {
   --map-gutter: var(--space-4);
-  --map-top: calc(env(safe-area-inset-top) + var(--space-4));
+  --map-top: calc(var(--topbar-height) + var(--space-3)); /* the map runs under the bar, its controls start below it */
   --map-panel-width: 24rem; /* a species row with its count fits; most of a laptop screen stays map */
   --map-filter-width: 20rem;
   --map-sheet-height: 42%; /* title, totals and about two species, as in the design */

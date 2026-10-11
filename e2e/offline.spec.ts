@@ -24,7 +24,7 @@ const FIXTURE_ROUTES = {
 
 const bridge = fs.readFileSync(OFFLINE_CHECK_BUNDLE, 'utf8');
 async function ready(page: Page, hash = ''): Promise<void> {
-  // Skip the first-run introduction: these checks start from an already welcomed installation.
+  // These checks start from an installation that has already opened the app, so the model manages itself.
   await page.addInitScript(([key, value]) => { localStorage.setItem(key, value); }, [STORAGE_KEYS.preferences, JSON.stringify({ welcomed: true })] as const);
   await page.goto(`/${hash}`);
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });

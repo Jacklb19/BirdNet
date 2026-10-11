@@ -288,3 +288,23 @@ La caminata gasta batería (pantalla, GPS y micrófono a la vez) y la interfaz l
 - Los datos vienen de GBIF (gratuito, sin clave, con CORS): coincidencia exacta del nombre científico (`/v1/species/match`; las coincidencias aproximadas se rechazan y los sinónimos usan la clave aceptada), categoría UICN y teselas de densidad de registros. El mapa muestra dónde se ha observado la especie, no un límite de distribución, y lo dice.
 - Las respuestas de clasificación se guardan para usarlas sin conexión; las teselas no. Si GBIF no responde, la ficha lo indica con una línea y no muestra un mapa vacío.
 - Las aves probables de la zona se calculan para el lugar activo, un lugar guardado, el último canto con ubicación o, a falta de todo, el centro configurado del despliegue: el álbum ya no exige tener un lugar ni pide la posición.
+
+---
+
+## ADR-27. Un solo sitio: Inicio siempre visitable, la sesión en la barra y el álbum como libro (Sprint 8, corrige ADR-24)
+
+### Contexto
+Tras desplegar S8 el dueño encontró que la portada y la app parecían dos aplicaciones: la portada solo se veía la primera vez, desde la app no había cómo volver a ella, y la app mostraba un perfil anónimo sin haber iniciado sesión. También pidió el álbum del diseño (libro con anillas), una Bitácora sin filas repetidas y la ficha de especie en dos partes.
+
+### Decisión
+- **Una barra en todo el sitio y a todo ancho.** En la app: Inicio, Escuchar, Mapa, Guía y Bitácora; en Inicio, sus secciones. El logo lleva siempre a Inicio. En teléfonos la barra muestra el logo, la sesión y un botón que abre un menú superpuesto con todo el sitio agrupado (la app, Trino, tu cuenta); la barra inferior de la app se mantiene.
+- **La dirección raíz abre Inicio.** Con sesión iniciada lleva directo a la app (Inicio queda a un enlace, y `#/home` nunca redirige). La app instalada arranca en `#/listen`. Ya no existe una «primera visita» que oculte la portada.
+- **Sin sesión no hay perfil.** La barra y la portada ofrecen siempre «Iniciar sesión» (y «Crear cuenta»), también en una compilación sin cuentas configuradas, donde la pantalla de cuenta lo explica: una puerta que desaparece sin aviso confunde. Con sesión la barra muestra la foto o las iniciales. La pestaña Cuenta de la barra inferior solo existe con sesión. Los ajustes no dependen de la cuenta: se abren desde el menú o el icono de la barra.
+- **La cuenta sigue siendo opcional**: «Descubre la app» entra sin registrarse y la portada lo dice. En la portada el mapa de ejemplo va a la izquierda y el texto a la derecha.
+- **La barra se funde con el cielo**: arriba de la página no tiene fondo propio; al bajar toma un velo del color del papel con desenfoque y un borde inferior difuminado. Sobre el mapa, que queda debajo desde el principio, el velo está siempre.
+- **Álbum como libro** (`AlbumBook`, compartido por la portada y la Guía): página de calcomanías, anillas y pestañas de índice (todas, tuyas, por descubrir). En pantallas anchas el libro está abierto y la página derecha muestra la ficha del ave elegida; en teléfonos es una página a la vez y la calcomanía abre la ficha. Las aves por descubrir son casillas atenuadas del mismo libro. Las calcomanías se pegan una tras otra cuando el libro entra en pantalla y la hoja gira desde el lomo al cambiar de página o de pestaña (sin movimiento si el sistema lo pide). En la portada todo va rotulado como ejemplo.
+- **Bitácora agrupada**: dentro de cada día, una fila por especie (cuántos cantos, entre qué horas, mejor confianza) que se despliega para ver cada registro. Lo que falta verificar o subir se cuenta en la fila, para que plegar no esconda nada.
+- **Ficha en dos pestañas**: «Sobre el ave» (clasificación, descripción, dónde vive) y «Tus registros».
+
+### Consecuencias
+El titular de la portada sigue siendo una sola frase llana y la barra es plana (lo pidió el dueño antes, aunque el boceto del álbum traía la frase partida y la barra flotante). El menú del teléfono repite los destinos de la barra inferior a propósito: es el mapa completo del sitio.

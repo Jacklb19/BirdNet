@@ -3,7 +3,7 @@ import { HOURS_PER_DAY } from '../../config/contract';
 import { applyRegionMask, birdnetWeek, countLikely, EXCLUDED_LOGIT, rankRegion, regionMask } from '../inference/geoFilter';
 import { sigmoid } from '../inference/inferenceResults';
 import type { LogRecord } from '../log/logRecords';
-import { albumEntries, matchesSearch } from './album';
+import { albumEntries, albumPage, albumSlots, matchesSearch } from './album';
 import { dominantColor, fallbackPlumage, nearestPlumage, PLUMAGES, type Plumage, type Rgb } from './plumage';
 import { parseSpeciesRecord } from './speciesApi';
 import { bestFacts, busiestHour, cloudFacts, phoneFacts } from './speciesRecord';
@@ -97,6 +97,33 @@ describe('album and species card', () => {
     expect(bestFacts(phone, cloud).source).toBe('cloud');
     expect(bestFacts(phone, { ...cloud, detections: 1 }).source).toBe('phone');
     expect(busiestHour(hours)).toBeNull();
+  });
+});
+
+describe('album pages', () => {
+  const entry = (species: string, lastAt: number) => ({ species, detections: 1, bestConfidence: 0.9, lastAt });
+  const likely = [
+    { scientificName: 'Colibri coruscans', commonName: 'Sparkling Violetear', probability: 0.4 },
+    { scientificName: 'Turdus fuscater', commonName: 'Great Thrush', probability: 0.9 },
+    { scientificName: 'Zonotrichia capensis', commonName: 'Rufous-collared Sparrow', probability: 0.8 },
+  ];
+
+  it('puts recorded species first and then the likely ones not recorded, likeliest first, never twice', () => {
+    const slots = albumSlots([entry('Turdus fuscater', 2), entry('Pyrocephalus rubinus', 1)], likely, 'all');
+    expect(slots.map((slot) => [slot.species, slot.found])).toEqual([
+      ['Turdus fuscater', true], ['Pyrocephalus rubinus', true], ['Zonotrichia capensis', false], ['Colibri coruscans', false],
+    ]);
+    expect(albumSlots([entry('Turdus fuscater', 2)], likely, 'found').map((slot) => slot.species)).toEqual(['Turdus fuscater']);
+    expect(albumSlots([entry('Turdus fuscater', 2)], likely, 'missing').map((slot) => slot.species)).toEqual(['Zonotrichia capensis', 'Colibri coruscans']);
+  });
+
+  it('cuts the slots into pages and brings an out-of-range page back', () => {
+    const slots = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
+    expect(albumPage(slots, 1, 3)).toEqual({ page: 1, pages: 3, slots: ['a', 'b', 'c'] });
+    expect(albumPage(slots, 3, 3)).toEqual({ page: 3, pages: 3, slots: ['g'] });
+    expect(albumPage(slots, 9, 3).page).toBe(3);
+    expect(albumPage(slots, 0, 3).page).toBe(1);
+    expect(albumPage([], 2, 3)).toEqual({ page: 1, pages: 1, slots: [] });
   });
 });
 

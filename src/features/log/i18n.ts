@@ -55,6 +55,13 @@ export const logMessages = defineMessages({
       },
     },
     days: { today: 'Hoy', yesterday: 'Ayer' },
+    group: {
+      between: (first: string, last: string) => (first === last ? first : `${first}–${last}`),
+      best: (confidence: string) => `mejor ${confidence}`,
+      toVerify: { one: (count: string) => `${count} por verificar`, other: (count: string) => `${count} por verificar` },
+      notUploaded: { one: (count: string) => `${count} sin subir`, other: (count: string) => `${count} sin subir` },
+      records: (name: string) => `Registros de ${name}`,
+    },
     showMore: 'Mostrar más',
     search: {
       label: 'Buscar en la bitácora',
@@ -85,6 +92,7 @@ export const logMessages = defineMessages({
       title: 'Aún no hay registros',
       text: 'Lo que el teléfono identifique mientras escuchas aparecerá aquí, agrupado por día.',
       action: 'Empezar a escuchar',
+      walk: 'Salir a caminar',
     },
     loadError: 'No se pudo leer la bitácora guardada en el teléfono.',
     detail: {
@@ -188,6 +196,13 @@ export const logMessages = defineMessages({
       },
     },
     days: { today: 'Today', yesterday: 'Yesterday' },
+    group: {
+      between: (first: string, last: string) => (first === last ? first : `${first}–${last}`),
+      best: (confidence: string) => `best ${confidence}`,
+      toVerify: { one: (count: string) => `${count} to verify`, other: (count: string) => `${count} to verify` },
+      notUploaded: { one: (count: string) => `${count} not uploaded`, other: (count: string) => `${count} not uploaded` },
+      records: (name: string) => `Records of ${name}`,
+    },
     showMore: 'Show more',
     search: {
       label: 'Search the log',
@@ -218,6 +233,7 @@ export const logMessages = defineMessages({
       title: 'No records yet',
       text: 'What the phone identifies while you listen will appear here, grouped by day.',
       action: 'Start listening',
+      walk: 'Go for a walk',
     },
     loadError: 'The log kept on this phone could not be read.',
     detail: {

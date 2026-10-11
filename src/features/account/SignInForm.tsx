@@ -1,4 +1,4 @@
-import { useId, useState, type SyntheticEvent } from 'react';
+import { useEffect, useId, useState, type SyntheticEvent } from 'react';
 import { formatNumber, useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
 import { Notice } from '../../shared/ui/Notice';
@@ -7,6 +7,7 @@ import { useOnline } from '../offline/useQueueStatus';
 import { PASSWORD_MIN_LENGTH, passwordsMatch } from './account.constants';
 import { PasswordField, TextField } from './FormField';
 import { GoogleMark } from './GoogleMark';
+import { subscribeSignInMode, takeRequestedSignInMode } from './signInIntent';
 import type { AccountState } from './useAccount';
 import './SignInForm.css';
 
@@ -24,7 +25,8 @@ export function SignInForm({ account }: { readonly account: AccountState }): Rea
   const { dict, locale } = useI18n();
   const texts = dict.account.signIn;
   const online = useOnline();
-  const [mode, setMode] = useState<Mode>('signIn');
+  // A link that asked for "Create account" opens the form on that side.
+  const [mode, setMode] = useState<Mode>(() => takeRequestedSignInMode() ?? 'signIn');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
@@ -41,6 +43,17 @@ export function SignInForm({ account }: { readonly account: AccountState }): Rea
     setPassword('');
     setConfirmation('');
   };
+
+  // A link followed while the form is already on screen ("Create account" in the menu) switches it in place.
+  useEffect(() => subscribeSignInMode(() => {
+    const asked = takeRequestedSignInMode();
+    if (!asked) return;
+    setMode(asked);
+    setMismatch(false);
+    setResetSentTo(null);
+    setPassword('');
+    setConfirmation('');
+  }), []);
 
   const submit = async (event: SyntheticEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();

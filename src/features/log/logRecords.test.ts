@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CONFIDENCE_THRESHOLDS } from '../../config/contract';
 import type { HistoryEntry, StoredDetection } from '../offline/types';
 import {
-  explanationFor, groupByDay, matchesFilter, mergeRecords, msUntilNextLocalDay, placeOf, relativeDay, syncCounts, syncNotice, todaySummary,
+  explanationFor, groupByDay, groupBySpecies, matchesFilter, mergeRecords, msUntilNextLocalDay, placeOf, relativeDay, syncCounts, syncNotice, todaySummary,
   uploadStateOf,
   type LogRecord,
 } from './logRecords';
@@ -153,5 +153,28 @@ describe('place', () => {
     expect(placeOf({ siteId: ids.b, located: false }, sites)).toEqual({ kind: 'site', name: 'Finca' });
     expect(placeOf({ siteId: ids.c, located: true }, sites)).toEqual({ kind: 'cell' });
     expect(placeOf({ siteId: null, located: false }, sites)).toEqual({ kind: 'none' });
+  });
+});
+
+describe('species of a day', () => {
+  const record = (id: string, species: string, minute: number, extra: Partial<LogRecord> = {}): LogRecord => ({
+    id, species, confidence: 0.8, status: 'confirmed', recordedAt: Date.UTC(2026, 9, 10, 6, minute), siteId: null, upload: 'cloud',
+    located: true, audioId: null, ...extra,
+  });
+
+  it('gathers a day by species, the one heard last first, and counts what folding would hide', () => {
+    const groups = groupBySpecies([
+      record('d', 'Turdus fuscater', 40, { confidence: 0.93 }),
+      record('c', 'Colibri coruscans', 30, { status: 'provisional', confidence: 0.6 }),
+      record('b', 'Turdus fuscater', 20, { upload: 'waiting' }),
+      record('a', 'Turdus fuscater', 10, { status: 'provisional', upload: 'needsAccount' }),
+    ]);
+    expect(groups.map((group) => group.species)).toEqual(['Turdus fuscater', 'Colibri coruscans']);
+    expect(groups[0]).toMatchObject({
+      firstAt: Date.UTC(2026, 9, 10, 6, 10), lastAt: Date.UTC(2026, 9, 10, 6, 40), bestConfidence: 0.93, toVerify: 1, notUploaded: 2,
+    });
+    expect(groups[0]?.records.map((entry) => entry.id)).toEqual(['d', 'b', 'a']);
+    expect(groups[1]).toMatchObject({ toVerify: 1, notUploaded: 0 });
+    expect(groupBySpecies([])).toEqual([]);
   });
 });

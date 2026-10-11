@@ -12,8 +12,14 @@ export const GUIDE_CONCURRENCY = 4;
  */
 export const GUIDE_BYTES_PER_SPECIES = 70_000;
 
-/** Empty slots shown before "show all" in the album's "to discover" section. */
-export const ALBUM_MISSING_PREVIEW = 24;
+/** Stickers on one page of the album: two rows of three on a phone, three rows of three on the open book. */
+export const ALBUM_PAGE_SLOTS = Object.freeze({ phone: 6, desktop: 9 });
+
+/** Share of the album that must be on screen before its stickers are pasted, so the pasting is actually seen. */
+export const BOOK_SEEN_RATIO = 0.35;
+
+/** Rings drawn on the spine of the album. */
+export const ALBUM_BOOK_RINGS = 5;
 
 /** Latest records listed on a species card. */
 export const SPECIES_RECENT_RECORDS = 8;

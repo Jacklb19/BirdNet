@@ -1,0 +1,300 @@
+.bn-book {
+  --book-ring-width: var(--space-5);
+  --book-ring-height: var(--space-2);
+  --book-tab-width: var(--space-7);
+
+  position: relative;
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* The cover holds the pages; its color is the paper of the album. */
+.bn-book__cover {
+  position: relative;
+  display: grid;
+  border-radius: var(--radius-plate);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-float);
+}
+
+.bn-book__page {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-5) var(--space-5);
+}
+
+/* Phones: the second page follows the first, and the seam between them is where the rings sit. */
+.bn-book__page--right {
+  border-top: var(--border-width-strong) dashed var(--color-border-subtle);
+}
+
+.bn-book__eyebrow {
+  color: var(--color-text-secondary);
+}
+
+.bn-book__title {
+  font-size: var(--text-l);
+  line-height: var(--leading-l);
+}
+
+/* Rings: along the top edge of a single page, down the spine of the open book. */
+.bn-book__spine {
+  position: absolute;
+  top: calc(var(--book-ring-width) / -2);
+  right: 0;
+  left: 0;
+  display: flex;
+  justify-content: space-evenly;
+  padding: 0 var(--space-7);
+  pointer-events: none;
+}
+
+.bn-book__ring {
+  width: var(--book-ring-height);
+  height: var(--book-ring-width);
+  border-radius: var(--radius-pill);
+  background: var(--color-book-ring);
+  box-shadow: var(--shadow-raised);
+}
+
+.bn-book__slots {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4) var(--space-2);
+  margin-top: var(--space-2);
+}
+
+/* A leaf turns from the spine when another page, tab or search shows; its stickers then land one after another. */
+.bn-book--seen .bn-book__slots {
+  transform-origin: left center;
+  animation: bn-book-turn var(--duration-slow) var(--ease-standard) both;
+}
+
+@keyframes bn-book-turn {
+  from { opacity: 0; transform: perspective(60rem) rotateY(-14deg); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Until the book has come into view, the stickers hold their first frame instead of landing unseen. */
+.bn-book:not(.bn-book--seen) .bn-sticker--drop {
+  animation-play-state: paused;
+}
+
+.bn-book__slot {
+  display: grid;
+  width: 100%;
+  min-height: var(--touch-min);
+  justify-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-1);
+  border: 0;
+  border-radius: var(--radius-l);
+  background: none;
+  color: var(--color-text-primary);
+  text-align: center;
+  text-decoration: none;
+}
+
+/* The bird whose card is open on the right page. */
+.bn-book__slot--selected {
+  background: var(--color-bg-sunken);
+}
+
+.bn-book__slot .bn-sticker {
+  margin-bottom: var(--space-2);
+}
+
+.bn-book__slot-name {
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-small);
+  overflow-wrap: anywhere;
+}
+
+.bn-book__slot-note {
+  color: var(--color-text-secondary);
+}
+
+.bn-book__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: var(--border-width) solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+/* Index tabs: above the book on phones, down its right edge when it is open. */
+.bn-book__tabs {
+  display: flex;
+  gap: var(--space-2);
+  padding: 0 var(--space-5);
+  overflow-x: auto;
+}
+
+.bn-book__tab {
+  min-height: var(--touch-min);
+  flex-shrink: 0;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-m) var(--radius-m) 0 0;
+  background: var(--plate);
+  color: var(--on-plate);
+  white-space: nowrap;
+}
+
+/* The open tab is the one marked, as an index tab pulled out. */
+.bn-book__tab[aria-pressed='true'] {
+  font-weight: var(--font-weight-bold);
+  text-decoration: underline;
+  text-underline-offset: var(--space-1);
+}
+
+.bn-book:has(.bn-book__tabs) {
+  gap: 0;
+}
+
+/* The card on the right page. */
+.bn-book__plate {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-xl);
+}
+
+.bn-book__plate-text {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+}
+
+.bn-book__plate-name {
+  font-size: var(--text-title);
+  line-height: var(--leading-title);
+  overflow-wrap: anywhere;
+}
+
+.bn-book__plate-line {
+  font-size: var(--text-small);
+  font-style: italic;
+  line-height: var(--leading-small);
+}
+
+.bn-book__facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.bn-book__fact {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border-radius: var(--radius-l);
+  background: var(--color-bg-canvas);
+}
+
+/* The figure reads first; the markup keeps the term before its value, as a description list requires. */
+.bn-book__fact dt {
+  order: 1;
+  color: var(--color-text-secondary);
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+}
+
+.bn-book__fact dd {
+  font-size: var(--text-title);
+  line-height: var(--leading-title);
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 40rem) {
+  .bn-book__slots {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 64rem) {
+  .bn-book--open .bn-book__cover {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  }
+
+  .bn-book__page {
+    padding: var(--space-7);
+  }
+
+  .bn-book--open .bn-book__page--right {
+    border-top: 0;
+    border-left: var(--border-width-strong) dashed var(--color-border-subtle);
+  }
+
+  /* The spine of the open book: rings stacked where the two pages meet. */
+  .bn-book--open .bn-book__spine {
+    top: 0;
+    right: auto;
+    bottom: 0;
+    /* The left page takes 1.15 of 2.15 parts of the cover. */
+    left: calc(100% * 1.15 / 2.15 - var(--book-ring-width) / 2);
+    flex-direction: column;
+    padding: var(--space-8) 0;
+  }
+
+  .bn-book--open .bn-book__ring {
+    width: var(--book-ring-width);
+    height: var(--book-ring-height);
+  }
+
+  /* The left page of the open book hinges on the spine, at its right edge. */
+  .bn-book--open.bn-book--seen .bn-book__slots {
+    transform-origin: right center;
+    animation-name: bn-book-turn-open;
+  }
+
+  /* Tabs hang off the right edge, their labels reading downwards like on a paper index. */
+  .bn-book__tabs {
+    position: absolute;
+    top: var(--space-8);
+    left: 100%;
+    z-index: 0;
+    flex-direction: column;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .bn-book__tab {
+    width: var(--book-tab-width);
+    min-height: 0;
+    padding: var(--space-4) 0;
+    border-radius: 0 var(--radius-m) var(--radius-m) 0;
+    writing-mode: vertical-rl;
+  }
+
+  /* Room for the tabs beside the book, so they never push the page sideways. */
+  .bn-book:has(.bn-book__tabs) {
+    margin-right: var(--book-tab-width);
+  }
+}
+
+@media (hover: hover) {
+  .bn-book__slot:is(a, button):hover {
+    background: var(--color-bg-sunken);
+  }
+
+  .bn-book__tab:hover {
+    text-decoration: underline;
+    text-underline-offset: var(--space-1);
+  }
+}
+
+@keyframes bn-book-turn-open {
+  from { opacity: 0; transform: perspective(60rem) rotateY(14deg); }
+  to { opacity: 1; transform: none; }
+}

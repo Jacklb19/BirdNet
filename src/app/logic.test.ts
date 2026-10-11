@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { isAuthCallback, parseRoute, routeHash, sectionOf, type Route } from './routes';
+import { isAuthCallback, isSiteRoot, parseRoute, routeHash, sectionOf, type Route } from './routes';
 import { TRUNCATED_HEADER } from '../config/api';
 import { HOURS_PER_DAY } from '../config/contract';
 import { applyDetectionPolicy } from '../features/inference/detectionPolicy';
@@ -18,7 +18,11 @@ describe('routes', () => {
     expect(parseRoute('#/log/not-a-uuid')).toEqual({ name: 'log' });
     // 36 characters is not enough: the identifier must have the UUID layout the API issues.
     expect(parseRoute(`#/sites/${'-'.repeat(36)}`)).toEqual({ name: 'sites' });
-    expect(parseRoute('')).toEqual({ name: 'listen' });
+    // The bare address is the home page; an unknown path falls back to listening.
+    expect(parseRoute('')).toEqual({ name: 'home' });
+    expect(parseRoute('#/')).toEqual({ name: 'home' });
+    expect(parseRoute('#/nowhere')).toEqual({ name: 'listen' });
+    expect([isSiteRoot(''), isSiteRoot('#'), isSiteRoot('#/'), isSiteRoot('#/home')]).toEqual([true, true, true, false]);
     expect(sectionOf({ name: 'site', id })).toBe('map');
     expect(sectionOf({ name: 'species', species: 'Turdus fuscater' })).toBe('guide');
     expect(parseRoute('#/log/album')).toEqual({ name: 'album' });

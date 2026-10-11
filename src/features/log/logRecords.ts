@@ -140,6 +140,39 @@ export function groupByDay(records: readonly LogRecord[], now: Date): DayGroup[]
   return groups;
 }
 
+/** Every record of one species within a day, gathered so a bird that sings all morning is one line of the log. */
+export interface SpeciesGroup {
+  readonly species: string;
+  /** Newest first. */
+  readonly records: readonly LogRecord[];
+  /** Epoch milliseconds of the earliest and of the latest record. */
+  readonly firstAt: number;
+  readonly lastAt: number;
+  readonly bestConfidence: number;
+  /** Records still waiting for verification, and records not in the cloud yet: counted so folding never hides them. */
+  readonly toVerify: number;
+  readonly notUploaded: number;
+}
+
+/** A day's records by species, the species heard most recently first; `records` must already be newest first. */
+export function groupBySpecies(records: readonly LogRecord[]): SpeciesGroup[] {
+  const bySpecies = new Map<string, LogRecord[]>();
+  for (const record of records) {
+    const group = bySpecies.get(record.species);
+    if (group) group.push(record);
+    else bySpecies.set(record.species, [record]);
+  }
+  return [...bySpecies].map(([species, group]) => ({
+    species,
+    records: group,
+    firstAt: Math.min(...group.map((record) => record.recordedAt)),
+    lastAt: Math.max(...group.map((record) => record.recordedAt)),
+    bestConfidence: Math.max(...group.map((record) => record.confidence)),
+    toVerify: group.filter((record) => matchesFilter(record, 'toVerify')).length,
+    notUploaded: group.filter((record) => matchesFilter(record, 'notUploaded')).length,
+  }));
+}
+
 export interface DaySummary {
   readonly detections: number;
   readonly species: number;

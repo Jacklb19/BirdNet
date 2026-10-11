@@ -42,8 +42,8 @@ export function parseRoute(hash: string): Route {
     }
     case 'account': return { name: 'account' };
     case 'settings': return { name: 'settings' };
-    // "welcome" was the first-run screen until S6; old links land on the home page that replaced it.
-    case 'home': case 'welcome': return { name: 'home' };
+    // The bare address is the home page (ADR-27). "welcome" was the first-run screen until S6; old links land here too.
+    case '': case 'home': case 'welcome': return { name: 'home' };
     default: return { name: 'listen' };
   }
 }
@@ -69,6 +69,11 @@ export function sectionOf(route: Route): 'listen' | 'map' | 'guide' | 'log' | 'a
     case 'settings': case 'home': return 'account';
     default: return route.name;
   }
+}
+
+/** The bare address of the site, with no route in it: where a visit starts. */
+export function isSiteRoot(hash: string): boolean {
+  return hash.replace(/^#\/?/, '') === '';
 }
 
 /** Programmatic navigation (after a form or a first-run step); links use `href={routeHash(...)}` instead. */
