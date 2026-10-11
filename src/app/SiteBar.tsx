@@ -71,6 +71,13 @@ export function SiteBar({ links, menu, navLabel, brandHref, onBrand, end }: Site
   const menuId = useId();
   // Wide screens have no menu: one left open while the window grew is closed, not stranded.
   const open = requested && !isDesktop;
+  // At the top of a page the bar is part of the sky; it only takes a veil once content scrolls under it.
+  const [scrolled, setScrolled] = useState(() => window.scrollY > 0);
+  useEffect(() => {
+    const onScroll = (): void => { setScrolled(window.scrollY > 0); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => { window.removeEventListener('scroll', onScroll); };
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -91,7 +98,7 @@ export function SiteBar({ links, menu, navLabel, brandHref, onBrand, end }: Site
 
   const close = (): void => { setRequested(false); };
   return (
-    <header className={`bn-sitebar${open ? ' bn-sitebar--open' : ''}`}>
+    <header className={`bn-sitebar${scrolled ? ' bn-sitebar--scrolled' : ''}${open ? ' bn-sitebar--open' : ''}`}>
       <div className="bn-sitebar__inner">
         <a className="bn-sitebar__brand" href={brandHref} onClick={() => { close(); onBrand?.(); }}><BrandMark name={dict.app.name} /></a>
         <nav className="bn-sitebar__nav" aria-label={navLabel}>

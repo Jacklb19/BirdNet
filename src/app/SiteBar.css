@@ -1,19 +1,51 @@
 /*
- * One flat bar for the home page and the app. It sits on the sky at the top of the page and, once the page
- * scrolls under it, on a veil of the paper color so links stay readable over any content.
+ * One flat bar for the home page and the app. At the top of a page it has no surface of its own: it is part of
+ * the sky. Once content scrolls under it, it takes a veil of the paper color that fades out below its edge, so
+ * links stay readable and no hard band is drawn across the page.
  */
 .bn-sitebar {
+  --sitebar-veil: color-mix(in srgb, var(--color-bg-canvas) 80%, transparent);
+
   position: sticky;
   top: 0;
   z-index: var(--layer-nav);
-  background: color-mix(in srgb, var(--sky-top) 82%, transparent);
+  transition: background-color var(--duration-medium) var(--ease-standard);
+}
+
+/* The soft lower edge of the veil: it thins out instead of ending on a line. */
+.bn-sitebar::after {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  height: var(--space-5);
+  background: linear-gradient(var(--sitebar-veil), transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-medium) var(--ease-standard);
+  content: '';
+}
+
+/* The map lies under the bar from the start, so there the veil is always on. */
+.bn-sitebar--scrolled,
+.bn-shell:has(.bn-map) .bn-sitebar {
+  background: var(--sitebar-veil);
   backdrop-filter: blur(var(--space-3));
 }
 
+.bn-sitebar--scrolled::after,
+.bn-shell:has(.bn-map) .bn-sitebar::after {
+  opacity: 1;
+}
+
 /* With the menu open the bar goes above the tab bar and the live player, and stops being see-through. */
-.bn-sitebar--open {
+.bn-sitebar.bn-sitebar--open {
   z-index: var(--layer-sheet);
   background: var(--color-bg-canvas);
+}
+
+.bn-sitebar.bn-sitebar--open::after {
+  opacity: 0;
 }
 
 .bn-sitebar__inner {
@@ -81,8 +113,8 @@
 }
 
 /*
- * The phone menu: a sheet that drops from the bar over the whole page. It is positioned against the bar (whose
- * backdrop filter makes it the containing block), so its height is the screen minus the bar.
+ * The phone menu: a sheet that drops from the bar over the whole page. It is positioned against the bar, so its
+ * height is the screen minus the bar.
  */
 .bn-sitemenu {
   position: absolute;
