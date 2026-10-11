@@ -20,10 +20,11 @@ export function homeLink(dict: Messages): SiteBarLink {
 }
 
 /**
- * The account block of the phone menu. Without a session there is no profile to show: only the ways in. Settings
+ * The account block of the phone menu. Without a session there is no profile to show: only the ways in, always
+ * offered (a build without accounts explains itself on the account screen instead of hiding the door). Settings
  * stay reachable either way, because permissions, theme and language need no account.
  */
-export function accountGroup(dict: Messages, signedIn: boolean, accountsAvailable: boolean, place: MenuPlace): SiteBarGroup {
+export function accountGroup(dict: Messages, signedIn: boolean, place: MenuPlace): SiteBarGroup {
   const settings: SiteBarLink = {
     key: 'settings', label: dict.app.menuLinks.settings, href: routeHash({ name: 'settings' }), icon: 'settings', current: place === 'settings',
   };
@@ -34,7 +35,6 @@ export function accountGroup(dict: Messages, signedIn: boolean, accountsAvailabl
       links: [{ key: 'profile', label: dict.app.menuLinks.profile, href: account, icon: 'account', current: place === 'account' }, settings],
     };
   }
-  if (!accountsAvailable) return { key: 'account', label: dict.app.menuGroups.settings, links: [settings] };
   return {
     key: 'account', label: dict.app.menuGroups.account,
     links: [

@@ -76,6 +76,9 @@ export default function HomePage(): React.JSX.Element {
   const needsDownload = model.state === 'missing' || model.state === 'error';
   const signedIn = account.session !== null;
   const listen = routeHash({ name: 'listen' });
+  const accountHref = routeHash({ name: 'account' });
+  // Someone signed in comes back to their app; a newcomer is invited to look around first.
+  const enter = signedIn ? texts.open : texts.discover;
 
   // The download runs in the service worker and its state is shared, so Listen shows its progress.
   const prepare = (): void => { if (needsDownload) void model.download(); };
@@ -94,7 +97,7 @@ export default function HomePage(): React.JSX.Element {
         menu={[
           { key: 'page', label: dict.app.menuGroups.site, links: pageLinks },
           { key: 'app', label: dict.app.menuGroups.app, links: appLinks(dict, null).map((link) => ({ ...link, onSelect: prepare })) },
-          accountGroup(dict, signedIn, account.configured, 'home'),
+          accountGroup(dict, signedIn, 'home'),
         ]}
         end={(
           <>
@@ -109,15 +112,21 @@ export default function HomePage(): React.JSX.Element {
             <h1 className="bn-home__title display">{texts.title}</h1>
             <p className="bn-home__lede">{texts.lede}</p>
             <div className="bn-home__actions">
-              <Button variant="accent" icon="walk" href={listen} onClick={prepare}>{texts.open}</Button>
-              {!signedIn && account.configured && (
-                <Button variant="secondary" href={routeHash({ name: 'account' })} onClick={() => { requestSignInMode('signUp'); }}>{dict.app.signUp}</Button>
+              <Button variant="accent" icon="walk" href={listen} onClick={prepare}>{enter}</Button>
+              {!signedIn && (
+                <Button variant="secondary" href={accountHref} onClick={() => { requestSignInMode('signIn'); }}>{dict.app.signIn}</Button>
               )}
             </div>
-            <p className="bn-home__note">
-              {account.configured && !signedIn ? texts.noAccountNeeded : null}
-              {needsDownload && model.available ? ` ${texts.firstDownload(formatBytes(downloadBytes(model.available), locale))}` : null}
-            </p>
+            {!signedIn && (
+              <p className="bn-home__note">
+                {texts.noAccountYet}{' '}
+                <a className="bn-home__link" href={accountHref} onClick={() => { requestSignInMode('signUp'); }}>{texts.createIt}</a>
+                {' '}{texts.noAccountNeeded}
+              </p>
+            )}
+            {needsDownload && model.available && (
+              <p className="bn-home__note">{texts.firstDownload(formatBytes(downloadBytes(model.available), locale))}</p>
+            )}
           </div>
           <WalkScene />
         </section>
@@ -192,7 +201,7 @@ export default function HomePage(): React.JSX.Element {
         </section>
 
         <footer className="bn-home__footer">
-          <Button variant="accent" icon="walk" href={listen} onClick={prepare}>{texts.open}</Button>
+          <Button variant="accent" icon="walk" href={listen} onClick={prepare}>{enter}</Button>
           <p>{texts.caveat}</p>
           <p className="bn-home__credits">{texts.credits}</p>
         </footer>

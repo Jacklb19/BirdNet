@@ -37,6 +37,11 @@
   gap: var(--space-3);
 }
 
+.bn-home__link {
+  color: var(--color-brand);
+  font-weight: var(--font-weight-semibold);
+}
+
 .bn-home__note,
 .bn-home__muted {
   color: var(--color-text-secondary);
@@ -183,6 +188,11 @@
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: var(--space-8);
     align-items: center;
+  }
+
+  /* Wide screens: the walk on the left, the words on the right. On phones the sentence still comes first. */
+  .bn-home__intro {
+    order: 1;
   }
 
   .bn-home__title {

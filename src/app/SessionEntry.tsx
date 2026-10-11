@@ -14,14 +14,13 @@ export interface SessionEntryProps {
 
 /**
  * The session's corner of the bar. Signed in: the person's photo or initials, leading to their account. Signed
- * out: the way in, by its name. There is no anonymous profile, because without a session there is none to show.
+ * out: the way in, by its name, always there. There is no anonymous profile, because without a session there is
+ * none to show.
  */
-export function SessionEntry({ current = false }: SessionEntryProps): React.JSX.Element | null {
+export function SessionEntry({ current = false }: SessionEntryProps): React.JSX.Element {
   const { dict } = useI18n();
   const account = useAccountContext();
   if (!account.session) {
-    // A build without accounts has nothing to sign in to.
-    if (!account.configured) return null;
     return (
       <Button variant="secondary" className="bn-session__signin" href={routeHash({ name: 'account' })}
         aria-current={current ? 'page' : undefined} onClick={() => { requestSignInMode('signIn'); }}>
