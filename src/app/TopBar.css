@@ -1,28 +1,33 @@
-/* The account button of the app bar: the profile photo as a small sticker, or the initials on the brand color. */
-.bn-topbar__account {
-  display: inline-flex;
-  width: var(--touch-min);
-  height: var(--touch-min);
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border: calc(var(--sticker-edge) / 2) solid var(--color-sticker-edge);
-  border-radius: var(--radius-sticker);
-  background: var(--color-brand);
-  box-shadow: var(--shadow-raised);
-  color: var(--color-on-brand);
-  font-weight: var(--font-weight-semibold);
-  text-decoration: none;
+/* Phones reach settings from the menu and keep the live player above the tab bar, so the bar stays short. */
+.bn-topbar__settings,
+.bn-sitebar .bn-live--chip {
+  display: none;
 }
 
-.bn-topbar__photo {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+@media (min-width: 64rem) {
+  .bn-sitebar .bn-live--chip {
+    display: flex;
+  }
+
+  .bn-topbar__settings {
+    display: inline-flex;
+    width: var(--touch-min);
+    height: var(--touch-min);
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-pill);
+    color: var(--color-text-primary);
+  }
+
+  .bn-topbar__settings[aria-current='page'] {
+    background: var(--color-bg-surface);
+    box-shadow: var(--shadow-raised);
+  }
 }
 
-.bn-topbar__account[aria-current='page'] {
-  outline: var(--border-width-strong) solid var(--color-border-strong);
-  outline-offset: var(--focus-offset);
+@media (min-width: 64rem) and (hover: hover) {
+  .bn-topbar__settings:hover {
+    background: var(--color-bg-surface);
+  }
 }

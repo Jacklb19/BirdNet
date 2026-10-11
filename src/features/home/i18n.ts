@@ -1,15 +1,15 @@
 import { defineMessages } from '../../i18n/defineMessages';
-import type { HomeCardPart, HomeMapPoint, HomePromise, HomeSection, HomeStep } from './home.config';
+import type { HomeMapPoint, HomePromise, HomeSection, HomeStep } from './home.config';
 
 /** Texts of the home page (ADR-15, ADR-24). Sizes and distances arrive already formatted. */
 export const homeMessages = defineMessages({
   es: {
     navLabel: 'Secciones de la página',
     nav: { guide: 'La guía', how: 'Cómo funciona', map: 'El mapa', privacy: 'Privacidad' } satisfies Record<HomeSection, string>,
-    signIn: 'Iniciar sesión',
     open: 'Abrir Trino',
     title: 'Trino reconoce las aves por su canto.',
     lede: 'Sales a caminar con el teléfono encendido. Trino escucha, reconoce cada ave sin conexión y la deja en tu mapa y en tu álbum.',
+    noAccountNeeded: 'No hace falta cuenta para probarlo.',
     firstDownload: (size: string) => `La primera vez descarga ${size} para funcionar sin señal.`,
     scene: {
       label: 'Ejemplo de una caminata: cinco aves quedan pegadas a lo largo del camino',
@@ -17,12 +17,17 @@ export const homeMessages = defineMessages({
       example: 'Ejemplo',
     },
     album: {
-      title: 'Tu álbum',
-      page: 'Aves de Bogotá',
+      page: 'Página 1 · Aves de Bogotá · Ejemplo',
       found: (found: string, total: string) => `${found} de ${total} en esta página`,
+      songs: { one: (count: string) => `${count} canto`, other: (count: string) => `${count} cantos` },
       toFind: 'Por descubrir',
-      cardTitle: 'Y cada ave tiene su ficha',
-      cardText: 'También las que aún no has oído, para saber qué buscar.',
+      tabsLabel: 'Otras secciones de la página',
+      cardEyebrow: 'Ficha de la guía · Ejemplo',
+      cardTitle: 'Cada ave, con su ficha',
+      cardLine: 'Verde brillante, con parches violeta. Canta desde una percha alta.',
+      facts: { hour: 'cuando más canta', range: 'dónde vive', best: 'tu mejor registro' },
+      rangeExample: 'Andes',
+      cardText: 'También las que aún no has oído, para saber qué buscar: su descripción, dónde vive y a qué horas la oyes tú.',
     },
     how: {
       title: 'Cómo funciona',
@@ -31,13 +36,6 @@ export const homeMessages = defineMessages({
         identify: { title: 'Reconoce', text: 'Trino identifica el canto y te dice qué tan seguro está.' },
         collect: { title: 'Colecciona', text: 'Cada ave va a tu álbum y a tu mapa, con su hora y su lugar.' },
       } satisfies Record<HomeStep, { title: string; text: string }>,
-    },
-    guide: {
-      parts: {
-        about: { title: 'Qué ave es', text: 'Descripción de Wikipedia, familia y estado de conservación.' },
-        range: { title: 'Dónde vive', text: 'Mapa de su distribución con registros de GBIF.' },
-        when: { title: 'Cuándo la oyes', text: 'Tus registros por hora y por lugar.' },
-      } satisfies Record<HomeCardPart, { title: string; text: string }>,
     },
     map: {
       title: 'El mapa',
@@ -65,10 +63,10 @@ export const homeMessages = defineMessages({
   en: {
     navLabel: 'Sections of the page',
     nav: { guide: 'The guide', how: 'How it works', map: 'The map', privacy: 'Privacy' },
-    signIn: 'Sign in',
     open: 'Open Trino',
     title: 'Trino recognizes birds by their song.',
     lede: 'You go for a walk with the phone on. Trino listens, recognizes each bird offline and puts it on your map and in your album.',
+    noAccountNeeded: 'No account is needed to try it.',
     firstDownload: (size: string) => `The first time it downloads ${size} so it works without signal.`,
     scene: {
       label: 'Example of a walk: five birds are pinned along the path',
@@ -76,12 +74,17 @@ export const homeMessages = defineMessages({
       example: 'Example',
     },
     album: {
-      title: 'Your album',
-      page: 'Birds of Bogotá',
+      page: 'Page 1 · Birds of Bogotá · Example',
       found: (found: string, total: string) => `${found} of ${total} on this page`,
+      songs: { one: (count: string) => `${count} song`, other: (count: string) => `${count} songs` },
       toFind: 'To find',
-      cardTitle: 'And every bird has its card',
-      cardText: 'Also the ones you have not heard yet, so you know what to look for.',
+      tabsLabel: 'Other sections of the page',
+      cardEyebrow: 'Guide card · Example',
+      cardTitle: 'Every bird, with its card',
+      cardLine: 'Bright green, with violet patches. It sings from a high perch.',
+      facts: { hour: 'when it sings most', range: 'where it lives', best: 'your best record' },
+      rangeExample: 'Andes',
+      cardText: 'Also the ones you have not heard yet, so you know what to look for: its description, where it lives and the hours you hear it.',
     },
     how: {
       title: 'How it works',
@@ -89,13 +92,6 @@ export const homeMessages = defineMessages({
         listen: { title: 'Listen', text: 'You tap once. Audio is analysed on your phone and is not kept.' },
         identify: { title: 'Identify', text: 'Trino recognizes the song and tells you how sure it is.' },
         collect: { title: 'Collect', text: 'Each bird goes to your album and your map, with its time and place.' },
-      },
-    },
-    guide: {
-      parts: {
-        about: { title: 'Which bird it is', text: 'Description from Wikipedia, family and conservation status.' },
-        range: { title: 'Where it lives', text: 'Range map with records from GBIF.' },
-        when: { title: 'When you hear it', text: 'Your records by hour and by place.' },
       },
     },
     map: {

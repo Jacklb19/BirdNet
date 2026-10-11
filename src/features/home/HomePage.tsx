@@ -1,27 +1,28 @@
 import { useEffect, useRef, useState } from 'react';
 import { routeHash } from '../../app/routes';
-import { SiteBar } from '../../app/SiteBar';
+import { SessionEntry } from '../../app/SessionEntry';
+import { SiteBar, type SiteBarLink } from '../../app/SiteBar';
+import { accountGroup, appLinks } from '../../app/siteMenu';
 import { APPROX_CELL_METERS } from '../../config/contract';
 import { PRIVACY_PAGE_URL } from '../../config/staticPages';
-import { formatBytes, formatMeters, formatNumber, useI18n } from '../../i18n';
+import { formatBytes, formatCount, formatMeters, formatNumber, formatPercent, useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
 import { Icon } from '../../shared/ui/Icon';
-import { Sticker } from '../../shared/ui/Sticker';
+import { useAccountContext } from '../account/accountContext';
+import { requestSignInMode } from '../account/signInIntent';
 import { downloadBytes } from '../inference/modelManifest';
+import { formatTime } from '../log/logFormat';
 import { useModel } from '../offline/useModel';
-import { plateStyle, usePlumage } from '../species/plumage';
+import { AlbumBook, BookCard } from '../species/AlbumBook';
+import { usePlumage } from '../species/plumage';
 import { commonName, useSpeciesNames } from '../species/speciesNames';
 import {
-  HOME_ALBUM, HOME_CARD_PARTS, HOME_CARD_SPECIES, HOME_MAP_POINTS, HOME_PROMISES, HOME_SECTIONS, HOME_STEPS, type HomeSection,
+  HOME_ALBUM, HOME_BOOK_TABS, HOME_CARD_EXAMPLE, HOME_CARD_SPECIES, HOME_MAP_POINTS, HOME_PROMISES, HOME_SECTIONS, HOME_STEPS,
+  type HomeSection,
 } from './home.config';
 import { TerritoryScene } from './TerritoryScene';
 import { WalkScene } from './WalkScene';
 import './HomePage.css';
-
-export interface HomePageProps {
-  /** Records that the person has seen the home page and continues into the app (listening or the account). */
-  readonly onEnter: (destination: 'listen' | 'account') => void;
-}
 
 type SectionRefs = Readonly<Record<HomeSection, React.RefObject<HTMLElement | null>>>;
 
@@ -50,16 +51,20 @@ function useCurrentSection(sections: SectionRefs): HomeSection | null {
   return current;
 }
 
+/** A fixed morning, only to write the example card's hour in the reader's clock format. */
+const exampleHour = new Date(2026, 0, 1, HOME_CARD_EXAMPLE.hour).getTime();
+
 /**
- * Home page (ADR-15, ADR-24): a site that presents Trino, with its own sections, apart from the app. It opens with
- * what the app does, shown rather than announced: a walk on which birds are pinned, and the album they fill. One
- * door leads into the app ("Open Trino"); entering it also starts the one model download (ADR-19).
+ * Home page (ADR-15, ADR-24, ADR-27): the front of the one site Trino is. Its bar is the app's bar with this
+ * page's sections in it, and the app is always one link away. It shows what the app does rather than announcing
+ * it: a walk on which birds are pinned, the album they fill and a half-explored neighbourhood.
  */
-export default function HomePage({ onEnter }: HomePageProps): React.JSX.Element {
+export default function HomePage(): React.JSX.Element {
   const { dict, locale } = useI18n();
   const texts = dict.home;
   const names = useSpeciesNames();
   const model = useModel();
+  const account = useAccountContext();
   const cardPlumage = usePlumage(HOME_CARD_SPECIES);
   const how = useRef<HTMLElement>(null);
   const guide = useRef<HTMLElement>(null);
@@ -69,27 +74,32 @@ export default function HomePage({ onEnter }: HomePageProps): React.JSX.Element 
   const current = useCurrentSection(sections);
   // A failed attempt (never with a usable model on the phone) is retried on entering, so it reads like a missing model.
   const needsDownload = model.state === 'missing' || model.state === 'error';
-  const albumTotal = HOME_ALBUM.found.length + HOME_ALBUM.missing.length;
+  const signedIn = account.session !== null;
+  const listen = routeHash({ name: 'listen' });
 
-  const open = (): void => {
-    // The download runs in the service worker and its state is shared, so Listen shows its progress.
-    if (needsDownload) void model.download();
-    onEnter('listen');
-  };
+  // The download runs in the service worker and its state is shared, so Listen shows its progress.
+  const prepare = (): void => { if (needsDownload) void model.download(); };
+  const goTo = (section: HomeSection): void => { sections[section].current?.scrollIntoView({ block: 'start' }); };
+  const toTop = (): void => { window.scrollTo({ top: 0 }); };
+
+  const pageLinks: SiteBarLink[] = [
+    { key: 'top', label: dict.app.nav.home, icon: 'home', current: current === null, onSelect: toTop },
+    ...HOME_SECTIONS.map((section) => ({ key: section, label: texts.nav[section], current: current === section, onSelect: () => { goTo(section); } })),
+  ];
+  const albumTotal = HOME_ALBUM.found.length + HOME_ALBUM.missing.length;
 
   return (
     <div className="bn-home">
-      <SiteBar variant="site" navLabel={texts.navLabel} brandHref={routeHash({ name: 'home' })}
-        links={HOME_SECTIONS.map((section) => ({
-          key: section, label: texts.nav[section], current: current === section,
-          onSelect: () => { sections[section].current?.scrollIntoView({ block: 'start' }); },
-        }))}
+      <SiteBar navLabel={texts.navLabel} brandHref={routeHash({ name: 'home' })} onBrand={toTop} links={pageLinks}
+        menu={[
+          { key: 'page', label: dict.app.menuGroups.site, links: pageLinks },
+          { key: 'app', label: dict.app.menuGroups.app, links: appLinks(dict, null).map((link) => ({ ...link, onSelect: prepare })) },
+          accountGroup(dict, signedIn, account.configured, 'home'),
+        ]}
         end={(
           <>
-            <a className="bn-home__signin" href={routeHash({ name: 'account' })} onClick={(event) => { event.preventDefault(); onEnter('account'); }}>
-              {texts.signIn}
-            </a>
-            <Button onClick={open}>{texts.open}</Button>
+            <SessionEntry />
+            <Button href={listen} onClick={prepare}>{texts.open}</Button>
           </>
         )} />
 
@@ -99,58 +109,41 @@ export default function HomePage({ onEnter }: HomePageProps): React.JSX.Element 
             <h1 className="bn-home__title display">{texts.title}</h1>
             <p className="bn-home__lede">{texts.lede}</p>
             <div className="bn-home__actions">
-              <Button variant="accent" icon="walk" onClick={open}>{texts.open}</Button>
+              <Button variant="accent" icon="walk" href={listen} onClick={prepare}>{texts.open}</Button>
+              {!signedIn && account.configured && (
+                <Button variant="secondary" href={routeHash({ name: 'account' })} onClick={() => { requestSignInMode('signUp'); }}>{dict.app.signUp}</Button>
+              )}
             </div>
-            {needsDownload && model.available && (
-              <p className="bn-home__note">{texts.firstDownload(formatBytes(downloadBytes(model.available), locale))}</p>
-            )}
+            <p className="bn-home__note">
+              {account.configured && !signedIn ? texts.noAccountNeeded : null}
+              {needsDownload && model.available ? ` ${texts.firstDownload(formatBytes(downloadBytes(model.available), locale))}` : null}
+            </p>
           </div>
           <WalkScene />
         </section>
 
-        <section ref={guide} className="bn-home__album" aria-labelledby="bn-home-album">
-          <div className="bn-home__album-page">
-            <p className="label">{texts.album.page}</p>
-            <h2 id="bn-home-album" className="bn-home__heading display">{texts.album.title}</h2>
-            <p className="bn-home__muted">{texts.album.found(formatNumber(HOME_ALBUM.found.length, locale), formatNumber(albumTotal, locale))}</p>
-            <ul className="bn-home__slots">
-              {HOME_ALBUM.found.map((species, index) => (
-                <li key={species} className="bn-home__slot">
-                  <Sticker scientificName={species} alt="" size="m" drop order={index} />
-                  <span className="bn-home__slot-name">{commonName(names, species, locale)}</span>
-                </li>
-              ))}
-              {HOME_ALBUM.missing.map((species) => (
-                <li key={species} className="bn-home__slot">
-                  <Sticker scientificName={species} alt="" size="m" missing />
-                  <span className="bn-home__slot-name">{commonName(names, species, locale)}</span>
-                  <span className="label bn-home__muted">{texts.album.toFind}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="bn-home__album-page">
-            <h3 className="bn-home__heading display">{texts.album.cardTitle}</h3>
-            <p className="bn-home__muted">{texts.album.cardText}</p>
-            <div className="bn-home__card bn-plate" style={plateStyle(cardPlumage)}>
-              <Sticker scientificName={HOME_CARD_SPECIES} alt="" size="m" />
-              <span className="bn-home__card-text">
-                <span className="bn-home__card-name display">{commonName(names, HOME_CARD_SPECIES, locale)}</span>
-                <span className="scientific">{HOME_CARD_SPECIES}</span>
-              </span>
-            </div>
-            <ul className="bn-home__parts">
-              {HOME_CARD_PARTS.map((part) => (
-                <li key={part.id} className="bn-home__part">
-                  <span className="bn-home__part-icon"><Icon name={part.icon} size="s" /></span>
-                  <span className="bn-home__part-text">
-                    <span className="bn-home__part-title">{texts.guide.parts[part.id].title}</span>
-                    <span>{texts.guide.parts[part.id].text}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
+        <section ref={guide} className="bn-home__section" aria-labelledby="bn-home-album">
+          <AlbumBook titleId="bn-home-album" eyebrow={texts.album.page}
+            title={texts.album.found(formatNumber(HOME_ALBUM.found.length, locale), formatNumber(albumTotal, locale))}
+            slots={[
+              ...HOME_ALBUM.found.map((bird) => ({
+                species: bird.species, name: commonName(names, bird.species, locale), found: true, note: formatCount(texts.album.songs, bird.songs, locale),
+              })),
+              ...HOME_ALBUM.missing.map((species) => ({ species, name: commonName(names, species, locale), found: false, note: texts.album.toFind })),
+            ]}
+            tabsLabel={texts.album.tabsLabel}
+            tabs={HOME_BOOK_TABS.map((tab) => ({ key: tab.section, label: texts.nav[tab.section], plumage: tab.plumage, onSelect: () => { goTo(tab.section); } }))}
+            right={(
+              <BookCard eyebrow={texts.album.cardEyebrow} title={texts.album.cardTitle} species={HOME_CARD_SPECIES}
+                name={commonName(names, HOME_CARD_SPECIES, locale)} plumage={cardPlumage} line={texts.album.cardLine}
+                facts={[
+                  { value: formatTime(exampleHour, locale), label: texts.album.facts.hour },
+                  { value: texts.album.rangeExample, label: texts.album.facts.range },
+                  { value: formatPercent(HOME_CARD_EXAMPLE.confidence, locale, 0), label: texts.album.facts.best },
+                ]}>
+                <p className="bn-home__muted">{texts.album.cardText}</p>
+              </BookCard>
+            )} />
         </section>
 
         <section ref={how} className="bn-home__section" aria-labelledby="bn-home-how">
@@ -174,7 +167,7 @@ export default function HomePage({ onEnter }: HomePageProps): React.JSX.Element 
             <ul className="bn-home__points">
               {HOME_MAP_POINTS.map((point) => (
                 <li key={point.id} className="bn-home__point">
-                  <span className="bn-home__part-icon"><Icon name={point.icon} size="s" /></span>
+                  <span className="bn-home__point-icon"><Icon name={point.icon} size="s" /></span>
                   <span>{texts.map.points[point.id]}</span>
                 </li>
               ))}
@@ -199,7 +192,7 @@ export default function HomePage({ onEnter }: HomePageProps): React.JSX.Element 
         </section>
 
         <footer className="bn-home__footer">
-          <Button variant="accent" icon="walk" onClick={open}>{texts.open}</Button>
+          <Button variant="accent" icon="walk" href={listen} onClick={prepare}>{texts.open}</Button>
           <p>{texts.caveat}</p>
           <p className="bn-home__credits">{texts.credits}</p>
         </footer>

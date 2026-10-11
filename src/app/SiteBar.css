@@ -10,20 +10,20 @@
   backdrop-filter: blur(var(--space-3));
 }
 
-/* Inside the app, phones navigate with the tab bar. */
-.bn-sitebar--app {
-  display: none;
+/* With the menu open the bar goes above the tab bar and the live player, and stops being see-through. */
+.bn-sitebar--open {
+  z-index: var(--layer-sheet);
+  background: var(--color-bg-canvas);
 }
 
 .bn-sitebar__inner {
   display: flex;
   max-width: var(--content-max);
-  min-height: var(--topbar-height);
-  flex-wrap: wrap;
+  height: var(--topbar-height);
   align-items: center;
-  gap: var(--space-2) var(--space-4);
+  gap: var(--space-2);
   margin: 0 auto;
-  padding: var(--space-2) var(--space-4);
+  padding: 0 var(--space-4);
 }
 
 .bn-sitebar__brand {
@@ -36,47 +36,21 @@
   text-decoration: none;
 }
 
-.bn-sitebar__toggle {
-  display: inline-flex;
-  min-height: var(--touch-min);
-  align-items: center;
-  gap: var(--space-2);
-  padding: 0 var(--space-3);
-  border: var(--border-width-strong) solid var(--color-border-strong);
-  border-radius: var(--radius-m);
-  background: transparent;
-  color: var(--color-text-primary);
-  font-weight: var(--font-weight-semibold);
-}
-
-/* Phones: the links of the home page fold under the bar until the menu is opened. */
+/* Phones: the links live in the menu. */
 .bn-sitebar__nav {
   display: none;
-  flex-basis: 100%;
-  order: 3;
-}
-
-.bn-sitebar__nav--open {
-  display: block;
-}
-
-.bn-sitebar__nav ul {
-  display: grid;
-  padding-bottom: var(--space-2);
 }
 
 .bn-sitebar__link {
   display: inline-flex;
-  width: 100%;
   min-height: var(--touch-min);
   align-items: center;
-  padding: 0 var(--space-1);
   border: 0;
   background: none;
   color: var(--color-text-primary);
   font-weight: var(--font-weight-semibold);
-  text-align: left;
   text-decoration: none;
+  white-space: nowrap;
 }
 
 /* The current place is underlined, as on a printed index, instead of filled like a button. */
@@ -90,7 +64,87 @@
   display: flex;
   min-width: 0;
   align-items: center;
+  gap: var(--space-2);
+}
+
+.bn-sitebar__toggle {
+  display: inline-flex;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: var(--border-width-strong) solid var(--color-border-strong);
+  border-radius: var(--radius-m);
+  background: transparent;
+  color: var(--color-text-primary);
+}
+
+/*
+ * The phone menu: a sheet that drops from the bar over the whole page. It is positioned against the bar (whose
+ * backdrop filter makes it the containing block), so its height is the screen minus the bar.
+ */
+.bn-sitemenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  display: grid;
+  height: calc(100dvh - var(--topbar-height));
+  align-content: start;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-4) calc(var(--space-8) + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-top: var(--border-width) solid var(--color-border-subtle);
+  background: var(--color-bg-canvas);
+  animation: bn-sitemenu-in var(--duration-medium) var(--ease-standard) both;
+}
+
+@keyframes bn-sitemenu-in {
+  from { opacity: 0; transform: translateY(calc(-1 * var(--space-3))); }
+  to { opacity: 1; transform: none; }
+}
+
+.bn-sitemenu__group {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.bn-sitemenu__group + .bn-sitemenu__group {
+  padding-top: var(--space-4);
+  border-top: var(--border-width) solid var(--color-border-subtle);
+}
+
+.bn-sitemenu__heading {
+  padding: 0 var(--space-3);
+  color: var(--color-text-secondary);
+}
+
+.bn-sitemenu__link {
+  display: flex;
+  width: 100%;
+  min-height: var(--control-height);
+  align-items: center;
   gap: var(--space-3);
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-m);
+  background: none;
+  color: var(--color-text-primary);
+  font-size: var(--text-title-s);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-title-s);
+  text-align: left;
+  text-decoration: none;
+}
+
+.bn-sitemenu__link[aria-current] {
+  background: var(--color-bg-sunken);
+}
+
+.bn-sitemenu__link .bn-icon {
+  color: var(--color-text-secondary);
 }
 
 @media (hover: hover) {
@@ -99,43 +153,37 @@
     text-decoration-thickness: var(--border-width);
     text-underline-offset: var(--space-2);
   }
+
+  .bn-sitemenu__link:hover {
+    background: var(--color-bg-sunken);
+  }
 }
 
 @media (min-width: 64rem) {
-  .bn-sitebar--app {
-    display: block;
-  }
-
   .bn-sitebar__inner {
-    flex-wrap: nowrap;
     gap: var(--space-6);
-    padding: var(--space-3) var(--space-6);
+    padding: 0 var(--space-6);
   }
 
-  .bn-sitebar__toggle {
-    display: none;
+  .bn-sitebar__brand {
+    margin-right: var(--space-4);
   }
 
-  .bn-sitebar__nav,
-  .bn-sitebar__nav--open {
+  .bn-sitebar__nav {
     display: block;
-    flex-basis: auto;
-    order: 0;
     margin-right: auto;
   }
 
   .bn-sitebar__nav ul {
     display: flex;
     gap: var(--space-6);
-    padding: 0;
   }
 
-  .bn-sitebar__link {
-    width: auto;
-    padding: 0;
+  .bn-sitebar__end {
+    gap: var(--space-3);
   }
 
-  .bn-sitebar__brand {
-    margin-right: var(--space-4);
+  .bn-sitebar__toggle {
+    display: none;
   }
 }

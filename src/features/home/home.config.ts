@@ -1,4 +1,5 @@
 import type { IconName } from '../../shared/ui/Icon';
+import type { Plumage } from '../species/plumage';
 
 /**
  * The walk drawn on the home page: birds common in Bogotá's gardens, parks and wetlands, pinned along a path in the
@@ -19,18 +20,33 @@ export const WALK_PATH = 'M8 92 C14 84 17 80 20 78 S30 66 35 58 S46 44 53 38 S64
 /** How long each bird of the walk stays as "singing now" on the scene's plate. */
 export const HOME_WALK_STEP_MS = 2600;
 
-/** The album page of the home: the first birds are pasted in, the last ones are still to find. */
+/** The album page of the home, an example: the first birds are pasted in with how often they were heard, the last ones are still to find. */
 export const HOME_ALBUM = Object.freeze({
-  found: ['Turdus fuscater', 'Zonotrichia capensis', 'Colibri coruscans', 'Thraupis episcopus'],
+  found: [
+    { species: 'Turdus fuscater', songs: 7 },
+    { species: 'Zonotrichia capensis', songs: 4 },
+    { species: 'Colibri coruscans', songs: 2 },
+    { species: 'Thraupis episcopus', songs: 1 },
+  ],
   missing: ['Pyrocephalus rubinus', 'Diglossa humeralis'],
 } as const);
 
 /** Bird of the sample guide card on the album's right page. */
 export const HOME_CARD_SPECIES = 'Colibri coruscans';
 
+/** Example figures of the sample card: the local hour it is heard most and the best confidence. */
+export const HOME_CARD_EXAMPLE = Object.freeze({ hour: 6, confidence: 0.87 });
+
 /** Sections of the home page, in page order; the bar links to them and their texts are keyed by `id`. */
 export const HOME_SECTIONS = Object.freeze(['guide', 'how', 'map', 'privacy'] as const);
 export type HomeSection = (typeof HOME_SECTIONS)[number];
+
+/** Index tabs of the sample album: each leads to a section of the page and wears a plate of its own. */
+export const HOME_BOOK_TABS: readonly { readonly section: HomeSection; readonly plumage: Plumage }[] = Object.freeze([
+  { section: 'how', plumage: 'mirla' },
+  { section: 'map', plumage: 'azulejo' },
+  { section: 'privacy', plumage: 'canario' },
+]);
 
 /** How the app works, in the order it happens; texts are keyed by the step. */
 export const HOME_STEPS = Object.freeze([
@@ -39,14 +55,6 @@ export const HOME_STEPS = Object.freeze([
   { id: 'collect', icon: 'album' },
 ] as const satisfies readonly { readonly id: string; readonly icon: IconName }[]);
 export type HomeStep = (typeof HOME_STEPS)[number]['id'];
-
-/** What a guide card holds; texts are keyed by `id`. */
-export const HOME_CARD_PARTS = Object.freeze([
-  { id: 'about', icon: 'book' },
-  { id: 'range', icon: 'map' },
-  { id: 'when', icon: 'clock' },
-] as const satisfies readonly { readonly id: string; readonly icon: IconName }[]);
-export type HomeCardPart = (typeof HOME_CARD_PARTS)[number]['id'];
 
 /** What the map section explains, in the order it happens on a walk; texts are keyed by `id`. */
 export const HOME_MAP_POINTS = Object.freeze([

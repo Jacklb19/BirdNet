@@ -1,0 +1,32 @@
+/* The signed-in person: their profile photo as a small sticker, or their initials on the brand color. */
+.bn-session__avatar {
+  display: inline-flex;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: calc(var(--sticker-edge) / 2) solid var(--color-sticker-edge);
+  border-radius: var(--radius-sticker);
+  background: var(--color-brand);
+  box-shadow: var(--shadow-raised);
+  color: var(--color-on-brand);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.bn-session__photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bn-session__avatar[aria-current='page'] {
+  outline: var(--border-width-strong) solid var(--color-border-strong);
+  outline-offset: var(--focus-offset);
+}
+
+.bn-session__signin {
+  white-space: nowrap;
+}

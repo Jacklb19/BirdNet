@@ -3,7 +3,7 @@
   "name": "Trino",
   "short_name": "Trino",
   "lang": "es",
-  "start_url": "/",
+  "start_url": "/#/listen",
   "scope": "/",
   "display": "standalone",
   "background_color": "#EDF1EE",
