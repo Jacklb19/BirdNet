@@ -69,7 +69,12 @@ export default function LogPage(): React.JSX.Element {
       {records === null && !error && <p className="bn-log__status" role="status">{dict.common.loading}</p>}
       {records?.length === 0 && (
         <EmptyState icon="log" title={dict.log.empty.title}
-          action={<Button href={routeHash({ name: 'listen' })} icon="listen">{dict.log.empty.action}</Button>}>
+          action={(
+            <div className="bn-log__empty-actions">
+              <Button href={routeHash({ name: 'listen' })} icon="listen">{dict.log.empty.action}</Button>
+              <Button variant="secondary" href={routeHash({ name: 'map' })} icon="walk">{dict.log.empty.walk}</Button>
+            </div>
+          )}>
           {dict.log.empty.text}
         </EmptyState>
       )}
