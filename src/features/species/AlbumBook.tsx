@@ -1,7 +1,7 @@
-import type { CSSProperties, ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Sticker } from '../../shared/ui/Sticker';
 import type { Plumage } from './plumage';
-import { ALBUM_BOOK_RINGS } from './species.config';
+import { ALBUM_BOOK_RINGS, BOOK_SEEN_RATIO } from './species.config';
 import './AlbumBook.css';
 
 /** One place for a sticker on the album's page: pasted in, or still to find. */
@@ -34,6 +34,8 @@ export interface AlbumBookProps {
   /** Id of the title, so the section that holds the book can be labelled by it. */
   readonly titleId?: string;
   readonly slots: readonly BookSlot[];
+  /** Changes when another leaf is shown (page, tab, search): the page then turns and its stickers land again. */
+  readonly leaf?: string;
   /** Shown in place of the slots when the page has none (an empty album, a search without matches). */
   readonly empty?: ReactNode;
   /** Under the stickers: turning the page. */
@@ -62,9 +64,23 @@ function Slot({ slot, order }: { readonly slot: BookSlot; readonly order: number
  * right, rings on the spine and index tabs on the edge. Wide screens show it open; on phones it is one page with
  * the rings along its top and the tabs above it. The home page shows an example of it; Guide is the real one.
  */
-export function AlbumBook({ eyebrow, title, titleId, slots, empty, footer, right, tabs, tabsLabel }: AlbumBookProps): React.JSX.Element {
+export function AlbumBook({ eyebrow, title, titleId, slots, leaf = '', empty, footer, right, tabs, tabsLabel }: AlbumBookProps): React.JSX.Element {
+  const book = useRef<HTMLDivElement>(null);
+  // The stickers wait for the book to come into view, so the pasting is seen and not spent above the fold.
+  const [seen, setSeen] = useState(() => typeof IntersectionObserver === 'undefined');
+  useEffect(() => {
+    const node = book.current;
+    if (!node || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
+      setSeen(true);
+      observer.disconnect();
+    }, { threshold: BOOK_SEEN_RATIO });
+    observer.observe(node);
+    return () => { observer.disconnect(); };
+  }, []);
   return (
-    <div className={`bn-book${right ? ' bn-book--open' : ''}`}>
+    <div ref={book} className={`bn-book${right ? ' bn-book--open' : ''}${seen ? ' bn-book--seen' : ''}`}>
       {tabs && tabs.length > 0 && (
         <div className="bn-book__tabs" role="group" aria-label={tabsLabel}>
           {tabs.map((tab) => (
@@ -80,7 +96,7 @@ export function AlbumBook({ eyebrow, title, titleId, slots, empty, footer, right
           <p className="label bn-book__eyebrow">{eyebrow}</p>
           <h2 id={titleId} className="bn-book__title display">{title}</h2>
           {slots.length > 0
-            ? <ul className="bn-book__slots">{slots.map((slot, index) => <li key={slot.species}><Slot slot={slot} order={index} /></li>)}</ul>
+            ? <ul key={leaf} className="bn-book__slots">{slots.map((slot, index) => <li key={slot.species}><Slot slot={slot} order={index} /></li>)}</ul>
             : empty}
           {footer && <div className="bn-book__footer">{footer}</div>}
         </div>

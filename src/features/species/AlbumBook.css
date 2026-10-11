@@ -66,6 +66,22 @@
   margin-top: var(--space-2);
 }
 
+/* A leaf turns from the spine when another page, tab or search shows; its stickers then land one after another. */
+.bn-book--seen .bn-book__slots {
+  transform-origin: left center;
+  animation: bn-book-turn var(--duration-slow) var(--ease-standard) both;
+}
+
+@keyframes bn-book-turn {
+  from { opacity: 0; transform: perspective(60rem) rotateY(-14deg); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Until the book has come into view, the stickers hold their first frame instead of landing unseen. */
+.bn-book:not(.bn-book--seen) .bn-sticker--drop {
+  animation-play-state: paused;
+}
+
 .bn-book__slot {
   display: grid;
   width: 100%;
@@ -236,6 +252,12 @@
     height: var(--book-ring-height);
   }
 
+  /* The left page of the open book hinges on the spine, at its right edge. */
+  .bn-book--open.bn-book--seen .bn-book__slots {
+    transform-origin: right center;
+    animation-name: bn-book-turn-open;
+  }
+
   /* Tabs hang off the right edge, their labels reading downwards like on a paper index. */
   .bn-book__tabs {
     position: absolute;
@@ -270,4 +292,9 @@
     text-decoration: underline;
     text-underline-offset: var(--space-1);
   }
+}
+
+@keyframes bn-book-turn-open {
+  from { opacity: 0; transform: perspective(60rem) rotateY(14deg); }
+  to { opacity: 1; transform: none; }
 }

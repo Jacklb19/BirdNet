@@ -117,7 +117,7 @@ export default function AlbumPage(): React.JSX.Element {
         <AlbumBook titleId={bookId}
           eyebrow={texts.book.page(formatNumber(view.page, locale), formatNumber(view.pages, locale))}
           title={texts.book.onPage(formatNumber(foundOnPage, locale), formatNumber(view.slots.length, locale))}
-          slots={bookSlots}
+          slots={bookSlots} leaf={`${scope}:${String(view.page)}:${query}`}
           empty={<p className="bn-album__muted">{query.trim() ? texts.noMatches : records === null ? dict.common.loading : texts.book.emptyScope[scope]}</p>}
           tabsLabel={texts.book.scopeLabel}
           tabs={ALBUM_SCOPES.map((value) => ({
