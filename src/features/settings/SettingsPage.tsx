@@ -9,6 +9,7 @@ import { THEME_PREFERENCES, useTheme } from '../../theme';
 import { useModel } from '../offline/useModel';
 import { useOfflineSettings } from '../offline/useOfflineSettings';
 import { ChoiceGroup } from './ChoiceGroup';
+import { DetectionSettings } from './DetectionSettings';
 import { ModelSettings } from './ModelSettings';
 import { PermissionSettings } from './PermissionSettings';
 import { RecordingSettings } from './RecordingSettings';
@@ -64,6 +65,7 @@ export default function SettingsPage(): React.JSX.Element {
           <span className="bn-settings-advanced__detail">{texts.advanced.detail}</span>
         </summary>
         <div className="bn-settings-advanced__body">
+          <DetectionSettings offline={offline} />
           <ModelSettings />
           <StorageSettings offline={offline} />
         </div>
@@ -71,6 +73,7 @@ export default function SettingsPage(): React.JSX.Element {
 
       <ListGroup title={texts.credits.title}>
         <ListRow label={texts.credits.model} description={texts.credits.modelDetail} />
+        <ListRow label={texts.credits.preview} description={texts.credits.previewDetail} />
         <ListRow label={texts.credits.names} description={texts.credits.namesDetail} />
         <ListRow label={texts.credits.photos} description={texts.credits.photosDetail} />
         <ListRow label={texts.credits.range} description={texts.credits.rangeDetail} />

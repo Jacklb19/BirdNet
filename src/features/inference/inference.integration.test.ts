@@ -3,6 +3,8 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as ort from 'onnxruntime-web';
 import { normalizeAudio } from '../audio/dsp/normalize';
+import { resampleBandLimited } from '../audio/dsp/bandLimitedResample';
+import productionManifest from '../../../public/models/manifest.json';
 import { AUDIO_CONSTANTS } from '../audio/dsp/audio.constants';
 import { CONFIDENCE_THRESHOLDS } from '../../config/contract';
 import { extractTopDetections, parseLabelsFile } from './inferenceResults';
@@ -67,6 +69,44 @@ describe.runIf(fs.existsSync(modelPath))('Real BirdNET inference and confidence 
       expect(detections[0]?.status).toBe('confirmed_local');
       expect(detections[0]?.confidence).toBeGreaterThan(CONFIDENCE_THRESHOLDS.confirmedFrom);
       expect(detections[0]?.confidence).toBeLessThan(1);
+      input.dispose();
+      output.dispose();
+    }
+  });
+});
+
+const plusManifest = productionManifest.alternate;
+const plusParts = plusManifest.model_files.map((file) => path.resolve('public/models', file));
+/** Species BirdNET+ names after a taxonomy that split them: the bird of the reference recording under its new name. */
+const PLUS_NAMES: Readonly<Record<string, string>> = { 'Troglodytes aedon': 'Troglodytes musculus' };
+
+describe.runIf(plusParts.every((part) => fs.existsSync(part)))('Real BirdNET+ inference on a resampled window', () => {
+  let session: ort.InferenceSession | null = null;
+
+  afterAll(async () => { await session?.release(); });
+
+  it('hears the reference birds in the window the capture pipeline delivers, joined from its parts', async () => {
+    const labels = parseLabelsFile(fs.readFileSync(path.resolve('public/models', plusManifest.labels_file), 'utf8'));
+    expect(labels).toHaveLength(plusManifest.num_classes);
+    // Copied into an array of this realm: the runtime does not recognise a Node buffer from the test environment.
+    const whole = Uint8Array.from(Buffer.concat(plusParts.map((part) => fs.readFileSync(part))));
+    session = await ort.InferenceSession.create(whole, createSessionOptions());
+    const [inputName] = session.inputNames;
+    const [outputName] = session.outputNames;
+    if (!inputName || !outputName || session.outputNames.length !== 1) throw new Error('Unexpected BirdNET+ tensors.');
+    const metadata = JSON.parse(fs.readFileSync(path.resolve('public/test-audio/metadata.json'), 'utf8')) as AudioMetadata[];
+    for (const reference of metadata) {
+      const samples = readWavSamples(path.resolve('public/test-audio', reference.filename));
+      const offset = Math.floor(reference.best_window_offset_sec * reference.sample_rate);
+      const window = samples.slice(offset, offset + AUDIO_CONSTANTS.WINDOW_SAMPLES);
+      normalizeAudio(window, AUDIO_CONSTANTS.NORMALIZATION_TARGET_PEAK, true);
+      const resampled = resampleBandLimited(window, AUDIO_CONSTANTS.TARGET_SAMPLE_RATE, plusManifest.sample_rate);
+      expect(resampled).toHaveLength(plusManifest.window_samples);
+      const input = new ort.Tensor('float32', resampled, [INPUT_BATCH_SIZE, plusManifest.window_samples]);
+      const output = (await session.run({ [inputName]: input }))[outputName];
+      if (!output) throw new Error('Missing classifier output.');
+      const [best] = extractTopDetections(output.data as Float32Array, 1, MIN_CANDIDATE_CONFIDENCE, labels);
+      expect(best?.scientificName).toBe(PLUS_NAMES[reference.species_scientific] ?? reference.species_scientific);
       input.dispose();
       output.dispose();
     }

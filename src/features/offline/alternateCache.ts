@@ -4,14 +4,9 @@
  * been checked, and it is checked again each time before listening.
  */
 import type { AlternateModel } from '../inference/inference.types';
-import { validateAlternate } from '../inference/modelManifest';
+import { alternateBytes, validateAlternate } from '../inference/modelManifest';
 import { availableManifest, countLabels, fetchVerified, hash, modelResource, safeResource } from './modelCache';
 import { ALTERNATE_MODEL_URL, MODEL_CACHE_NAME } from './offline.constants';
-
-/** Bytes the download of the second model transfers: the acoustic model and its geographic model. */
-export function alternateBytes(model: Pick<AlternateModel, 'size_bytes' | 'geo_size_bytes'>): number {
-  return model.size_bytes + model.geo_size_bytes;
-}
 
 async function installed(cache: Cache): Promise<AlternateModel | null> {
   const pointer = await cache.match(ALTERNATE_MODEL_URL);

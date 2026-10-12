@@ -38,6 +38,11 @@ export function downloadBytes(manifest: Pick<ModelManifest, 'size_bytes' | 'geo_
   return manifest.size_bytes + (manifest.geo_size_bytes ?? 0);
 }
 
+/** Bytes the download of the second model transfers: the acoustic model and its geographic model. */
+export function alternateBytes(model: Pick<AlternateModel, 'size_bytes' | 'geo_size_bytes'>): number {
+  return model.size_bytes + model.geo_size_bytes;
+}
+
 /** Different content hashes of either model mean a different installation, whatever the names say. */
 export function sameInstallation(a: Pick<ModelManifest, 'sha256' | 'geo_sha256'>, b: Pick<ModelManifest, 'sha256' | 'geo_sha256'>): boolean {
   return a.sha256 === b.sha256 && a.geo_sha256 === b.geo_sha256;

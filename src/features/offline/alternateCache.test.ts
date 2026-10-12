@@ -1,8 +1,8 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createHash, webcrypto } from 'node:crypto';
-import { STATIC_MANIFEST_URL } from '../inference/modelManifest';
-import { activeAlternate, alternateBytes, downloadAlternate, removeAlternate } from './alternateCache';
+import { alternateBytes, STATIC_MANIFEST_URL } from '../inference/modelManifest';
+import { activeAlternate, downloadAlternate, removeAlternate } from './alternateCache';
 import { activeModel, downloadModel, modelResource } from './modelCache';
 import { ALTERNATE_MODEL_URL } from './offline.constants';
 import productionManifest from '../../../public/models/manifest.json';

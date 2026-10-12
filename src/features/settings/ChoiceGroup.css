@@ -43,13 +43,27 @@
 }
 
 @media (hover: hover) {
-  .bn-settings-choice__option:hover {
+  .bn-settings-choice__option:not(:has(.bn-settings-choice__input:disabled)):hover {
     background: var(--color-bg-sunken);
   }
 }
 
 .bn-settings-choice__label {
+  display: grid;
   flex: 1;
+  gap: var(--space-1);
+}
+
+.bn-settings-choice__detail {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+/* An option that cannot be chosen now keeps its place, so the group does not jump when it becomes available. */
+.bn-settings-choice__option:has(.bn-settings-choice__input:disabled) {
+  cursor: default;
+  opacity: var(--state-disabled-opacity);
 }
 
 .bn-settings-choice__check {
