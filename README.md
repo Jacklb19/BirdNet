@@ -8,11 +8,13 @@ Aplicación web progresiva para el monitoreo continuo de aves por sonido. Identi
 ## Funciones
 
 - Escucha continua con el micrófono, segmentada en ventanas de 3 s en un AudioWorklet, con espectrograma en vivo.
-- Identificación en el dispositivo con BirdNET v2.4 (ONNX cuantizado, 6.522 especies) dentro de un Web Worker. El audio no sale del dispositivo.
+- Identificación en el dispositivo con BirdNET v2.4 (ONNX cuantizado, 6.522 especies) dentro de un Web Worker.
+- Grabaciones: cada canto conserva en el teléfono un clip de 3 s comprimido (Opus) para oírlo después; solo sale del teléfono si la persona elige guardar sus grabaciones en su cuenta, donde son privadas, tienen tope y se pueden borrar.
+- Revisión: tras oír la grabación, la persona confirma, corrige o descarta la detección; lo que dijo el modelo se conserva aparte.
 - Política de confianza: ≥ 0,80 confirmada por el modelo local; 0,45–0,80 provisional; < 0,45 descartada. Toda detección muestra su confianza y estado.
 - Funcionamiento sin conexión: modelo en caché con verificación SHA-256 y cola local de detecciones que se sincroniza sola, sin duplicados.
 - Cuenta con Supabase Auth y mapa colectivo (MapLibre + OpenFreeMap) con agrupamiento y filtros por especie y periodo.
-- Ubicación siempre aproximada (celdas de unos 100 m).
+- Ubicación siempre aproximada (celdas de unos 10 m); cada persona decide si sus cantos se comparten en el mapa de todos.
 
 ## Tecnología
 
@@ -43,6 +45,7 @@ En desarrollo y en `npm run preview`, Vite reenvía `/api` a `API_PROXY_TARGET` 
 | `npm run build` | Build de producción y precaché sin conexión |
 | `npm run test:offline` | E2E sin conexión (Playwright; requiere el repositorio de la API) |
 | `npm run data:species-names` | Regenera `public/models/species-names.json` desde la taxonomía de eBird (al cambiar el modelo) |
+| `python scripts/eval/score-models.py`, `node scripts/eval/report.mjs` | Miden la detección contra grabaciones etiquetadas (ver `docs/evaluacion.md`) |
 | `npm run model:prepare` | Valida y prepara el modelo BirdNET (Python con numpy, scipy, requests, soundfile, onnx, onnxruntime y birdnet; descarga varios modelos) |
 
 Variables opcionales de `npm run test:offline` (se leen del entorno del proceso): `BACKEND_DIR` (por defecto `../backend`), `BACKEND_PYTHON` (por defecto el Python de su `.venv`), `PW_CHANNEL` (por defecto el Chromium de Playwright: `npx playwright install chromium`; por ejemplo `msedge`), `PW_HEADLESS`, `E2E_HOST`, `E2E_PORT`, `E2E_API_PORT`, `E2E_TIMEOUT_MS` y `E2E_SERVER_TIMEOUT_MS`. Los valores por defecto están en `playwright.config.mjs`.
@@ -52,3 +55,4 @@ Variables opcionales de `npm run test:offline` (se leen del entorno del proceso)
 - `docs/definicion-proyecto.md`: especificación (requisitos, arquitectura y plan de sprints).
 - `docs/decisiones.md`: decisiones de arquitectura adicionales.
 - `docs/despliegue.md`: configuración de Supabase y Vercel.
+- `docs/evaluacion.md`: cómo se mide la detección, formato del conjunto de prueba y resultados.
