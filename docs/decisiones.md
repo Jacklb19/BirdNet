@@ -346,3 +346,19 @@ La especificación prevé que la persona confirme, corrija o descarte una detecc
 
 ### Consecuencias
 Misma migración que ADR-28 (`20261011000000_recordings_and_review.sql`). Los veredictos hechos en un teléfono no se descargan a otro: la Bitácora es local, y la ficha de especie, que sí lee la nube, muestra el estado ya revisado. El buscador ordena alfabéticamente; todavía no pone primero las aves probables de la zona.
+
+---
+
+## ADR-30. Se mantiene el modelo int8 y cada detección se decide con la ventana anterior (Sprint 9)
+
+### Contexto
+El dueño pidió medir antes de cambiar el modelo por defecto. La medición (`docs/evaluacion.md`, 7 horas anotadas por ornitólogos) mostró que int8, fp32 y fp16 detectan igual, y que decidir con varias ventanas cambia falsas alarmas por cantos perdidos sin subir el F1.
+
+### Decisión (del dueño, 2026-10-11)
+- **El modelo sigue siendo el int8** (`BirdNET_v2.4_int8_arm_dfttrunc.onnx`, 36,9 MB). fp32 y fp16 no mejoran la detección; fp16 solo ahorraría 11 MB de descarga.
+- **Regla «promedio de 2, lo seguro se queda»** (`DECISION_RULE`): la confianza de una especie es el promedio de esta ventana y la anterior, salvo que esta ventana sola ya llegue a 0,80, en cuyo caso vale la suya. Una detección dudosa tiene que oírse dos veces. En la medición quitó el 43 % de las falsas alarmas entre lo que se guarda (de 56 a 32 por hora) a cambio de 5 puntos de exhaustividad, sin perder ninguna confirmada.
+- Solo son vecinas las ventanas consecutivas de una misma sesión: tras un hueco (sesión nueva, o una ventana descartada por contrapresión) la siguiente decide sola.
+- La confianza que se muestra y se guarda es la ya combinada, y el estado (provisional o confirmada) sale de ella, así que la API recibe valores coherentes.
+
+### Consecuencias
+Un ave dudosa aparece una ventana más tarde (1,5 s). Un canto que solo cupo en una ventana y no llegó a 0,80 ya no se registra. La regla y los umbrales se miden con los mismos módulos que usa la app, así que cambiar cualquiera de los dos se puede volver a medir antes de desplegarlo.

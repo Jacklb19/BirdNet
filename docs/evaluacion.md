@@ -95,6 +95,21 @@ int8 con filtro geográfico:
 
 Ninguna regla sube el F1: todas cambian precisión por exhaustividad. La última es la única que no pierde nada entre las confirmadas: quita el 43 % de las falsas alarmas entre lo que se guarda (de 56 a 32 por hora) a cambio de 5 puntos de exhaustividad, todos en la banda provisional.
 
+### Decisión
+
+Con estos números el dueño decidió mantener el int8 y conectar la regla «promedio de 2, lo seguro se queda» (ADR-30).
+
+### 4. Perch v2 como segunda opinión (RF-09)
+
+Perch v2 (Google DeepMind, Apache-2.0) es otro modelo, entrenado con otros datos; su variante int8 pesa 125 MB y tarda unas seis veces más que BirdNET, así que solo cabría en la nube. Sus salidas no son probabilidades por especie, así que no se pueden comparar umbral a umbral con BirdNET: se comparan con las métricas que no dependen del umbral.
+
+| Modelo, una ventana | mAP sin filtro | mAP con filtro | Mejor F1 sin filtro | Mejor F1 con filtro |
+|---|---|---|---|---|
+| BirdNET int8 | 67,6 | 65,0 | 58,8 | 69,2 |
+| Perch v2 int8, confianza softmax | 47,7 | 45,8 | 43,3 | 52,5 |
+
+Con softmax, las aves que cantan a la vez se reparten una sola unidad de confianza, lo que perjudica a Perch en un coro del amanecer; esa fila es por tanto un piso, no su techo. La comparación ordenando cada especie por su puntuación propia se añade abajo cuando termine de medirse.
+
 ### Lo que estos números no dicen
 
 - Son grabadoras de campo en un cafetal de Antioquia, no un teléfono en Bogotá: sirven para comparar variantes entre sí, no como la precisión que verá una persona.
