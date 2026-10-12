@@ -22,19 +22,40 @@ export function parseLabel(label: string): { scientificName: string; commonName:
   };
 }
 
-/** Rank real output probabilities, preserving their values for the threshold policy. */
+/** Confidence of every class the window scored at `floor` or more, by class index. */
+export function windowScores(logits: Float32Array, floor: number): Map<number, number> {
+  const scores = new Map<number, number>();
+  logits.forEach((logit, classIndex) => {
+    if (!Number.isFinite(logit)) throw new Error('Non-finite classifier output.');
+    const confidence = sigmoid(logit);
+    if (confidence >= floor) scores.set(classIndex, confidence);
+  });
+  return scores;
+}
+
+/** The `topK` classes at `minConfidence` or more, most confident first, with the values the threshold policy reads. */
+export function rankDetections(
+  scores: ReadonlyMap<number, number>, topK: number, minConfidence: number, labels: readonly string[],
+): Detection[] {
+  if (!Number.isInteger(topK) || topK < 1 || !Number.isFinite(minConfidence) || minConfidence < 0 || minConfidence > 1) {
+    throw new Error('Invalid ranking options.');
+  }
+  return [...scores]
+    .filter(([, confidence]) => confidence >= minConfidence)
+    .sort(([, left], [, right]) => right - left)
+    .slice(0, topK)
+    .map(([classIndex, confidence]) => {
+      const label = labels[classIndex] ?? '';
+      return { classIndex, label, ...parseLabel(label), confidence };
+    });
+}
+
+/** Rank real output probabilities of one window on its own, preserving their values for the threshold policy. */
 export function extractTopDetections(
   logits: Float32Array, topK: number, minConfidence: number, labels: readonly string[],
 ): Detection[] {
-  if (logits.length !== labels.length || !Number.isInteger(topK) || topK < 1 ||
-      !Number.isFinite(minConfidence) || minConfidence < 0 || minConfidence > 1) {
+  if (logits.length !== labels.length || !Number.isFinite(minConfidence) || minConfidence < 0 || minConfidence > 1) {
     throw new Error('Invalid classifier output or ranking options.');
   }
-  return Array.from(logits, (logit, classIndex) => {
-    if (!Number.isFinite(logit)) throw new Error('Non-finite classifier output.');
-    const label = labels[classIndex] ?? '';
-    return { classIndex, label, ...parseLabel(label), confidence: sigmoid(logit) };
-  }).filter((candidate) => candidate.confidence >= minConfidence)
-    .sort((left, right) => right.confidence - left.confidence)
-    .slice(0, topK);
+  return rankDetections(windowScores(logits, minConfidence), topK, minConfidence, labels);
 }

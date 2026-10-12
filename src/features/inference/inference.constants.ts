@@ -4,6 +4,7 @@
  */
 import type { InferenceSession } from 'onnxruntime-web/wasm';
 import { CONFIDENCE_THRESHOLDS } from '../../config/contract';
+import type { PoolingRule } from './windowPooling';
 
 /** Species candidates kept per window, in decreasing confidence. */
 export const TOP_K = 5;
@@ -13,6 +14,20 @@ export const TOP_K = 5;
  * while ranking instead of travelling to the main thread.
  */
 export const MIN_CANDIDATE_CONFIDENCE = CONFIDENCE_THRESHOLDS.discardBelow;
+
+/**
+ * How consecutive windows decide together (measured in docs/evaluacion.md): the confidence of a species is the
+ * average of this window and the one before, unless this window alone is already sure, in which case it stands.
+ * A doubtful call has to be heard twice; on the annotated recordings that removed 43 % of the false alarms
+ * without losing any confirmed detection.
+ */
+export const DECISION_RULE: PoolingRule = Object.freeze({ kind: 'mean', windows: 2, standsFrom: CONFIDENCE_THRESHOLDS.confirmedFrom });
+
+/**
+ * Scores under this are not remembered from one window to the next: the evaluation ignored them too, and so
+ * low a score cannot lift an average over the discard threshold.
+ */
+export const POOLING_SCORE_FLOOR = 0.01;
 
 /**
  * ONNX Runtime WASM threads. One window takes tens of milliseconds on CPU (decisiones.md), far less than

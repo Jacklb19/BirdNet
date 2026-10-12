@@ -43,6 +43,32 @@ describe('inference worker protocol', () => {
 
   afterEach(() => { vi.unstubAllGlobals(); });
 
+  it('decides with the window before: a doubtful call must be heard twice, a sure one stands, a gap starts over', async () => {
+    await handle(loadRequest);
+    const logit = (confidence: number): number => Math.log(confidence / (1 - confidence));
+    /** Confidence the worker reports for the first label when its window alone scores `alone`. */
+    const heard = async (windowIndex: number, alone: number): Promise<number | undefined> => {
+      runtime.run.mockResolvedValueOnce({ output: { data: new Float32Array([logit(alone), -20]), dispose: runtime.disposeOutput } });
+      await handle({ ...inferRequest, windowIndex });
+      const response = postMessage.mock.lastCall?.[0] as { detections: { confidence: number }[] };
+      return response.detections[0]?.confidence;
+    };
+    // The first window of a session has no neighbour and decides alone.
+    expect(await heard(0, 0.7)).toBeCloseTo(0.7);
+    // Heard again more faintly: the average keeps it, though this window alone would have been discarded.
+    expect(await heard(1, 0.3)).toBeCloseTo(0.5);
+    // A doubtful call after near silence is averaged away...
+    expect(await heard(2, 0.05)).toBeUndefined();
+    expect(await heard(3, 0.6)).toBeUndefined();
+    // ...while a sure one stands whatever came before.
+    expect(await heard(4, 0.9)).toBeCloseTo(0.9);
+    // After a dropped window the next one is not a neighbour of the last.
+    expect(await heard(6, 0.6)).toBeCloseTo(0.6);
+    // A new model starts with no memory of the previous session.
+    await handle(loadRequest);
+    expect(await heard(7, 0.5)).toBeCloseTo(0.5);
+  });
+
   it('loads the model, classifies raw audio and disposes tensors', async () => {
     await handle(loadRequest);
     expect(postMessage).toHaveBeenCalledWith({ type: 'MODEL_LOADED', numClasses: 2, modelSizeBytes: loadRequest.modelSizeBytes });

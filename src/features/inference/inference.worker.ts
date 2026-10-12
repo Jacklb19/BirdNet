@@ -1,11 +1,12 @@
 import * as ort from 'onnxruntime-web/wasm';
 import wasmUrl from 'onnxruntime-web/ort-wasm-simd-threaded.wasm?url';
 import wasmModuleUrl from 'onnxruntime-web/ort-wasm-simd-threaded.mjs?url';
-import { extractTopDetections, parseLabelsFile } from './inferenceResults';
+import { parseLabelsFile, rankDetections, windowScores } from './inferenceResults';
 import { applyDetectionPolicy } from './detectionPolicy';
 import {
-  INPUT_BATCH_SIZE, MIN_CANDIDATE_CONFIDENCE, TOP_K, WASM_NUM_THREADS, createSessionOptions,
+  DECISION_RULE, INPUT_BATCH_SIZE, MIN_CANDIDATE_CONFIDENCE, POOLING_SCORE_FLOOR, TOP_K, WASM_NUM_THREADS, createSessionOptions,
 } from './inference.constants';
+import { poolWindows, type WindowScores } from './windowPooling';
 import { getSettings, persistDetections } from '../offline/queueStore';
 import { recordingLocation } from '../offline/queuePolicy';
 import { forgetSongs, keepSongClips } from '../recordings/songClips';
@@ -25,6 +26,21 @@ interface LoadedModel {
 }
 
 let model: LoadedModel | null = null;
+
+/**
+ * Scores of the windows the decision rule still looks at, oldest first, and the index of the newest. Only windows
+ * that follow one another are neighbours: after a gap (a new session, or a window dropped under back-pressure)
+ * the next one decides alone.
+ */
+let recent: { readonly lastIndex: number; readonly windows: readonly WindowScores<number>[] } | null = null;
+
+/** Confidence per class once this window is combined with its neighbours (`DECISION_RULE`). */
+function pooledScores(scores: WindowScores<number>, windowIndex: number): Map<number, number> {
+  const earlier = recent && windowIndex === recent.lastIndex + 1 ? recent.windows : [];
+  const windows = [...earlier, scores].slice(-DECISION_RULE.windows);
+  recent = { lastIndex: windowIndex, windows };
+  return poolWindows(windows, DECISION_RULE);
+}
 
 /** Mask of the last place and week; recomputed only when either changes, so a session runs the geo model a few times. */
 let region: { readonly key: string; readonly mask: Uint8Array } | null = null;
@@ -86,6 +102,7 @@ async function loadModel(message: LoadModelRequest): Promise<void> {
       ? await ort.InferenceSession.create(message.geoModelUrl, createSessionOptions()).catch(() => null)
       : null;
     region = null;
+    recent = null;
     model = { session, labels, windowSamples: message.windowSamples, geo };
     postOutbound({ type: INFERENCE_WORKER_MESSAGES.modelLoaded, numClasses: labels.length, modelSizeBytes: message.modelSizeBytes });
   } catch (error) {
@@ -113,8 +130,10 @@ async function infer(message: InferRequest): Promise<void> {
       try {
         const mask = geo ? await regionFor(geo, labels.length, message.persistence) : null;
         if (mask) applyRegionMask(output.data, mask);
-        const detections = extractTopDetections(
-          output.data, message.topK ?? TOP_K, message.minConfidence ?? MIN_CANDIDATE_CONFIDENCE, labels,
+        if (output.data.length !== labels.length) throw new Error('Classifier output does not match the labels.');
+        const detections = rankDetections(
+          pooledScores(windowScores(output.data, POOLING_SCORE_FLOOR), message.windowIndex),
+          message.topK ?? TOP_K, message.minConfidence ?? MIN_CANDIDATE_CONFIDENCE, labels,
         );
         if (message.persistence) {
           persistenceStarted = true;
@@ -151,6 +170,7 @@ export async function handleWorkerRequest(message: InferenceWorkerInbound): Prom
       const released = model;
       model = null;
       region = null;
+      recent = null;
       forgetSongs();
       if (released) {
         await released.session.release();
