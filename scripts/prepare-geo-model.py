@@ -1,6 +1,10 @@
 """
 Prepares the BirdNET v2.4 geographic model (the "meta-data" / location model) for the browser.
 
+Since ADR-31 the app filters with the V3 geographic model instead (prepare-birdnet-plus.py), which excludes far
+fewer of the species annotated in high Andean forest. This script stays because the evaluation
+(docs/evaluacion.md, scripts/eval/score-models.py --geo v2.4) compares against the model it writes.
+
 Source: Zenodo record 10.5281/zenodo.15050749 ("BirdNET Model V2.4", birdnet-team), file
 BirdNET_v2.4_tflite_int8.zip, member meta-model.tflite. That archive is the one the official `birdnet`
 package downloads for its geo model 2.4 (birdnet/geo/models/v2_4/tf.py); that package notes the meta
