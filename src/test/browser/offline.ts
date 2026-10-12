@@ -85,7 +85,10 @@ async function inferReference(): Promise<string[]> {
   await audioContext.close();
   return new Promise((resolve, reject) => {
     const service = new InferenceService({
-      onModelLoaded: () => { service.infer(normalizeAudio(raw), 1, performance.now(), TOP_K, MIN_CANDIDATE_CONFIDENCE, context); },
+      // Stored with the version of whatever the person's choice made the service load, as the app does.
+      onModelLoaded: () => {
+        service.infer(normalizeAudio(raw), 1, performance.now(), TOP_K, MIN_CANDIDATE_CONFIDENCE, { ...context, modelVersion: service.getModelVersion() ?? context.modelVersion });
+      },
       onInferenceResult: (detections) => { service.dispose(); resolve(detections.map((row) => row.scientificName)); },
       onStorageError: () => { service.dispose(); reject(new Error('Persistence failed.')); },
       onError: (error) => { service.dispose(); reject(new Error(error)); },
@@ -103,6 +106,7 @@ const checks = {
   },
   logout: async (): Promise<void> => { await bindSyncSession(null); },
   cachedModel: async () => offlineOperation(OFFLINE_OPERATIONS.modelStatus),
+  cachedAlternate: async () => offlineOperation(OFFLINE_OPERATIONS.alternateStatus),
   invalidUpdate: async (): Promise<void> => { await offlineOperation(OFFLINE_OPERATIONS.downloadModel, { manifestUrl: apiUrl(TEST_ROUTES.invalidManifest) }); },
   corruptModel: async (): Promise<void> => {
     const cache = await caches.open(MODEL_CACHE_NAME);

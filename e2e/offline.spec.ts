@@ -6,6 +6,7 @@ import { STORAGE_KEYS } from '../src/config/storage';
 import { routeHash } from '../src/app/routes';
 import { DEFAULT_LOCALE } from '../src/i18n/locales';
 import { dictionaries } from '../src/i18n/messages';
+import productionManifest from '../public/models/manifest.json' with { type: 'json' };
 
 /** Labels come from the interface dictionaries, so copy changes do not break the suite. */
 const texts = dictionaries[DEFAULT_LOCALE];
@@ -144,6 +145,35 @@ test('real model survives closing, identifies recorded audio offline and detects
   expect((await reopened.evaluate(() => window.offlineChecks.queueStats())).count).toBeGreaterThan(0);
   await reopened.evaluate(() => window.offlineChecks.corruptModel());
   expect(await reopened.evaluate(() => window.offlineChecks.cachedModel())).toBeNull();
+});
+
+test('the preview model installs on request, listens offline when chosen and frees its space when removed', async ({ context, page }) => {
+  const detection = texts.settings.detection;
+  const lastVersion = async (target: Page): Promise<string | undefined> => (await target.evaluate(() => window.offlineChecks.listDetections())).at(-1)?.model_version;
+  await ready(page, routeHash({ name: 'settings' }));
+  await page.locator('details').evaluate((group: HTMLDetailsElement) => { group.open = true; });
+  await expect(page.getByRole('button', { name: texts.settings.model.checkUpdate })).toBeVisible({ timeout: MODEL_DOWNLOAD_TIMEOUT_MS });
+  // Until it is on the device it cannot be chosen.
+  await expect(page.getByRole('radio', { name: detection.models.preview.label })).toBeDisabled();
+  await page.getByRole('button', { name: detection.second.download }).click();
+  await expect(page.getByRole('button', { name: detection.second.remove })).toBeVisible({ timeout: MODEL_DOWNLOAD_TIMEOUT_MS });
+  await page.getByText(detection.models.preview.label).click();
+  await expect(page.getByRole('radio', { name: detection.models.preview.label })).toBeChecked();
+  await page.evaluate(() => window.offlineChecks.loadReference());
+  await page.close();
+  await context.setOffline(true);
+  const reopened = await context.newPage();
+  await ready(reopened, routeHash({ name: 'settings' }));
+  // The preview model takes the window at its own rate and still hears the reference bird, without a connection.
+  expect(await reopened.evaluate(() => window.offlineChecks.inferReference())).toContain('Turdus fuscater');
+  expect(await lastVersion(reopened)).toContain(productionManifest.alternate.model_id);
+  await reopened.locator('details').evaluate((group: HTMLDetailsElement) => { group.open = true; });
+  await reopened.getByRole('button', { name: detection.second.remove }).click();
+  await expect.poll(() => reopened.evaluate(() => window.offlineChecks.cachedAlternate())).toBeNull();
+  // The choice that needed it falls back to the model every installation has.
+  expect(await reopened.evaluate(() => window.offlineChecks.inferReference())).toContain('Turdus fuscater');
+  expect(await lastVersion(reopened)).toContain(productionManifest.model_id);
+  expect(await lastVersion(reopened)).not.toContain(productionManifest.alternate.model_id);
 });
 
 for (const width of REVIEW_WIDTHS) {

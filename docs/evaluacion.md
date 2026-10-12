@@ -198,6 +198,8 @@ Aquí el v2.4 casi no se equivoca, pero deja sin detectar tres de cada cuatro pr
 
 **Qué se desprende.** Ya no se puede afirmar que el v2.4 sea el mejor modelo disponible: depende de dónde se mida. El V3 es una vista previa de desarrollo, pesa 65 MB y tarda unas cuatro veces más por ventana. Decidir entre los dos pide grabaciones propias hechas con teléfono, o probar ambos en campo.
 
+**Decisión.** Con estos números el dueño decidió poner el filtro geográfico del V3 para todos, ofrecer el V3 como segundo modelo que la persona descarga y elige (solo o promediado con el v2.4), volver elegible la regla del ADR-30 y no construir la verificación en la nube (ADR-31 y ADR-32). El filtro que se despliega no es exactamente el de la tabla de arriba: las aves que el V3 no conoce conservan el área que les daba el modelo anterior. Medido con ese archivo, el v2.4 encuentra 480 / 119 en WABAD, 51 / 52 en las 7 h de cafetales y 129 / 75 en las 13 h.
+
 ### Lo que estos números no dicen
 
 - Son grabadoras de campo en un cafetal de Antioquia, no un teléfono en Bogotá: sirven para comparar variantes entre sí, no como la precisión que verá una persona.

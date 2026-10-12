@@ -8,7 +8,7 @@ Aplicación web progresiva para el monitoreo continuo de aves por sonido. Identi
 ## Funciones
 
 - Escucha continua con el micrófono, segmentada en ventanas de 3 s en un AudioWorklet, con espectrograma en vivo.
-- Identificación en el dispositivo con BirdNET v2.4 (ONNX cuantizado, 6.522 especies) dentro de un Web Worker.
+- Identificación en el dispositivo con BirdNET v2.4 (ONNX cuantizado, 6.522 especies) dentro de un Web Worker, filtrada por las aves probables del lugar y la semana. Quien quiera comparar puede descargar BirdNET+ V3 (vista previa) y elegirlo solo o junto al otro, y decidir si un canto dudoso debe oírse dos veces.
 - Grabaciones: cada canto conserva en el teléfono un clip de 3 s comprimido (Opus) para oírlo después; solo sale del teléfono si la persona elige guardar sus grabaciones en su cuenta, donde son privadas, tienen tope y se pueden borrar.
 - Revisión: tras oír la grabación, la persona confirma, corrige o descarta la detección; lo que dijo el modelo se conserva aparte.
 - Política de confianza: ≥ 0,80 confirmada por el modelo local; 0,45–0,80 provisional; < 0,45 descartada. Toda detección muestra su confianza y estado.
@@ -46,6 +46,7 @@ En desarrollo y en `npm run preview`, Vite reenvía `/api` a `API_PROXY_TARGET` 
 | `npm run test:offline` | E2E sin conexión (Playwright; requiere el repositorio de la API) |
 | `npm run data:species-names` | Regenera `public/models/species-names.json` desde la taxonomía de eBird (al cambiar el modelo) |
 | `python scripts/eval/score-models.py`, `node scripts/eval/report.mjs` | Miden la detección contra grabaciones etiquetadas (ver `docs/evaluacion.md`) |
+| `python scripts/prepare-birdnet-plus.py` | Prepara para el navegador el filtro geográfico del V3 y el modelo BirdNET+ V3 (ver ADR-31 y `docs/despliegue.md`) |
 | `npm run model:prepare` | Valida y prepara el modelo BirdNET (Python con numpy, scipy, requests, soundfile, onnx, onnxruntime y birdnet; descarga varios modelos) |
 
 Variables opcionales de `npm run test:offline` (se leen del entorno del proceso): `BACKEND_DIR` (por defecto `../backend`), `BACKEND_PYTHON` (por defecto el Python de su `.venv`), `PW_CHANNEL` (por defecto el Chromium de Playwright: `npx playwright install chromium`; por ejemplo `msedge`), `PW_HEADLESS`, `E2E_HOST`, `E2E_PORT`, `E2E_API_PORT`, `E2E_TIMEOUT_MS` y `E2E_SERVER_TIMEOUT_MS`. Los valores por defecto están en `playwright.config.mjs`.

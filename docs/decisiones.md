@@ -362,3 +362,44 @@ El dueño pidió medir antes de cambiar el modelo por defecto. La medición (`do
 
 ### Consecuencias
 Un ave dudosa aparece una ventana más tarde (1,5 s). Un canto que solo cupo en una ventana y no llegó a 0,80 ya no se registra. La regla y los umbrales se miden con los mismos módulos que usa la app, así que cambiar cualquiera de los dos se puede volver a medir antes de desplegarlo.
+
+---
+
+## ADR-31. Filtro geográfico del V3, un segundo modelo que la persona puede elegir y regla de decisión elegible (Sprint 9, amplía ADR-18 y ADR-30)
+
+### Contexto
+El dueño pidió acercar la detección a la de Merlin tanto como fuera realista sin entrenar. La medición (`docs/evaluacion.md`, apartados 5 a 7) dio tres cosas: el filtro geográfico del v2.4 excluye cerca de la mitad de las especies anotadas en bosque altoandino; en grabaciones colombianas independientes (WABAD) BirdNET+ V3.0 encuentra más del doble que el v2.4, con más falsas alarmas, mientras que en los cafetales gana el v2.4; y la regla del ADR-30 quita falsas alarmas a costa de un 12 a 17 % de lo que se encuentra. Ninguno de los dos conjuntos zanja cuál modelo es mejor para un teléfono en campo.
+
+### Decisión (del dueño, 2026-10-12)
+- **El filtro geográfico pasa a ser el del V3** (BirdNET+ Geomodel V3.0.4, 13,7 MB, Apache-2.0) para el modelo de siempre. `scripts/prepare-birdnet-plus.py` reordena sus salidas a las 6.522 etiquetas del v2.4: 6.079 especies se emparejan por nombre científico y 204 por nombre común (las taxonomías difieren). Otras 172 aves que el V3 no conoce, casi todas raras o de distribución restringida, conservan el área que les daba el modelo anterior (la caja que la rodea) con la probabilidad mínima que pasa el filtro: siguen detectándose donde viven sin encabezar ninguna lista de aves probables. Las 67 clases restantes, que el modelo anterior no esperaba en ningún lugar (motor, perro, voz humana), siguen sin pasar. El contrato del archivo no cambia (lugar y semana, una probabilidad por etiqueta), así que el Worker no se tocó para esto.
+- **BirdNET+ V3.0 (vista previa de desarrollo) es un segundo modelo opcional.** Es la variante que distribuye la app oficial BirdNET Live (pesos bajo Apache-2.0), recortada a sus 8.923 clases de aves y a una sola salida. Toma 3 segundos a 32 kHz: el Worker remuestrea la ventana de 48 kHz con un filtro (seno cardinal con ventana), porque interpolar sin filtrar doblaría lo que hay por encima de 16 kHz sobre la banda de los cantos. Trae su propio modelo geográfico. De sus aves, 6.217 comparten nombre con las del v2.4 (199 por nombre común) y usan el nombre que la app ya tenía.
+- **Se descarga solo si la persona lo pide** (Ajustes → Opciones técnicas): 67 MB del modelo y 13,7 MB de su modelo geográfico. Supabase Free no guarda archivos de más de 50 MB, así que el modelo se publica en dos partes; la app las une y comprueba el SHA-256 del conjunto, con la misma regla del primero: nada se usa sin verificar y se vuelve a comprobar antes de escuchar. El manifiesto lo describe en `alternate`; una versión anterior de la app ignora ese campo.
+- **«Modelo que escucha»**: BirdNET v2.4 (por defecto), BirdNET+ V3 o los dos juntos. Con los dos, la confianza de una especie es el promedio de las dos; un modelo que no la oyó o no la conoce cuenta como cero. Es la combinación que se midió: en WABAD encontró 614 presencias frente a 413 del v2.4 con las mismas inventadas. Una elección que necesita el segundo modelo vuelve sola al primero mientras no esté en el teléfono.
+- **«Cuándo anotar un canto»**: Cuidadosa (la regla del ADR-30, por defecto) o Amplia (cada ventana decide sola).
+- Cada detección guarda con qué modelo se hizo; la de dos modelos lleva los dos identificadores.
+- **El modelo por defecto no cambia.** Cambiarlo sigue siendo decisión del dueño, con números.
+
+### Consecuencias
+- La descarga inicial baja de 54,9 a 52,4 MB. Quien ya tenía la app descarga una vez el modelo y el filtro nuevos (52,4 MB), porque un filtro distinto es otra instalación.
+- En el PC de desarrollo el V3 tarda unas cuatro veces más por ventana que el v2.4 (61 ms frente a 15 ms con ONNX Runtime nativo; unos 280 ms en el motor del navegador con un hilo). En un teléfono de gama media puede no alcanzar el ritmo de una ventana cada 1,5 s, y los dos juntos menos; la contrapresión descarta ventanas cuando no alcanza. Solo se sabe en el aparato.
+- Las aves que solo conoce el V3 (unas 2.700) no tienen nombre en español ni foto en los índices de la app, que se construyen con las etiquetas del v2.4: se muestran con su nombre en inglés. La corrección «Es otra ave» solo ofrece las especies del v2.4.
+- Con dos modelos, un ave que solo conoce uno necesita que ese esté muy seguro (0,90 para guardarse).
+- El V3 es una vista previa de desarrollo: puede cambiar o retirarse. Los créditos de la app lo nombran con su licencia.
+- La evaluación sigue comparando contra el modelo geográfico del v2.4 (`score-models.py --geo v2.4`); `prepare-geo-model.py` se conserva para eso y para dar el área de las 172 aves.
+
+---
+
+## ADR-32. Se retira la verificación en la nube; una detección dudosa la revisa la persona (Sprint 9, retira RF-09)
+
+### Contexto
+RF-09 pedía verificar en la nube las detecciones de confianza intermedia con un modelo mayor. La app ya subía, con permiso, el fragmento de cada canto dudoso («Enviar cantos dudosos»), pero nada los verificaba. La medición (`docs/evaluacion.md`, apartados 4 a 6) mostró que ningún modelo público cabe en la capa gratuita y verifica mejor que el del teléfono: Perch v2 respaldaría una de cada cuatro dudosas y no sirve para descartar, y BirdNET+ V3 respalda peor por ser de la misma familia. Prometer una verificación que no existe iba contra la regla de decir con verdad qué hace la app.
+
+### Decisión (del dueño, 2026-10-12)
+- **No se construye RF-09.** Una detección «por verificar» la revisa la persona oyendo su grabación: confirmar, corregir o descartar (RF-11, ADR-29).
+- **Ningún fragmento sale del teléfono para verificarse.** Se quitan el interruptor, el fragmento WAV que se guardaba por cada canto dudoso, su subida y las rutas de la API que la recibían. El único audio que puede salir son las grabaciones que la persona elige guardar en su cuenta (ADR-28). `AGENTS.md` y la política de privacidad lo dicen así.
+
+### Consecuencias
+- La base local no cambia de versión (subirla rompe al Service Worker de la versión anterior durante una actualización): el almacén de fragmentos queda en el esquema sin usarse, y la app borra lo que hubiera en él la primera vez que abre la cola. Los registros que esperaban su fragmento se sincronizan como cualquier otro.
+- En la base de datos quedan sin uso la columna `ruta_audio` y la tabla `verification_jobs`; no se escribe una migración para quitarlas. El bucket de fragmentos dudosos y la variable `SUPABASE_AUDIO_BUCKET` se pueden borrar a mano.
+- La API sigue enviando `has_audio`, siempre falso, en el registro de una especie: las versiones de la app instaladas antes de este cambio descartan los registros que no lo traen.
+- Si más adelante existe un modelo que sí verifique mejor, RF-09 se puede retomar; las grabaciones confirmadas por las personas (ADR-28 y ADR-29) son además los datos que haría falta para entrenar un clasificador propio, que sigue sin autorizarse.
