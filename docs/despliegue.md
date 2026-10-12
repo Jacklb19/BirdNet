@@ -11,7 +11,7 @@ Ambos se despliegan solos en Vercel al fusionar en `main`. El trabajo diario va 
 
 ## Supabase (una sola vez)
 
-1. **Esquema**: en *SQL Editor*, ejecutar en orden los archivos de `supabase/migrations/` del repositorio de la API. La migración `20261008000000_profiles_and_avatars.sql` (S7) crea también el bucket privado `avatars` (fotos de perfil, solo WebP de hasta 200 kB). La migración `20261010000000_fine_location_and_sharing.sql` (S8, ADR-22) añade la celda de ~10 m y la columna de compartir: se aplica **antes** de fusionar la API, y la API se despliega **antes** que la web.
+1. **Esquema**: en *SQL Editor*, ejecutar en orden los archivos de `supabase/migrations/` del repositorio de la API. La migración `20261008000000_profiles_and_avatars.sql` (S7) crea también el bucket privado `avatars` (fotos de perfil, solo WebP de hasta 200 kB). La migración `20261010000000_fine_location_and_sharing.sql` (S8, ADR-22) añade la celda de ~10 m y la columna de compartir: se aplica **antes** de fusionar la API, y la API se despliega **antes** que la web. La migración `20261011000000_recordings_and_review.sql` (S9, ADR-28) crea el bucket privado `recordings` (solo WebM de hasta 100 kB) y las columnas de grabación y de revisión, con el mismo orden: migración, API, web.
 2. **Autenticación**: en *Authentication → URL Configuration*, *Site URL* = `https://birdnet-nu.vercel.app` y en *Redirect URLs* `https://birdnet-nu.vercel.app/**` y `http://localhost:5180/**` (regreso de Google y del enlace para recuperar la contraseña).
 3. **Modelo**: bucket público `models` con `birdnet-v2.4/birdnet_model.onnx`, `birdnet-v2.4/labels.txt` y, desde S7, `birdnet-v2.4/birdnet_geo_model.onnx` (modelo geográfico, ADR-18; se genera con `python scripts/prepare-geo-model.py`). El hash y el tamaño de cada archivo están en `public/models/manifest.json` y en el manifiesto de la API.
 4. **Audio dudoso** (opcional): bucket privado para los fragmentos autorizados.
@@ -39,6 +39,7 @@ Variables opcionales de la web (proveedor de mapas, centro inicial, zona horaria
 | `MODEL_RESOURCE_BASE_URL` | `https://tugzxyleoidiimhbnwde.supabase.co/storage/v1/object/public/models/birdnet-v2.4` |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Necesarias desde S7 para la foto de perfil (y para el audio dudoso); sin ellas la foto no se puede subir |
 | `SUPABASE_AVATAR_BUCKET`, `SUPABASE_AUDIO_BUCKET` | Opcionales: nombres de los buckets (por defecto `avatars`) |
+| `SUPABASE_RECORDING_BUCKET`, `RECORDING_QUOTA_BYTES` | Opcionales (S9): bucket de las grabaciones guardadas (por defecto `recordings`) y tope por cuenta (por defecto 50 MiB). Las grabaciones necesitan `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` |
 
 Ajustes opcionales de la API (tiempos de espera, límites de resultados y exportación, zona horaria por defecto, `MODEL_MANIFEST_ALLOWED_HOSTS`): ver el README y `.env.example` del repositorio de la API. Si se define `MODEL_MANIFEST_URL`, su host debe coincidir con el de `SUPABASE_URL` o figurar en `MODEL_MANIFEST_ALLOWED_HOSTS`.
 
@@ -52,6 +53,7 @@ Ajustes opcionales de la API (tiempos de espera, límites de resultados y export
 - Mapa → «Empezar caminata»: pide micrófono y ubicación, la pantalla se queda encendida, el sendero se dibuja al moverse y cada ave queda en su punto; «Terminar caminata» la guarda y aparece en la Bitácora.
 - Guía → una ficha: clasificación, estado de conservación y mapa «Dónde vive» (GBIF).
 - Cuenta → crear cuenta (contraseña dos veces) o continuar con Google; «¿Olvidaste tu contraseña?» envía el enlace. Con «Guardar dónde escuchas» activado (o un lugar activo), las detecciones se sincronizan; aparecen en «De todos» solo si la persona eligió compartir.
+- Ajustes → Grabaciones: con sesión, encender «Guardarlas también en mi cuenta»; escuchar hasta registrar un ave; en la Bitácora, abrir el registro y oír la grabación; tras sincronizar, Ajustes muestra cuántas hay en la cuenta y deja borrarlas.
 - Bitácora → resumen y últimas caminatas; si hay cantos sin ubicación, «Asignar y subir» con un lugar.
 - Mapa → botón de lugares → crear un lugar, abrir su panel; exportar CSV.
 

@@ -308,3 +308,22 @@ Tras desplegar S8 el dueño encontró que la portada y la app parecían dos apli
 
 ### Consecuencias
 El titular de la portada sigue siendo una sola frase llana y la barra es plana (lo pidió el dueño antes, aunque el boceto del álbum traía la frase partida y la barra flotante). El menú del teléfono repite los destinos de la barra inferior a propósito: es el mapa completo del sitio.
+
+---
+
+## ADR-28. Grabaciones guardadas: un clip por canto en el teléfono y, con permiso, en la cuenta (Sprint 9, modifica RNF-08)
+
+### Contexto
+Hasta S8 solo las detecciones dudosas conservaban su audio, y solo hasta subirse. Sin poder oír lo que se registró no hay forma de comprobar una detección (RF-11) ni de que un biólogo confíe en el registro. El dueño autorizó el 2026-10-11 cambiar la regla de dominio del audio (`AGENTS.md`): puede salir del teléfono la grabación que la persona elija guardar en su cuenta, privada y con permiso explícito.
+
+### Decisión
+- **Un clip por canto, no por ventana.** Las ventanas se solapan y un ave se repite, así que un canto produce muchas detecciones de la misma especie. Un canto es una racha de detecciones de una especie (termina tras 15 s sin oírla, o al minuto si no calla) y conserva un solo clip: el de la ventana con más confianza (`recordingPolicy.ts`).
+- **Comprimido en el teléfono.** La ventana de 3 s se codifica en Opus a 32 kbit/s dentro de WebM con WebCodecs: unos 14 kB frente a 288 kB en WAV. El contenedor lo escribe `mediabunny` 1.61.3 (dependencia nueva, aprobada por el dueño; WebCodecs codifica pero no empaqueta). Donde el navegador no tiene ese codificador no se guardan clips y Ajustes lo dice.
+- **En el teléfono por defecto**, porque ese audio no sale de él: base IndexedDB propia `trino-recordings-v1` (no se sube la versión de la cola, por la misma razón que las caminatas), tope de 100 MB con descarte del más antiguo, interruptor para apagarlo y borrado de uno o de todos.
+- **En la cuenta solo si la persona lo elige** (`saveRecordings`, apagado hasta que diga que sí; se vuelve a leer antes de cada clip). El clip se sube con URL firmada al bucket privado `recordings`, en la carpeta de su dueño, después de que el servidor tenga su detección. La API verifica ruta y contenido antes de enlazarlo y solo firma descargas de 10 minutos para su autor; nunca aparece en el mapa.
+- **Tope por cuenta de 50 MB** (unos 3.500 clips), comprobado al pedir la subida y al enlazarla. Supabase Free da 1 GB de Storage, 5 GB de egreso al mes y 50 MB por archivo (documentación oficial, verificado el 2026-10-11): el tope deja sitio para unas 18 cuentas llenas además de los modelos.
+- **La interfaz dice dónde está cada grabación** (en el teléfono, o también en la cuenta) y borrar una la quita de todos los sitios donde esté; si no se puede borrar de la cuenta en ese momento, no se borra del teléfono y se avisa.
+- El fragmento WAV de las detecciones dudosas (RF-07) sigue aparte: es la entrada exacta del modelo y es lo que usará la verificación en la nube.
+
+### Consecuencias
+Migración `20261011000000_recordings_and_review.sql`; se aplica antes de desplegar la API, y la API antes que la web. La política de privacidad y los textos de la portada, Escuchar y Ajustes dejan de decir que el audio nunca sale del teléfono. Un clip reemplazado dentro del mismo canto después de haberse subido deja en la cuenta también el anterior. Si se borra la cuenta, sus objetos de Storage no se borran solos (no hay flujo de borrado de cuenta todavía).
