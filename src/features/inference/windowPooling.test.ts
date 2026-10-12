@@ -16,6 +16,16 @@ describe('poolWindows', () => {
     expect(pooled.get('song')).toBeCloseTo(0.8);
   });
 
+  it('lets a sure window stand and averages only the doubtful ones', () => {
+    const rule: PoolingRule = { kind: 'mean', windows: 2, standsFrom: 0.8 };
+    const pooled = poolWindows([window({ doubtful: 0.1 }), window({ sure: 0.9, doubtful: 0.7, edge: 0.8 })], rule);
+    expect(pooled.get('sure')).toBe(0.9);
+    expect(pooled.get('edge')).toBe(0.8);
+    expect(pooled.get('doubtful')).toBeCloseTo(0.4);
+    // A sure window that has already passed does not hold the level up.
+    expect(poolWindows([window({ sure: 0.9 }), window({})], rule).get('sure')).toBeCloseTo(0.45);
+  });
+
   it('averages only the windows there are while the session is younger than the span', () => {
     expect(poolWindows([window({ song: 0.8 })], { kind: 'mean', windows: 3 }).get('song')).toBeCloseTo(0.8);
   });
@@ -37,7 +47,7 @@ describe('poolWindows', () => {
   });
 
   it.each<PoolingRule>([
-    { kind: 'mean', windows: 0 }, { kind: 'mean', windows: 1.5 }, { kind: 'rank', windows: 2, rank: 3 }, { kind: 'rank', windows: 2, rank: 0 },
+    { kind: 'mean', windows: 0 }, { kind: 'mean', windows: 1.5 }, { kind: 'mean', windows: 2, standsFrom: 1.2 }, { kind: 'rank', windows: 2, rank: 3 }, { kind: 'rank', windows: 2, rank: 0 },
   ])('rejects the malformed rule %o', (rule) => {
     expect(() => poolWindows([window({ song: 0.5 })], rule)).toThrow();
   });
