@@ -85,16 +85,17 @@ def main() -> None:
             "recorded_at": datetime.strptime(match["date"] + match["time"], FILENAME_TIME_FORMAT).isoformat(),
             "latitude": latitude, "longitude": longitude, "device": DEVICE, "fully_annotated": "yes", "merlin_species": "",
         })
+    # A partial download is still a usable set: the recordings that are missing are simply not evaluated.
     missing = sorted(set(labels) - set(audio))
     if missing:
-        raise SystemExit(f"Annotated recordings not found under {root}: {missing}")
+        print(f"[WARN] {len(missing)} annotated recordings are not under {root} and were left out")
 
     write_rows(root / RECORDINGS_FILE, ["file", "recorded_at", "latitude", "longitude", "device", "fully_annotated", "merlin_species"], recordings)
     write_rows(root / VOCABULARY_FILE, ["scientific_name", "common_name", "aliases"], [
         {"scientific_name": row["Scientific Name"], "common_name": row["Common Name"], "aliases": ALIAS_SEPARATOR.join(ALIASES.get(row["Scientific Name"], ()))}
         for code, row in sorted(species.items()) if code != UNKNOWN_CODE
     ])
-    print(f"[OK] {len(recordings)} recordings, {sum(len(rows) for rows in labels.values())} labels, {len(species) - 1} species -> {root}")
+    print(f"[OK] {len(recordings)} recordings, {sum(len(labels.get(name, [])) for name in audio)} labels -> {root}")
 
 
 if __name__ == "__main__":

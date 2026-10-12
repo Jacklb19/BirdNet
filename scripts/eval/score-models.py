@@ -207,18 +207,20 @@ def score_model(name: str, spec: ModelSpec, dataset: Path, recordings: list[dict
         for row in recordings:
             audio = load_audio(dataset / row["file"], spec.sample_rate, max_seconds)
             duration = len(audio) / spec.sample_rate
-            windows = model_windows(audio, spec, grid_centres(duration), normalize)
-            if latency is None and len(windows):
-                latency = measure_latency(session, spec, windows[len(windows) // 2])
+            centres = grid_centres(duration)
+            if latency is None and len(centres):
+                latency = measure_latency(session, spec, model_windows(audio, spec, centres[len(centres) // 2:len(centres) // 2 + 1], normalize)[0])
             index_of: dict[int, int] = {}
             scored: list[list[list[float]]] = []
-            for offset in range(0, len(windows), BATCH_SIZE):
-                logits = session.run([spec.output], {input_name: windows[offset:offset + BATCH_SIZE]})[0]
+            # Windows are cut batch by batch: an hour of them at once would take over a gigabyte.
+            for offset in range(0, len(centres), BATCH_SIZE):
+                windows = model_windows(audio, spec, centres[offset:offset + BATCH_SIZE], normalize)
+                logits = session.run([spec.output], {input_name: windows})[0]
                 scored.extend(sparse_scores(row_probabilities, index_of) for row_probabilities in sigmoid(logits))
             species = [labels[label] for label, _ in sorted(index_of.items(), key=lambda item: item[1])]
             handle.write(json.dumps({"recording": row["file"], "duration": round(duration, 3), "species": species, "windows": scored}) + "\n")
-            total_windows += len(windows)
-            print(f"  {name}: {row['file']} ({len(windows)} windows)", flush=True)
+            total_windows += len(centres)
+            print(f"  {name}: {row['file']} ({len(centres)} windows)", flush=True)
     meta = {
         "model": name, "file": spec.path.name, "size_bytes": spec.path.stat().st_size, "sample_rate": spec.sample_rate,
         "window_seconds": spec.window_seconds, "labels": len(labels), "grid_window_seconds": GRID_WINDOW_SECONDS,
