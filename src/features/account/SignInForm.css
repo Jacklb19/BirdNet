@@ -107,3 +107,11 @@
   background: var(--color-border-subtle);
   content: '';
 }
+
+/* What the account service said, under the message it explains; it may be a long unbroken string. */
+.bn-account-signin__detail {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--text-small);
+  overflow-wrap: anywhere;
+}

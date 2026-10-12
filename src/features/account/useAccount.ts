@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { navigateTo } from '../../app/routes';
+import { navigateTo, routeHash } from '../../app/routes';
 import { config } from '../../config/env';
 import { scheduleSynchronization } from '../offline/offlineClient';
 import { bindSyncSession, keepSitesOf, listDetections } from '../offline/queueStore';
 import {
   GENERIC_ACCOUNT_FAILURE, GOOGLE_PROVIDER, PASSWORD_RECOVERY_EVENT, SIGNED_OUT_EVENT, type AccountFailure,
 } from './account.constants';
+import { readAuthCallbackError } from './authCallback';
 import { requestGoogleIdToken, supportsFederatedSignIn, wasDismissed } from './googleSignIn';
 import { encodeAvatar, fetchProfile, normalizeAlias, updateProfile, uploadAvatar, type Profile } from './profileApi';
 import { accountFailure, supabase, toSyncSession } from './supabaseClient';
@@ -24,6 +25,8 @@ export interface AccountState {
   readonly unownedCount: number;
   readonly claimed: boolean;
   readonly error: AccountError;
+  /** What the account service said about `error`, when it came back from Google or an e-mail link with a failure. */
+  readonly errorDetail: string | null;
   readonly working: boolean;
   signIn(email: string, password: string): Promise<void>;
   /** Opens the browser's Google account chooser; where there is none, leaves for Google's page and Supabase brings the person back. */
@@ -49,6 +52,12 @@ function authRedirectUrl(): string {
   return config.authRedirectUrl === null ? window.location.origin : new URL(config.authRedirectUrl, window.location.origin).href;
 }
 
+/**
+ * Read once, when the app loads: the address the browser arrived at. A return that failed is then shown on the
+ * account screen and taken out of the address, so reloading or sharing the page does not repeat it.
+ */
+const returnError = typeof window === 'undefined' ? null : readAuthCallbackError(window.location.href);
+
 function requireClient(): NonNullable<typeof supabase> {
   if (!supabase) throw new Error('Accounts are not configured.');
   return supabase;
@@ -67,8 +76,16 @@ export function useAccount(): AccountState {
   const [unownedCount, setUnownedCount] = useState(0);
   const [claimed, setClaimed] = useState(false);
   const [dismissed, setDismissed] = useState(false);
-  const [error, setError] = useState<AccountError>(null);
+  const [error, setError] = useState<AccountError>(returnError?.failure ?? null);
+  const [errorDetail, setErrorDetail] = useState<string | null>(returnError?.detail ?? null);
   const [working, setWorking] = useState(false);
+
+  useEffect(() => {
+    if (!returnError) return;
+    // Without a reload: the query goes away and the hash becomes the account route, which the router is told about.
+    window.history.replaceState(null, '', `${window.location.pathname}${routeHash({ name: 'account' })}`);
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+  }, []);
 
   useEffect(() => {
     if (!supabase) return;
@@ -113,6 +130,7 @@ export function useAccount(): AccountState {
   const run = useCallback(async <T,>(action: () => Promise<T>, fallback: T): Promise<T> => {
     setWorking(true);
     setError(null);
+    setErrorDetail(null);
     try { return await action(); }
     catch (caught) {
       setError(accountFailure(caught));
@@ -194,7 +212,7 @@ export function useAccount(): AccountState {
   const declineClaim = useCallback(() => { setDismissed(true); }, []);
 
   return {
-    configured: supabase !== null, session, profile, recovering, unownedCount: dismissed ? 0 : unownedCount, claimed, error, working,
+    configured: supabase !== null, session, profile, recovering, unownedCount: dismissed ? 0 : unownedCount, claimed, error, errorDetail, working,
     signIn, signInWithGoogle, signUp, requestPasswordReset, updatePassword, signOut, saveAlias, saveAvatar, claimLocal, declineClaim,
   };
 }

@@ -55,8 +55,14 @@ export const SIGNED_OUT_EVENT = 'SIGNED_OUT' satisfies AuthChangeEvent;
 /** Failure reported for any error without a specific explanation (network, unmapped codes, local storage). */
 export const GENERIC_ACCOUNT_FAILURE = 'generic';
 
+/**
+ * Failures of a return to the app (from Google or from an e-mail link) that Supabase reports in the address
+ * instead of a session: a link that was already used or is too old, and anything else that went wrong on its side.
+ */
+export type ReturnFailure = 'linkExpired' | 'returnFailed';
+
 /** Failure kinds of the account actions; the interface has one message per kind. */
-export type AccountFailure = (typeof AUTH_ERROR_CODES)[AuthErrorCode] | typeof GENERIC_ACCOUNT_FAILURE;
+export type AccountFailure = (typeof AUTH_ERROR_CODES)[AuthErrorCode] | typeof GENERIC_ACCOUNT_FAILURE | ReturnFailure;
 
 export function isMappedAuthErrorCode(code: string): code is AuthErrorCode {
   return Object.hasOwn(AUTH_ERROR_CODES, code);
