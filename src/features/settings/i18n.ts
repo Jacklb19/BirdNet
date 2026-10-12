@@ -74,8 +74,6 @@ export const settingsMessages = defineMessages({
       share: 'Compartir mis cantos en el mapa de todos',
       shareDetail: (distance: string) => `Otras personas los ven sin tu nombre, a unos ${distance} de donde estabas. Apagado, solo los ves tú.`,
       sharePending: 'El cambio vale para los cantos nuevos. Los que ya subiste se actualizarán cuando lo cambies de nuevo con conexión y sesión iniciada.',
-      audio: 'Enviar cantos dudosos',
-      audioDetail: 'Solo los fragmentos de confianza media, para poder verificarlos. Es aparte de tus grabaciones, que decides más abajo.',
     },
     storage: {
       title: 'Espacio en el teléfono',
@@ -205,8 +203,6 @@ export const settingsMessages = defineMessages({
       share: 'Share my songs on everyone’s map',
       shareDetail: (distance: string) => `Other people see them without your name, about ${distance} from where you were. Off, only you see them.`,
       sharePending: 'The change applies to new songs. The ones already uploaded will follow when you change it again online and signed in.',
-      audio: 'Send doubtful songs',
-      audioDetail: 'Only the medium-confidence fragments, so they can be verified. It is separate from your recordings, which you decide on below.',
     },
     storage: {
       title: 'Space on the phone',

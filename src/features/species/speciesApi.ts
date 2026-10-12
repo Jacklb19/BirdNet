@@ -19,7 +19,6 @@ export interface SpeciesRecord {
     readonly confidence: number;
     readonly status: DetectionStatus;
     readonly siteId: string | null;
-    readonly hasAudio: boolean;
     /** A recording of this detection is kept in the account. */
     readonly hasRecording: boolean;
   }[];
@@ -56,10 +55,10 @@ export function parseSpeciesRecord(body: unknown): SpeciesRecord {
       .map((cell) => ({ latitude: cell.latitude as number, longitude: cell.longitude as number, detections: cell.detections as number })),
     recent: recent
       .filter((item) => isUuid(item.id) && isTimestamp(item.recorded_at) && isProbability(item.confidence) && isDetectionStatus(item.status) &&
-        (item.site_id === null || isUuid(item.site_id)) && typeof item.has_audio === 'boolean')
+        (item.site_id === null || isUuid(item.site_id)))
       .map((item) => ({
         id: item.id as string, recordedAt: item.recorded_at as string, confidence: item.confidence as number,
-        status: item.status as DetectionStatus, siteId: item.site_id as string | null, hasAudio: item.has_audio as boolean,
+        status: item.status as DetectionStatus, siteId: item.site_id as string | null,
         // Absent from an API older than the recordings: then there is none.
         hasRecording: item.has_recording === true,
       })),

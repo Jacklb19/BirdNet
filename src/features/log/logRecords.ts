@@ -33,8 +33,6 @@ export interface LogRecord {
   readonly upload: UploadState;
   /** Whether an approximate cell was stored with the record. */
   readonly located: boolean;
-  /** Doubtful fragment still kept on this phone, if any. */
-  readonly audioId: string | null;
   /** Verdict of the person on this record, if they gave one; `status` stays what the model said. */
   readonly review: ReviewAction | null;
   /** Species the model gave, when the person corrected it (`species` is then the one they heard). */
@@ -67,8 +65,7 @@ function isValid(record: LogRecord): boolean {
     Number.isFinite(record.confidence) && record.confidence >= 0 && record.confidence <= 1;
 }
 
-export function uploadStateOf(row: Pick<StoredDetection, 'metadataSynced' | 'location' | 'owner'>, syncUser: SyncUser): UploadState {
-  if (row.metadataSynced) return 'cloud';
+export function uploadStateOf(row: Pick<StoredDetection, 'location' | 'owner'>, syncUser: SyncUser): UploadState {
   // Checked before the account: a record without a cell is never sent, even after signing in.
   if (!row.location) return 'noLocation';
   if (!row.owner) return 'needsAccount';
@@ -80,7 +77,7 @@ export function uploadStateOf(row: Pick<StoredDetection, 'metadataSynced' | 'loc
 function fromPending(row: StoredDetection, syncUser: SyncUser): LogRecord {
   return {
     id: row.id, species: row.species, confidence: row.confidence, status: row.status, recordedAt: Date.parse(row.recorded_at),
-    siteId: row.siteId ?? null, upload: uploadStateOf(row, syncUser), located: Boolean(row.location), audioId: row.audioId,
+    siteId: row.siteId ?? null, upload: uploadStateOf(row, syncUser), located: Boolean(row.location),
     review: null, modelSpecies: null,
   };
 }
@@ -89,7 +86,7 @@ function fromHistory(entry: HistoryEntry): LogRecord {
   // Synchronization only sends records with a cell, so every acknowledged record had one (history does not keep it).
   return {
     id: entry.id, species: entry.species, confidence: entry.confidence, status: entry.status, recordedAt: Date.parse(entry.recorded_at),
-    siteId: entry.siteId, upload: 'cloud', located: true, audioId: null, review: null, modelSpecies: null,
+    siteId: entry.siteId, upload: 'cloud', located: true, review: null, modelSpecies: null,
   };
 }
 

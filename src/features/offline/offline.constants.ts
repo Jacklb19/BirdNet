@@ -22,12 +22,6 @@ export const QUEUED_STATUS_BY_LOCAL_STATUS = Object.freeze({
 
 export type QueuedDetectionStatus = (typeof QUEUED_STATUS_BY_LOCAL_STATUS)[LocalDetectionStatus];
 
-/**
- * Only detections in this state keep their audio window: the fragment lets a person verify an uncertain call,
- * and it leaves the device only with explicit consent.
- */
-export const AUDIO_REVIEW_STATUS = 'provisional' satisfies LocalDetectionStatus;
-
 /** Bump with every change to `STORES` or their key paths; the upgrade only creates missing stores. */
 export const DATABASE_VERSION = 2;
 
@@ -35,7 +29,11 @@ export const DATABASE_VERSION = 2;
 export const STORES = Object.freeze({
   /** Pending detections, keyed by their client UUID (the idempotency key of synchronization). */
   detections: 'detections',
-  /** Audio fragments that are waiting for authorized upload. */
+  /**
+   * Leftover, never written: it held the doubtful fragments earlier versions uploaded for verification. Dropping a
+   * store needs a new `DATABASE_VERSION`, which a service worker of the previous release could not open during an
+   * update, so the store stays and `queueStore` empties it.
+   */
   audio: 'audio',
   /** One record (`SETTINGS_RECORD_KEY`) with the person's offline preferences. */
   settings: 'settings',
@@ -56,7 +54,7 @@ export const SETTINGS_RECORD_KEY = 'preferences';
 
 /** Preferences the interface may change; the session and cached sites are written by dedicated functions. */
 export const EDITABLE_SETTINGS_KEYS = Object.freeze(
-  ['maxBytes', 'audioConsent', 'locationEnabled', 'activeSiteId', 'shareMap', 'keepRecordings', 'saveRecordings', 'detectionModel', 'detectionStyle'] as const satisfies readonly (keyof OfflineSettings)[],
+  ['maxBytes', 'locationEnabled', 'activeSiteId', 'shareMap', 'keepRecordings', 'saveRecordings', 'detectionModel', 'detectionStyle'] as const satisfies readonly (keyof OfflineSettings)[],
 );
 
 export type EditableSettingsKey = (typeof EDITABLE_SETTINGS_KEYS)[number];
@@ -80,7 +78,7 @@ export function bytesToMib(bytes: number): number {
 /** Queue capacity until the person chooses another one. */
 export const DEFAULT_QUEUE_BYTES = mibToBytes(64);
 
-/** Smallest capacity accepted; it still holds several audio fragments besides the metadata. */
+/** Smallest capacity accepted; it still holds a few thousand songs waiting to upload. */
 export const MIN_QUEUE_BYTES = mibToBytes(1);
 
 // ─── Synchronization ─────────────────────────────────────────────────────

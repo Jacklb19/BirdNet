@@ -79,7 +79,7 @@ describe('syncReviews', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    settings = { maxBytes: DEFAULT_QUEUE_BYTES, audioConsent: false, locationEnabled: true, session: { userId, accessToken: 'test-token', expiresAt: Date.now() / 1000 + 3600 } };
+    settings = { maxBytes: DEFAULT_QUEUE_BYTES, locationEnabled: true, session: { userId, accessToken: 'test-token', expiresAt: Date.now() / 1000 + 3600 } };
     vi.mocked(getSettings).mockImplementation(() => Promise.resolve(structuredClone(settings)));
     vi.mocked(listHistory).mockResolvedValue([synced(first), synced(second)]);
     vi.mocked(markReview).mockResolvedValue(undefined);

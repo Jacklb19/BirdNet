@@ -12,8 +12,6 @@ export interface StoredDetection {
   location: ApproximateLocation | null;
   model_version: string;
   owner: string | null;
-  audioId: string | null;
-  metadataSynced: boolean;
   bytes: number;
   /** Monitoring site chosen when the window was captured; absent on records from before sites existed. */
   siteId?: string | null;
@@ -41,11 +39,9 @@ export interface StoredWalk {
   track: TrackPoint[];
 }
 export interface CachedSite { id: string; name: string; latitude: number; longitude: number }
-export interface StoredAudio { id: string; blob: Blob; bytes: number }
 export interface SyncSession { userId: string; accessToken: string; expiresAt: number }
 export interface OfflineSettings {
   maxBytes: number;
-  audioConsent: boolean;
   locationEnabled: boolean;
   session: SyncSession | null;
   activeSiteId?: string | null;

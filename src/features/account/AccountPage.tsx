@@ -5,7 +5,6 @@ import { ListGroup, ListRow } from '../../shared/ui/ListGroup';
 import { Notice } from '../../shared/ui/Notice';
 import { Page } from '../../shared/ui/Page';
 import { PageHeader } from '../../shared/ui/PageHeader';
-import { useOfflineSettings } from '../offline/useOfflineSettings';
 import { useQueueStatus } from '../offline/useQueueStatus';
 import { useSites } from '../sites/useSites';
 import { useAccountContext } from './accountContext';
@@ -31,10 +30,8 @@ export default function AccountPage(): React.JSX.Element {
   const account = useAccountContext();
   const queue = useQueueStatus();
   const { sites } = useSites();
-  const { settings } = useOfflineSettings();
   const { session } = account;
   const userId = session?.user.id ?? null;
-  const audioConsent = settings?.audioConsent ?? false;
   const { records, error } = useLocalRecords();
   const summary = useAccountSummary(session?.access_token ?? null);
   const reviews = useReviews();
@@ -44,8 +41,8 @@ export default function AccountPage(): React.JSX.Element {
     [records, reviews],
   );
   const pending = useMemo(
-    () => (records && userId ? pendingSync(records.pending, userId, audioConsent) : null),
-    [records, userId, audioConsent],
+    () => (records && userId ? pendingSync(records.pending, userId) : null),
+    [records, userId],
   );
 
   return (

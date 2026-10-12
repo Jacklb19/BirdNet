@@ -35,8 +35,7 @@ const initialSnapshot = (): Snapshot => ({
 
 /**
  * Every record kept on this phone, pending or synchronized. The stores are read again after every change to the
- * records (added, acknowledged, even when only the song was acknowledged and its fragment still waits, or claimed
- * by an account), so records move from "waiting" to "uploaded" while the screen is open.
+ * records (added, acknowledged or claimed by an account), so records move from "waiting" to "uploaded" while the screen is open.
  */
 export function useLogRecords(): LogRecordsState {
   const version = useQueueVersion('records');

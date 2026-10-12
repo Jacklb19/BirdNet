@@ -8,7 +8,6 @@ export const API_ROUTES = {
   modelLatest: `${VERSION}/model/latest`,
   detections: `${VERSION}/detections`,
   detectionsBatch: `${VERSION}/detections/batch`,
-  detectionAudioUrl: (detectionId: string): string => `${VERSION}/detections/${encodeURIComponent(detectionId)}/audio-url`,
   /** Review of one detection (confirm, correct, discard). */
   detection: (detectionId: string): string => `${VERSION}/detections/${encodeURIComponent(detectionId)}`,
   detectionRecordingUrl: (detectionId: string): string => `${VERSION}/detections/${encodeURIComponent(detectionId)}/recording-url`,

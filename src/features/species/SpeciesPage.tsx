@@ -136,13 +136,13 @@ export default function SpeciesPage({ species }: { readonly species: string }): 
     ...(facts.lastAt !== null ? [{ label: texts.notes.last, value: formatDayTime(facts.lastAt, readAt, locale) }] : []),
   ] : [];
 
-  // Records on this phone link to their detail (recording or fragment, state); cloud-only ones are listed without a
+  // Records on this phone link to their detail (recording, state); cloud-only ones are listed without a
   // link, with a button to play the recording the account keeps, if any.
   const recent = [
     ...local.map((record) => ({
       id: record.id, at: record.recordedAt, confidence: record.confidence, status: record.status,
       href: routeHash({ name: 'detection', id: record.id }), playable: false,
-      extra: clips?.ids.has(record.id) ? texts.recent.withRecording : record.audioId ? texts.recent.withAudio : null,
+      extra: clips?.ids.has(record.id) ? texts.recent.withRecording : null,
     })),
     ...(cloud?.recent ?? []).filter((item) => !local.some((record) => record.id === item.id)).map((item) => ({
       id: item.id, at: Date.parse(item.recordedAt), confidence: item.confidence, status: item.status,

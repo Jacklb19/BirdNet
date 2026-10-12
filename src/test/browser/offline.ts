@@ -3,10 +3,10 @@ import { InferenceService } from '../../features/inference/inference.service';
 import { MIN_CANDIDATE_CONFIDENCE, TOP_K } from '../../features/inference/inference.constants';
 import { AUDIO_CONSTANTS } from '../../features/audio/dsp/audio.constants';
 import { normalizeAudio } from '../../features/audio/dsp/normalize';
-import { applyDetectionPolicy } from '../../features/inference/detectionPolicy';
+import { applyDetectionPolicy, type ClassifiedDetection } from '../../features/inference/detectionPolicy';
 import { bindSyncSession, getSettings, persistDetections, queueStats, listDetections, updateSettings } from '../../features/offline/queueStore';
 import { offlineOperation } from '../../features/offline/offlineClient';
-import { MODEL_CACHE_NAME, MODEL_RESOURCE_EXTENSIONS, OFFLINE_OPERATIONS } from '../../features/offline/offline.constants';
+import { DATABASE_NAME, MODEL_CACHE_NAME, MODEL_RESOURCE_EXTENSIONS, OFFLINE_OPERATIONS, STORES } from '../../features/offline/offline.constants';
 import type { PersistenceContext, SyncSession } from '../../features/offline/types';
 import referenceRecordings from '../../../public/test-audio/metadata.json';
 
@@ -29,10 +29,46 @@ function referenceRecording(): { url: string; startSample: number } {
 const TEST_ROUTES = Object.freeze({ session: '/test/session', invalidManifest: '/test/invalid-manifest' });
 
 const context: PersistenceContext = { recordedAt: '2026-10-06T12:00:00Z', location: { latitude: 4.679, longitude: -74.123 }, modelVersion: 'birdnet-v2.4:arm' };
-const samples = new Float32Array(AUDIO_CONSTANTS.WINDOW_SAMPLES);
+/** Size of the WAV fragment (one PCM16 window and its header) that versions before the upload was removed kept. */
+const LEGACY_FRAGMENT_BYTES = 288_044;
+
+function classified(confidence: number): ClassifiedDetection[] {
+  return applyDetectionPolicy([{ classIndex: 0, scientificName: 'Turdus fuscater', commonName: 'Great Thrush', label: 'Turdus fuscater_Great Thrush', confidence }]);
+}
 async function seed(count: number, confidence = 0.9, withLocation = true): Promise<void> {
-  const candidates = applyDetectionPolicy([{ classIndex: 0, scientificName: 'Turdus fuscater', commonName: 'Great Thrush', label: 'Turdus fuscater_Great Thrush', confidence }]);
-  for (let index = 0; index < count; index++) await persistDetections(candidates, samples, { ...context, location: withLocation ? context.location : null });
+  const candidates = classified(confidence);
+  for (let index = 0; index < count; index++) await persistDetections(candidates, { ...context, location: withLocation ? context.location : null });
+}
+/** One window with `size` detections: a single write, which the queue keeps whole or not at all. */
+async function seedWindow(size: number): Promise<void> {
+  await persistDetections(Array.from({ length: size }, () => classified(0.9)).flat(), context);
+}
+function settled<T>(request: IDBRequest<T>): Promise<T> {
+  return new Promise((resolve, reject) => { request.onsuccess = () => { resolve(request.result); }; request.onerror = () => { reject(request.error ?? new Error('Storage request failed.')); }; });
+}
+/** Direct access to the queue database, for the state only an earlier version of the app could leave behind. */
+async function inQueue<T>(mode: IDBTransactionMode, action: (transaction: IDBTransaction) => IDBRequest<T>): Promise<T> {
+  const db = await settled(indexedDB.open(DATABASE_NAME));
+  try {
+    const transaction = db.transaction([STORES.detections, STORES.audio], mode);
+    const done = new Promise<void>((resolve, reject) => { transaction.oncomplete = () => { resolve(); }; transaction.onabort = () => { reject(transaction.error ?? new Error('Storage transaction failed.')); }; });
+    const result = await settled(action(transaction));
+    await done;
+    return result;
+  } finally { db.close(); }
+}
+/**
+ * Turns the first queued record into what the removed doubtful-audio upload left on a phone: its WAV fragment in the
+ * `audio` store, and the record pointing at it and marked as already sent while the fragment waited.
+ */
+async function leaveLegacyFragment(): Promise<void> {
+  const [record] = await listDetections();
+  if (!record) throw new Error('Seed a record first.');
+  const audioId = crypto.randomUUID();
+  await inQueue('readwrite', (transaction) => {
+    transaction.objectStore(STORES.audio).put({ id: audioId, blob: new Blob([new Uint8Array(LEGACY_FRAGMENT_BYTES)]), bytes: LEGACY_FRAGMENT_BYTES });
+    return transaction.objectStore(STORES.detections).put({ ...record, audioId, metadataSynced: true });
+  });
 }
 async function loadReference(): Promise<void> {
   const cache = await caches.open(REFERENCE_CACHE_NAME);
@@ -58,7 +94,8 @@ async function inferReference(): Promise<string[]> {
   });
 }
 const checks = {
-  seed, queueStats, listDetections, updateSettings, getSettings, loadReference, inferReference,
+  seed, seedWindow, queueStats, listDetections, updateSettings, getSettings, loadReference, inferReference, leaveLegacyFragment,
+  legacyFragments: (): Promise<number> => inQueue('readonly', (transaction) => transaction.objectStore(STORES.audio).count()),
   synchronizeQueue: async (): Promise<void> => { await offlineOperation(OFFLINE_OPERATIONS.sync); },
   bind: async (claimUnowned = true): Promise<void> => {
     const response = await fetch(apiUrl(TEST_ROUTES.session));

@@ -3,7 +3,6 @@ import { useI18n, formatSeconds } from '../../i18n';
 import { Icon } from '../../shared/ui/Icon';
 import { AUDIO_CONSTANTS } from '../audio/dsp/audio.constants';
 import { DURATION_FRACTION_DIGITS, WAVEFORM_BAR_GAP, WAVEFORM_BARS } from './log.config';
-import type { AudioFragment } from './useAudioFragment';
 import { useWaveform } from './useWaveform';
 import './FragmentPlayer.css';
 
@@ -15,9 +14,9 @@ export interface PlayerLabels {
 }
 
 export interface FragmentPlayerProps {
-  readonly fragment: Pick<AudioFragment, 'blob' | 'url'>;
-  /** Defaults to the texts of the doubtful fragment. */
-  readonly labels?: PlayerLabels;
+  /** The audio and an object URL for its audio element; whoever created the URL revokes it. */
+  readonly fragment: { readonly blob: Blob; readonly url: string };
+  readonly labels: PlayerLabels;
 }
 
 /** Pausing before playback starts rejects `play()` with this; it is not a failure of the fragment. */
@@ -25,16 +24,15 @@ function isInterruptedPlay(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError';
 }
 
-/** Plays one analysis window kept on this phone: the doubtful fragment or the clip of a song. Playing sends nothing anywhere. */
-export function FragmentPlayer({ fragment, labels }: FragmentPlayerProps): React.JSX.Element {
-  const { dict, locale } = useI18n();
+/** Plays one analysis window kept on this phone: the clip of a song. Playing sends nothing anywhere. */
+export function FragmentPlayer({ fragment, labels: texts }: FragmentPlayerProps): React.JSX.Element {
+  const { locale } = useI18n();
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [failed, setFailed] = useState(false);
   const peaks = useWaveform(fragment.blob, WAVEFORM_BARS);
   const duration = formatSeconds(AUDIO_CONSTANTS.WINDOW_DURATION_SEC, locale, DURATION_FRACTION_DIGITS);
-  const texts = labels ?? dict.log.detail.fragment;
 
   const toggle = (): void => {
     const audio = audioRef.current;

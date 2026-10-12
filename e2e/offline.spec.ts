@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import fs from 'node:fs';
 import { API_PROXY_PREFIX, OFFLINE_CHECK_BUNDLE, TMP_DIR } from '../build.config.mjs';
-import { OFFLINE_OPERATIONS, type OfflineRequestMessage } from '../src/features/offline/offline.constants';
+import { MIN_QUEUE_BYTES, OFFLINE_OPERATIONS, type OfflineRequestMessage } from '../src/features/offline/offline.constants';
 import { STORAGE_KEYS } from '../src/config/storage';
 import { routeHash } from '../src/app/routes';
 import { DEFAULT_LOCALE } from '../src/i18n/locales';
@@ -42,16 +42,21 @@ test('500 detections survive closing and offline reopening; quota rejects new wr
   const reopened = await context.newPage();
   await ready(reopened);
   expect((await reopened.evaluate(() => window.offlineChecks.queueStats())).count).toBe(500);
-  await reopened.evaluate(async () => {
-    await window.offlineChecks.updateSettings({ maxBytes: 1024 * 1024, audioConsent: true });
-    await window.offlineChecks.seed(3, 0.6);
-  });
+  await reopened.evaluate(async (maxBytes) => { await window.offlineChecks.updateSettings({ maxBytes }); }, MIN_QUEUE_BYTES);
+  // Every seeded record takes the same space, so the queue can be filled until exactly one more would fit.
+  const seeded = await reopened.evaluate(() => window.offlineChecks.queueStats());
+  const room = Math.floor((MIN_QUEUE_BYTES - seeded.bytes) / (seeded.bytes / seeded.count));
+  await reopened.evaluate(async (size) => { await window.offlineChecks.seedWindow(size); }, room - 1);
   const before = await reopened.evaluate(() => window.offlineChecks.queueStats());
+  expect(before.count).toBe(seeded.count + room - 1);
+  // A window of two does not fit whole, so neither of its records is kept, although one alone still fits.
   const failed = await reopened.evaluate(async () => {
-    try { await window.offlineChecks.seed(1, 0.6); return false; } catch { return true; }
+    try { await window.offlineChecks.seedWindow(2); return false; } catch { return true; }
   });
   expect(failed).toBe(true);
   expect(await reopened.evaluate(() => window.offlineChecks.queueStats())).toEqual(before);
+  await reopened.evaluate(async () => { await window.offlineChecks.seed(1); });
+  expect((await reopened.evaluate(() => window.offlineChecks.queueStats())).count).toBe(before.count + 1);
 });
 
 test('response loss after commit retains queue; retry against PostgreSQL produces no duplicates', async ({ page }) => {
@@ -89,22 +94,22 @@ test('service worker finishes a synchronization after the initiating page closes
   expect((await reopened.evaluate(() => window.offlineChecks.queueStats())).count).toBe(0);
 });
 
-test('audio remains queued after metadata; revocation prevents uploads until permission returns', async ({ page }) => {
+// Regression: phones that had the removed doubtful-audio upload turned on keep WAV fragments nothing reads any more,
+// and records marked as sent that used to wait for them.
+test('fragments left by the removed doubtful-audio upload are deleted and their records synchronize', async ({ page }) => {
   await ready(page);
-  const before = await (await page.request.get(FIXTURE_ROUTES.counts)).json() as { uploads: number; jobs: number };
-  await page.evaluate(async () => {
-    await window.offlineChecks.bind(); await window.offlineChecks.updateSettings({ audioConsent: true });
-    await window.offlineChecks.seed(1, 0.6); await window.offlineChecks.updateSettings({ audioConsent: false });
-    await window.offlineChecks.synchronizeQueue();
-  });
-  expect((await page.evaluate(() => window.offlineChecks.queueStats())).count).toBe(1);
-  const revoked = await (await page.request.get(FIXTURE_ROUTES.counts)).json() as { uploads: number };
-  expect(revoked.uploads).toBe(before.uploads);
-  await page.evaluate(async () => { await window.offlineChecks.updateSettings({ audioConsent: true }); await window.offlineChecks.synchronizeQueue(); });
+  const before = await (await page.request.get(FIXTURE_ROUTES.counts)).json() as { detections: number };
+  await page.evaluate(async () => { await window.offlineChecks.bind(); await window.offlineChecks.seed(1, 0.6); });
+  const queued = await page.evaluate(() => window.offlineChecks.queueStats());
+  await page.evaluate(() => window.offlineChecks.leaveLegacyFragment());
+  // The next time the app is opened.
+  await ready(page);
+  expect(await page.evaluate(() => window.offlineChecks.queueStats())).toEqual(queued);
+  expect(await page.evaluate(() => window.offlineChecks.legacyFragments())).toBe(0);
+  await page.evaluate(() => window.offlineChecks.synchronizeQueue());
   expect((await page.evaluate(() => window.offlineChecks.queueStats())).count).toBe(0);
-  const delivered = await (await page.request.get(FIXTURE_ROUTES.counts)).json() as { uploads: number; jobs: number };
-  expect(delivered.uploads - before.uploads).toBe(1);
-  expect(delivered.jobs - before.jobs).toBe(1);
+  const after = await (await page.request.get(FIXTURE_ROUTES.counts)).json() as { detections: number };
+  expect(after.detections - before.detections).toBe(1);
 });
 
 test('unassociated records and records without location stay local', async ({ page }) => {
@@ -147,7 +152,7 @@ for (const width of REVIEW_WIDTHS) {
       await page.setViewportSize({ width, height: REVIEW_HEIGHT });
       await page.emulateMedia({ colorScheme: theme });
       await ready(page, routeHash({ name: 'settings' }));
-      await expect(page.getByRole('switch', { name: texts.settings.permissions.audio })).toBeVisible();
+      await expect(page.getByRole('switch', { name: texts.settings.permissions.location })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await page.screenshot({ path: `${TMP_DIR}/offline-${String(width)}-${theme}.png`, fullPage: true });
     });

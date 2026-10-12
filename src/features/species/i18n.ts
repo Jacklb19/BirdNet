@@ -88,7 +88,6 @@ export const speciesMessages = defineMessages({
       recent: {
         title: 'Últimos registros',
         detail: (confidence: string, status: string) => `${confidence} · ${status}`,
-        withAudio: 'Con fragmento guardado',
         withRecording: 'Con grabación',
         cloudOnly: 'Guardado en la nube',
         playRecording: 'Escuchar la grabación de tu cuenta',
@@ -231,7 +230,6 @@ export const speciesMessages = defineMessages({
       recent: {
         title: 'Latest records',
         detail: (confidence: string, status: string) => `${confidence} · ${status}`,
-        withAudio: 'With a saved fragment',
         withRecording: 'With a recording',
         playRecording: 'Play the recording in your account',
         stopRecording: 'Stop the recording',

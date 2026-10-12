@@ -103,14 +103,9 @@ export const logMessages = defineMessages({
           plain: 'El modelo del teléfono estaba muy seguro al registrarla. No hace falta verificarla.',
         },
         provisional: {
-          range: (low: string, high: string) => `El modelo del teléfono no está del todo seguro (confianza entre ${low} y ${high}). Tómala como probable mientras siga por verificar.`,
-          plain: 'El modelo del teléfono no estaba del todo seguro al registrarla. Tómala como probable mientras siga por verificar.',
+          range: (low: string, high: string) => `El modelo del teléfono no está del todo seguro (confianza entre ${low} y ${high}). Tómala como probable hasta que la verifiques tú.`,
+          plain: 'El modelo del teléfono no estaba del todo seguro al registrarla. Tómala como probable hasta que la verifiques tú.',
         },
-      },
-      fragment: {
-        play: (duration: string) => `Escuchar el fragmento guardado (${duration})`,
-        pause: 'Pausar el fragmento',
-        error: 'No se pudo reproducir el fragmento.',
       },
       review: {
         title: '¿Era esta ave?',
@@ -269,14 +264,9 @@ export const logMessages = defineMessages({
           plain: "The phone's model was very sure when it was recorded. It does not need checking.",
         },
         provisional: {
-          range: (low: string, high: string) => `The phone's model is not entirely sure (confidence between ${low} and ${high}). Treat it as likely while it is still unverified.`,
-          plain: "The phone's model was not entirely sure when it was recorded. Treat it as likely while it is still unverified.",
+          range: (low: string, high: string) => `The phone's model is not entirely sure (confidence between ${low} and ${high}). Treat it as likely until you verify it yourself.`,
+          plain: "The phone's model was not entirely sure when it was recorded. Treat it as likely until you verify it yourself.",
         },
-      },
-      fragment: {
-        play: (duration: string) => `Play the saved fragment (${duration})`,
-        pause: 'Pause the fragment',
-        error: 'The fragment could not be played.',
       },
       review: {
         title: 'Was it this bird?',

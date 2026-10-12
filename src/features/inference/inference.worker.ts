@@ -218,7 +218,7 @@ async function infer(message: InferRequest): Promise<void> {
     );
     if (message.persistence) {
       persistenceStarted = true;
-      const stored = await persistDetections(applyDetectionPolicy(detections), message.audioBuffer, message.persistence);
+      const stored = await persistDetections(applyDetectionPolicy(detections), message.persistence);
       persistenceStarted = false;
       // Not awaited: the clip is an extra, and neither its encoding nor a failure may hold back the result.
       keepSongClips(stored, message.audioBuffer);

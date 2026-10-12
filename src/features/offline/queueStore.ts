@@ -2,15 +2,15 @@ import { isDetectionModel, isDetectionStyle } from '../inference/detectionChoice
 import type { ClassifiedDetection } from '../inference/detectionPolicy';
 import { CONFIDENCE_THRESHOLDS, FIELD_LIMITS, isUuid } from '../../config/contract';
 import { announceQueueChange } from './queueChanges';
-import { assertQueueCapacity, encodeAudio, recordingLocation, recordingSite, unlocatedAssignment } from './queuePolicy';
+import { assertQueueCapacity, recordingLocation, recordingSite, unlocatedAssignment } from './queuePolicy';
 import {
-  AUDIO_REVIEW_STATUS, DATABASE_NAME, DATABASE_VERSION, DEFAULT_QUEUE_BYTES, isEditableSettingsKey, QUEUED_STATUS_BY_LOCAL_STATUS,
+  DATABASE_NAME, DATABASE_VERSION, DEFAULT_QUEUE_BYTES, isEditableSettingsKey, QUEUED_STATUS_BY_LOCAL_STATUS,
   SETTINGS_RECORD_KEY, STORES, type EditableSettings, type StoreName,
 } from './offline.constants';
-import type { CachedSite, HistoryEntry, OfflineSettings, PersistenceContext, QueueStats, StoredAudio, StoredDetection, SyncSession } from './types';
+import type { CachedSite, HistoryEntry, OfflineSettings, PersistenceContext, QueueStats, StoredDetection, SyncSession } from './types';
 
 /** In-line key of every keyed store; settings use the out-of-line `SETTINGS_RECORD_KEY` instead. */
-const RECORD_KEY_PATH = 'id' satisfies keyof StoredDetection & keyof StoredAudio & keyof HistoryEntry;
+const RECORD_KEY_PATH = 'id' satisfies keyof StoredDetection & keyof HistoryEntry;
 const STORE_OPTIONS: Readonly<Record<StoreName, IDBObjectStoreParameters | undefined>> = {
   [STORES.detections]: { keyPath: RECORD_KEY_PATH },
   [STORES.audio]: { keyPath: RECORD_KEY_PATH },
@@ -20,7 +20,7 @@ const STORE_OPTIONS: Readonly<Record<StoreName, IDBObjectStoreParameters | undef
 /** Upper bound of a model probability; anything above it is a corrupted value. */
 const MAX_CONFIDENCE = 1;
 
-const defaultSettings = (): OfflineSettings => ({ maxBytes: DEFAULT_QUEUE_BYTES, audioConsent: false, locationEnabled: false, session: null });
+const defaultSettings = (): OfflineSettings => ({ maxBytes: DEFAULT_QUEUE_BYTES, locationEnabled: false, session: null });
 function measureRecord(record: StoredDetection): void {
   let previous: number;
   do { previous = record.bytes; record.bytes = new TextEncoder().encode(JSON.stringify(record)).byteLength; } while (record.bytes !== previous);
@@ -31,6 +31,23 @@ function request<T>(operation: IDBRequest<T>): Promise<T> {
 function completed(transaction: IDBTransaction): Promise<void> {
   return new Promise((resolve, reject) => { transaction.oncomplete = () => { resolve(); }; transaction.onabort = transaction.onerror = () => { reject(transaction.error ?? new Error('Storage transaction failed.')); }; });
 }
+/**
+ * Earlier versions kept a WAV fragment of every doubtful song in `STORES.audio`, to upload it for verification.
+ * Nothing reads them any more, so the first time a context opens the queue it deletes whatever is left there.
+ * A failure only postpones that to the next opening: freeing space must never cost a write of the queue.
+ */
+let legacyAudioCleared = false;
+async function clearLegacyAudio(db: IDBDatabase): Promise<void> {
+  if (legacyAudioCleared) return;
+  legacyAudioCleared = true;
+  try {
+    const transaction = db.transaction([STORES.audio], 'readwrite');
+    transaction.objectStore(STORES.audio).clear();
+    await completed(transaction);
+  } catch {
+    legacyAudioCleared = false;
+  }
+}
 async function open(): Promise<IDBDatabase> {
   const operation = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
   operation.onupgradeneeded = () => {
@@ -39,7 +56,9 @@ async function open(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, STORE_OPTIONS[name]);
     }
   };
-  return request(operation);
+  const db = await request(operation);
+  await clearLegacyAudio(db);
+  return db;
 }
 
 /** All writers share read/write transactions, including workers and service workers. */
@@ -63,12 +82,11 @@ export async function getSettings(): Promise<OfflineSettings> {
 export async function updateSettings(changes: EditableSettings): Promise<void> {
   if (!Object.keys(changes).every(isEditableSettingsKey)) throw new Error('Invalid preferences.');
   if ('activeSiteId' in changes && changes.activeSiteId !== null && !isUuid(changes.activeSiteId)) throw new Error('Invalid site.');
-  await transact([STORES.settings, STORES.detections, STORES.audio], 'readwrite', async (tx) => {
+  await transact([STORES.settings, STORES.detections], 'readwrite', async (tx) => {
     const next = { ...await readSettings(tx), ...changes };
     const records = await request(tx.objectStore(STORES.detections).getAll()) as StoredDetection[];
-    const audio = await request(tx.objectStore(STORES.audio).getAll()) as StoredAudio[];
-    assertQueueCapacity(records.reduce((total, row) => total + row.bytes, 0) + audio.reduce((total, row) => total + row.bytes, 0), 0, next.maxBytes);
-    if (typeof next.audioConsent !== 'boolean' || typeof next.locationEnabled !== 'boolean' ||
+    assertQueueCapacity(records.reduce((total, row) => total + row.bytes, 0), 0, next.maxBytes);
+    if (typeof next.locationEnabled !== 'boolean' ||
         [next.shareMap, next.keepRecordings, next.saveRecordings].some((choice) => choice !== undefined && typeof choice !== 'boolean') ||
         (next.detectionModel !== undefined && !isDetectionModel(next.detectionModel)) ||
         (next.detectionStyle !== undefined && !isDetectionStyle(next.detectionStyle))) throw new Error('Invalid preferences.');
@@ -80,18 +98,17 @@ export async function updateSettings(changes: EditableSettings): Promise<void> {
 /** S5 must call this only after an explicit account association; never silently reassign owners. */
 export async function bindSyncSession(session: SyncSession | null, claimUnowned = false): Promise<void> {
   if (session && (!isUuid(session.userId) || !session.accessToken || !Number.isFinite(session.expiresAt))) throw new Error('Invalid session.');
-  await transact([STORES.settings, STORES.detections, STORES.audio], 'readwrite', async (tx) => {
+  await transact([STORES.settings, STORES.detections], 'readwrite', async (tx) => {
     const settings = await readSettings(tx);
     if (session && claimUnowned) {
       const records = await request(tx.objectStore(STORES.detections).getAll()) as StoredDetection[];
-      const audio = await request(tx.objectStore(STORES.audio).getAll()) as StoredAudio[];
       const next = records.map((row) => {
         if (row.owner) return row;
         const updated = { ...row, owner: session.userId };
         measureRecord(updated);
         return updated;
       });
-      assertQueueCapacity(next.reduce((sum, row) => sum + row.bytes, 0) + audio.reduce((sum, row) => sum + row.bytes, 0), 0, settings.maxBytes);
+      assertQueueCapacity(next.reduce((sum, row) => sum + row.bytes, 0), 0, settings.maxBytes);
       for (const row of next) await request(tx.objectStore(STORES.detections).put(row));
     }
     await writeSettings(tx, { ...settings, session });
@@ -135,14 +152,10 @@ export async function listHistory(): Promise<HistoryEntry[]> {
 export async function listDetections(): Promise<StoredDetection[]> {
   return transact([STORES.detections], 'readonly', async (tx) => request(tx.objectStore(STORES.detections).getAll()) as Promise<StoredDetection[]>);
 }
-export async function getAudio(id: string): Promise<StoredAudio | undefined> {
-  return transact([STORES.audio], 'readonly', async (tx) => request(tx.objectStore(STORES.audio).get(id)) as Promise<StoredAudio | undefined>);
-}
 export async function queueStats(): Promise<QueueStats> {
-  return transact([STORES.detections, STORES.audio], 'readonly', async (tx) => {
+  return transact([STORES.detections], 'readonly', async (tx) => {
     const records = await request(tx.objectStore(STORES.detections).getAll()) as StoredDetection[];
-    const audio = await request(tx.objectStore(STORES.audio).getAll()) as StoredAudio[];
-    return { count: records.length, bytes: records.reduce((sum, row) => sum + row.bytes, 0) + audio.reduce((sum, row) => sum + row.bytes, 0), waitingLocation: records.filter((row) => !row.location).length, waitingAccount: records.filter((row) => !row.owner).length };
+    return { count: records.length, bytes: records.reduce((sum, row) => sum + row.bytes, 0), waitingLocation: records.filter((row) => !row.location).length, waitingAccount: records.filter((row) => !row.owner).length };
   });
 }
 
@@ -153,27 +166,23 @@ function isStorable(candidate: ClassifiedDetection): boolean {
 }
 
 /** Called by the inference worker before it publishes a successful classification; returns the records it stored. */
-export async function persistDetections(candidates: readonly ClassifiedDetection[], samples: Float32Array, context: PersistenceContext): Promise<StoredDetection[]> {
+export async function persistDetections(candidates: readonly ClassifiedDetection[], context: PersistenceContext): Promise<StoredDetection[]> {
   if (candidates.length === 0) return [];
   const recordedAt = new Date(context.recordedAt).toISOString();
   if (!context.modelVersion || context.modelVersion.length > FIELD_LIMITS.modelVersion || !candidates.every(isStorable)) throw new Error('Invalid detection context.');
-  const audioBlob = candidates.some((candidate) => candidate.status === AUDIO_REVIEW_STATUS) ? encodeAudio(samples) : null;
-  const stored = await transact([STORES.settings, STORES.detections, STORES.audio], 'readwrite', async (tx) => {
+  const stored = await transact([STORES.settings, STORES.detections], 'readwrite', async (tx) => {
     const settings = await readSettings(tx);
     // Read with the active site inside the transaction, so a site chosen mid-session applies to the next window.
     const location = recordingLocation(settings, context.location);
     const siteId = recordingSite(settings, location);
     const existing = await request(tx.objectStore(STORES.detections).getAll()) as StoredDetection[];
-    const audio = await request(tx.objectStore(STORES.audio).getAll()) as StoredAudio[];
-    const audioId = audioBlob && settings.audioConsent ? crypto.randomUUID() : null;
     const records = candidates.map((candidate): StoredDetection => {
-      const record: StoredDetection = { id: crypto.randomUUID(), species: candidate.scientificName, confidence: candidate.confidence, status: QUEUED_STATUS_BY_LOCAL_STATUS[candidate.status], recorded_at: recordedAt, location, model_version: context.modelVersion, owner: settings.session?.userId ?? null, audioId: candidate.status === AUDIO_REVIEW_STATUS ? audioId : null, metadataSynced: false, bytes: 0, siteId };
+      const record: StoredDetection = { id: crypto.randomUUID(), species: candidate.scientificName, confidence: candidate.confidence, status: QUEUED_STATUS_BY_LOCAL_STATUS[candidate.status], recorded_at: recordedAt, location, model_version: context.modelVersion, owner: settings.session?.userId ?? null, bytes: 0, siteId };
       measureRecord(record);
       return record;
     });
-    assertQueueCapacity(existing.reduce((sum, row) => sum + row.bytes, 0) + audio.reduce((sum, row) => sum + row.bytes, 0), records.reduce((sum, row) => sum + row.bytes, 0) + (audioId ? audioBlob?.size ?? 0 : 0), settings.maxBytes);
+    assertQueueCapacity(existing.reduce((sum, row) => sum + row.bytes, 0), records.reduce((sum, row) => sum + row.bytes, 0), settings.maxBytes);
     for (const record of records) await request(tx.objectStore(STORES.detections).add(record));
-    if (audioId && audioBlob) await request(tx.objectStore(STORES.audio).add({ id: audioId, blob: audioBlob, bytes: audioBlob.size } satisfies StoredAudio));
     return records;
   });
   announceQueueChange(['records']);
@@ -186,16 +195,15 @@ export async function persistDetections(candidates: readonly ClassifiedDetection
  */
 export async function assignSiteToUnlocated(siteId: string): Promise<number> {
   if (!isUuid(siteId)) throw new Error('Invalid site.');
-  const assigned = await transact([STORES.settings, STORES.detections, STORES.audio], 'readwrite', async (tx) => {
+  const assigned = await transact([STORES.settings, STORES.detections], 'readwrite', async (tx) => {
     const settings = await readSettings(tx);
     const site = settings.sites?.find((candidate) => candidate.id === siteId);
     if (!site || !settings.sitesOwner) throw new Error('Invalid site.');
     const records = await request(tx.objectStore(STORES.detections).getAll()) as StoredDetection[];
-    const audio = await request(tx.objectStore(STORES.audio).getAll()) as StoredAudio[];
     const updated = unlocatedAssignment(records, site, settings.sitesOwner);
     for (const record of updated) measureRecord(record);
     const unchanged = records.filter((record) => !updated.some((row) => row.id === record.id));
-    assertQueueCapacity([...unchanged, ...updated].reduce((sum, row) => sum + row.bytes, 0) + audio.reduce((sum, row) => sum + row.bytes, 0), 0, settings.maxBytes);
+    assertQueueCapacity([...unchanged, ...updated].reduce((sum, row) => sum + row.bytes, 0), 0, settings.maxBytes);
     for (const record of updated) await request(tx.objectStore(STORES.detections).put(record));
     return updated.length;
   });
@@ -203,25 +211,18 @@ export async function assignSiteToUnlocated(siteId: string): Promise<number> {
   return assigned;
 }
 
-/** Metadata acknowledgement is separate from audio delivery; unacknowledged rows stay intact. */
-export async function acknowledge(ids: readonly string[], audioDelivered = false): Promise<void> {
-  await transact([STORES.detections, STORES.audio, STORES.history], 'readwrite', async (tx) => {
+/** Moves the records the server confirmed from the queue to the local history; the others stay intact. */
+export async function acknowledge(ids: readonly string[]): Promise<void> {
+  await transact([STORES.detections, STORES.history], 'readwrite', async (tx) => {
     const store = tx.objectStore(STORES.detections);
     const history = tx.objectStore(STORES.history);
     const syncedAt = new Date().toISOString();
     for (const id of ids) {
       const row = await request(store.get(id)) as StoredDetection | undefined;
       if (!row) continue;
-      if (row.audioId && !audioDelivered) await request(store.put({ ...row, metadataSynced: true }));
-      else {
-        await request(history.put({ id: row.id, species: row.species, confidence: row.confidence, status: row.status, recorded_at: row.recorded_at, siteId: row.siteId ?? null, syncedAt, location: row.location } satisfies HistoryEntry));
-        await request(store.delete(id));
-      }
+      await request(history.put({ id: row.id, species: row.species, confidence: row.confidence, status: row.status, recorded_at: row.recorded_at, siteId: row.siteId ?? null, syncedAt, location: row.location } satisfies HistoryEntry));
+      await request(store.delete(id));
     }
-    const remaining = await request(store.getAll()) as StoredDetection[];
-    const audio = await request(tx.objectStore(STORES.audio).getAll()) as StoredAudio[];
-    for (const row of audio) if (!remaining.some((record) => record.audioId === row.id)) await request(tx.objectStore(STORES.audio).delete(row.id));
   });
-  // Also when only `metadataSynced` changed: counts and bytes stay the same, but the record is no longer pending.
   announceQueueChange(['records']);
 }

@@ -21,7 +21,7 @@ const iso = (time: number): string => new Date(time).toISOString();
 function pending(id: string, recordedAt: number, changes: Partial<StoredDetection> = {}): StoredDetection {
   return {
     id, species: 'Zonotrichia capensis', confidence: 0.91, status: 'confirmed', recorded_at: iso(recordedAt), location: cell, model_version: 'v',
-    owner: ids.c, audioId: null, metadataSynced: false, bytes: 1, siteId: null, ...changes,
+    owner: ids.c, bytes: 1, siteId: null, ...changes,
   };
 }
 
@@ -30,23 +30,21 @@ function history(id: string, recordedAt: number, changes: Partial<HistoryEntry> 
 }
 
 function record(recordedAt: number, changes: Partial<LogRecord> = {}): LogRecord {
-  return { id: ids.a, species: 'Zonotrichia capensis', confidence: 0.9, status: 'confirmed', recordedAt, siteId: null, upload: 'cloud', located: true, audioId: null, review: null, modelSpecies: null, ...changes };
+  return { id: ids.a, species: 'Zonotrichia capensis', confidence: 0.9, status: 'confirmed', recordedAt, siteId: null, upload: 'cloud', located: true, review: null, modelSpecies: null, ...changes };
 }
 
 describe('upload state', () => {
   it('keeps records without a cell on the phone even when they have an owner', () => {
-    expect(uploadStateOf({ metadataSynced: false, location: null, owner: ids.c }, ids.c)).toBe('noLocation');
-    expect(uploadStateOf({ metadataSynced: false, location: cell, owner: null }, ids.c)).toBe('needsAccount');
-    expect(uploadStateOf({ metadataSynced: false, location: cell, owner: ids.c }, ids.c)).toBe('waiting');
-    // Metadata in the cloud counts as uploaded while only the fragment is still pending.
-    expect(uploadStateOf({ metadataSynced: true, location: cell, owner: ids.c }, null)).toBe('cloud');
+    expect(uploadStateOf({ location: null, owner: ids.c }, ids.c)).toBe('noLocation');
+    expect(uploadStateOf({ location: cell, owner: null }, ids.c)).toBe('needsAccount');
+    expect(uploadStateOf({ location: cell, owner: ids.c }, ids.c)).toBe('waiting');
   });
 
   it('does not promise an upload for records of an account that is not signed in', () => {
-    expect(uploadStateOf({ metadataSynced: false, location: cell, owner: ids.c }, null)).toBe('needsSignIn');
-    expect(uploadStateOf({ metadataSynced: false, location: cell, owner: ids.c }, ids.a)).toBe('needsSignIn');
+    expect(uploadStateOf({ location: cell, owner: ids.c }, null)).toBe('needsSignIn');
+    expect(uploadStateOf({ location: cell, owner: ids.c }, ids.a)).toBe('needsSignIn');
     // While the session is still being read, an owned record is taken to be waiting.
-    expect(uploadStateOf({ metadataSynced: false, location: cell, owner: ids.c }, undefined)).toBe('waiting');
+    expect(uploadStateOf({ location: cell, owner: ids.c }, undefined)).toBe('waiting');
   });
 });
 
@@ -58,7 +56,7 @@ describe('merging pending and synchronized records', () => {
       ids.c,
     );
     expect(merged.map((row) => [row.id, row.upload])).toEqual([[ids.c, 'cloud'], [ids.a, 'cloud'], [ids.b, 'needsAccount']]);
-    expect(merged[1]).toMatchObject({ species: 'Turdus fuscater', status: 'provisional', located: true, audioId: null });
+    expect(merged[1]).toMatchObject({ species: 'Turdus fuscater', status: 'provisional', located: true });
   });
 
   it('leaves out rows that storage returned damaged', () => {
@@ -159,7 +157,7 @@ describe('place', () => {
 describe('species of a day', () => {
   const record = (id: string, species: string, minute: number, extra: Partial<LogRecord> = {}): LogRecord => ({
     id, species, confidence: 0.8, status: 'confirmed', recordedAt: Date.UTC(2026, 9, 10, 6, minute), siteId: null, upload: 'cloud',
-    located: true, audioId: null, review: null, modelSpecies: null, ...extra,
+    located: true, review: null, modelSpecies: null, ...extra,
   });
 
   it('gathers a day by species, the one heard last first, and counts what folding would hide', () => {
