@@ -27,6 +27,8 @@ Un conjunto de prueba es una carpeta con:
 
 Vega-Hidalgo et al., *A collection of fully-annotated soundscape recordings from neotropical coffee farms in Colombia and Costa Rica* ([10.5281/zenodo.7525349](https://doi.org/10.5281/zenodo.7525349), CC BY 4.0): 34 grabaciones de una hora en cafetales de Jardín (Antioquia) y San Ramón (Costa Rica), anotadas por ornitólogos, con 89 especies. `scripts/eval/import-coffee-farms.py` lo convierte al formato de arriba.
 
+Segundo conjunto, independiente del laboratorio de BirdNET: los siete sitios colombianos de Pérez-Granados et al., *WABAD: A World Annotated Bird Acoustic Dataset for passive acoustic monitoring* ([10.5281/zenodo.14191524](https://doi.org/10.5281/zenodo.14191524), CC BY 4.0), publicado en noviembre de 2024: 400 grabaciones de un minuto anotadas por expertos locales, con 165 especies, de Antioquia, Quindío, Casanare y Arauca. `scripts/eval/import-wabad.py` lo convierte al formato de arriba.
+
 Sus límites: son grabadoras de campo, no teléfonos, y Jardín no es Bogotá. Unas pocas grabaciones propias hechas con el teléfono y etiquetadas en el formato de arriba dirían más sobre el uso real.
 
 ## Cómo se mide
@@ -155,7 +157,7 @@ El V3 encuentra dos o tres presencias más e inventa entre el doble y el triple.
 
 La regla quita la mitad de las especies inventadas y pierde 15 presencias reales; equivale más o menos a subir el umbral de guardado a 0,60.
 
-**Conclusión.** Sin entrenar no hay mejora realista más allá de lo ya hecho (filtro geográfico y regla de dos ventanas). El límite es el modelo, y ninguno de los modelos públicos medidos supera al v2.4 en estas grabaciones.
+**Conclusión.** En estas grabaciones, sin entrenar no hay mejora realista más allá de lo ya hecho (filtro geográfico y regla de dos ventanas), y ninguno de los modelos públicos medidos supera al v2.4. El apartado 7 muestra que en otras grabaciones el resultado es el contrario.
 
 ### 6. Segunda opinión sobre las detecciones dudosas (RF-09) †
 
@@ -168,6 +170,33 @@ Un modelo peor en conjunto puede servir todavía para respaldar las detecciones 
 | BirdNET+ V3.0 completo | ≥ 0,70 | 122 | 77,9 % | 33 % |
 
 Cuando el segundo modelo no la respalda, la detección sigue siendo correcta entre el 56 % y el 65 % de las veces: no sirve para descartar. Perch, que es independiente de BirdNET, respalda mejor que el V3, que es de la misma familia. Los umbrales se eligieron mirando estos mismos datos y son pocos casos, así que las cifras son optimistas; además Perch oyó 5 segundos y el fragmento que sube la app dura 3.
+
+### 7. Un segundo conjunto cambia el orden de los modelos (2026-10-12)
+
+El dueño preguntó si el V3 perdía por el modelo o por las grabaciones. Se repitió la medición en los siete sitios colombianos de WABAD (400 minutos), grabados por otros grupos, con otros equipos, y publicados después del v2.4, que por tanto no pudo entrenarse con ellos. Cada modelo usa su propio filtro geográfico; una ventana.
+
+| 400 min, con filtro | mAP sin filtro | Precisión (≥ 0,45) | Exhaustividad (≥ 0,45) | Mejor F1 | Presencias encontradas de 1.619 / inventadas |
+|---|---|---|---|---|---|
+| BirdNET v2.4 int8 (el de la app) | 40,2 | 85,1 | 21,7 | 45,2 | 413 / 104 |
+| BirdNET+ V3.0 podado (65 MB) | 51,6 | 69,3 | 56,0 | 62,0 | 987 / 657 |
+| BirdNET+ V3.0 completo (557 MB) | 53,6 | 74,9 | 52,5 | 63,1 | 940 / 428 |
+| Perch v2 fp32 | 47,3 | 70,3 | 38,0 | 49,7 | 709 / 442 |
+
+Aquí el v2.4 casi no se equivoca, pero deja sin detectar tres de cada cuatro presencias anotadas; el V3 encuentra más del doble, con más falsas alarmas. La diferencia se repite en cada uno de los siete sitios (el V3 encuentra entre 1,4 y 5 veces más). A precisión parecida el V3 sigue por delante: guardando solo desde 0,80 queda en 86 % de precisión con 572 presencias, frente a 85 % y 413 del v2.4. La regla del ADR-30 le cuesta al v2.4 otro 17 % de lo que encuentra (413 → 343).
+
+**Los dos conjuntos no coinciden.** En los cafetales (del laboratorio de BirdNET, 2023) gana el v2.4; en WABAD (independiente, 2024) gana el V3. Cualquiera de los dos resultados puede venir de que el modelo ganador se entrenó o se ajustó con esas grabaciones o con otras parecidas, y no hay forma de saberlo desde fuera. Lo único que no admite esa duda es el resultado del v2.4 en WABAD: no pudo verlo, y ahí su exhaustividad es del 22 %. Es además lo que se observa en el uso real frente a Merlin.
+
+**El filtro geográfico del v2.4 falla en la alta montaña.** En los dos sitios de bosque altoandino (Salento y El Vergel) excluye 18 de las 41 y 18 de las 32 especies anotadas. El modelo geográfico del V3 (13,6 MB, Apache-2.0) excluye una. Usar el del V3 para filtrar las especies del v2.4 † mejora en los tres conjuntos sin tocar el clasificador:
+
+| v2.4, una ventana | Presencias encontradas / inventadas con su filtro | Con el filtro del V3 |
+|---|---|---|
+| WABAD Colombia (400 min) | 413 / 104 | 480 / 118 |
+| Cafetales, 7 h | 48 / 39 | 51 / 50 |
+| Cafetales, 13 h de validación | 121 / 58 | 129 / 75 |
+
+**Combinar los dos clasificadores †** (promedio de sus confianzas) queda entre ambos: en WABAD encuentra 614 presencias frente a las 413 del v2.4 solo, con las mismas inventadas (109 y 104) y 89 % de precisión; en los cafetales queda parecido al v2.4 solo (53 / 32 en las 7 h, 115 / 73 en las 13 h). Pide los dos modelos en el teléfono.
+
+**Qué se desprende.** Ya no se puede afirmar que el v2.4 sea el mejor modelo disponible: depende de dónde se mida. El V3 es una vista previa de desarrollo, pesa 65 MB y tarda unas cuatro veces más por ventana. Decidir entre los dos pide grabaciones propias hechas con teléfono, o probar ambos en campo.
 
 ### Lo que estos números no dicen
 
