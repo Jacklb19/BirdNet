@@ -100,6 +100,7 @@ MODELS: dict[str, ModelSpec] = {
     "perch-int8": ModelSpec(path=EVAL_MODELS / "perch-v2" / "perch-v2-int8-arm.onnx", **PERCH),
     "perch-fp32": ModelSpec(path=EVAL_MODELS / "perch-v2" / "perch-v2-fp32.onnx", **PERCH),
     "perch-int8-logit": ModelSpec(path=EVAL_MODELS / "perch-v2" / "perch-v2-int8-arm.onnx", **{**PERCH, "activation": "logit"}),
+    "perch-fp32-logit": ModelSpec(path=EVAL_MODELS / "perch-v2" / "perch-v2-fp32.onnx", **{**PERCH, "activation": "logit"}),
 }
 
 

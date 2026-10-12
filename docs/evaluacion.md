@@ -108,12 +108,13 @@ Perch v2 (Google DeepMind, Apache-2.0) es otro modelo, entrenado con otros datos
 | BirdNET int8 | 67,6 | 65,0 | 58,8 | 69,2 |
 | Perch v2 int8, confianza softmax | 47,7 | 45,8 | 43,3 | 52,5 |
 | Perch v2 int8, puntuación propia de cada especie | 50,1 | 48,0 | 43,4 | 51,8 |
+| Perch v2 fp32 (409 MB), puntuación propia de cada especie | 53,7 | 51,5 | 44,4 | 51,9 |
 
-Con softmax, las aves que cantan a la vez se reparten una sola unidad de confianza, lo que perjudica a Perch en un coro del amanecer. La segunda fila le quita esa desventaja: ordena cada especie por su puntuación propia, sin repartirla con las demás. Sube 2 puntos de mAP y sigue 17 por debajo de BirdNET.
+Con softmax, las aves que cantan a la vez se reparten una sola unidad de confianza, lo que perjudica a Perch en un coro del amanecer. La segunda fila le quita esa desventaja: ordena cada especie por su puntuación propia, sin repartirla con las demás. Sube 2 puntos de mAP y sigue 17 por debajo de BirdNET. La variante fp32, sin cuantizar, sube otros 3,5 y sigue 14 por debajo; su mejor F1 con filtro es el mismo.
 
-Leído por grabación completa (una ventana, con filtro, umbral 0,45, que para Perch coincide con su mejor umbral): Perch encontró 43 de las 63 especies anotadas e inventó 102; BirdNET encontró 48 e inventó 39.
+Leído por grabación completa (una ventana, con filtro, umbral 0,45): de las 63 presencias anotadas (una especie en una grabación), Perch int8 encontró 43 e inventó 102, Perch fp32 encontró 49 e inventó 127, y BirdNET encontró 48 e inventó 39. Todas las especies anotadas existen en el vocabulario de Perch, así que la diferencia no viene de nombres que no coincidan.
 
-**Conclusión.** En estas grabaciones Perch v2 int8 no es mejor que el modelo que ya corre en el teléfono, así que no sirve como «modelo grande» que corrija sus dudas: una segunda opinión peor que la primera no verifica nada. Queda fuera de la medición la variante fp32 de Perch (409 MB), que junto con el entorno de ejecución no cabe en el límite de 500 MB de una función de Vercel Hobby.
+**Conclusión.** En estas grabaciones Perch v2, cuantizado o no, no es mejor que el modelo que ya corre en el teléfono, así que no sirve como «modelo grande» que corrija sus dudas: una segunda opinión peor que la primera no verifica nada. Por eso no se buscó dónde alojarlo (el fp32 no cabe en el paquete de 500 MB de una función de Vercel Hobby).
 
 ### Lo que estos números no dicen
 
