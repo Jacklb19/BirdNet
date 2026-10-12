@@ -68,7 +68,7 @@ export async function updateSettings(changes: EditableSettings): Promise<void> {
     const audio = await request(tx.objectStore(STORES.audio).getAll()) as StoredAudio[];
     assertQueueCapacity(records.reduce((total, row) => total + row.bytes, 0) + audio.reduce((total, row) => total + row.bytes, 0), 0, next.maxBytes);
     if (typeof next.audioConsent !== 'boolean' || typeof next.locationEnabled !== 'boolean' ||
-        (next.shareMap !== undefined && typeof next.shareMap !== 'boolean')) throw new Error('Invalid preferences.');
+        [next.shareMap, next.keepRecordings, next.saveRecordings].some((choice) => choice !== undefined && typeof choice !== 'boolean')) throw new Error('Invalid preferences.');
     await writeSettings(tx, next);
   });
   announceQueueChange(['settings']);
@@ -149,13 +149,13 @@ function isStorable(candidate: ClassifiedDetection): boolean {
     Object.hasOwn(QUEUED_STATUS_BY_LOCAL_STATUS, candidate.status) && Number.isFinite(candidate.confidence) && candidate.confidence >= CONFIDENCE_THRESHOLDS.discardBelow && candidate.confidence <= MAX_CONFIDENCE;
 }
 
-/** Called by the inference worker before it publishes a successful classification. */
-export async function persistDetections(candidates: readonly ClassifiedDetection[], samples: Float32Array, context: PersistenceContext): Promise<void> {
-  if (candidates.length === 0) return;
+/** Called by the inference worker before it publishes a successful classification; returns the records it stored. */
+export async function persistDetections(candidates: readonly ClassifiedDetection[], samples: Float32Array, context: PersistenceContext): Promise<StoredDetection[]> {
+  if (candidates.length === 0) return [];
   const recordedAt = new Date(context.recordedAt).toISOString();
   if (!context.modelVersion || context.modelVersion.length > FIELD_LIMITS.modelVersion || !candidates.every(isStorable)) throw new Error('Invalid detection context.');
   const audioBlob = candidates.some((candidate) => candidate.status === AUDIO_REVIEW_STATUS) ? encodeAudio(samples) : null;
-  await transact([STORES.settings, STORES.detections, STORES.audio], 'readwrite', async (tx) => {
+  const stored = await transact([STORES.settings, STORES.detections, STORES.audio], 'readwrite', async (tx) => {
     const settings = await readSettings(tx);
     // Read with the active site inside the transaction, so a site chosen mid-session applies to the next window.
     const location = recordingLocation(settings, context.location);
@@ -171,8 +171,10 @@ export async function persistDetections(candidates: readonly ClassifiedDetection
     assertQueueCapacity(existing.reduce((sum, row) => sum + row.bytes, 0) + audio.reduce((sum, row) => sum + row.bytes, 0), records.reduce((sum, row) => sum + row.bytes, 0) + (audioId ? audioBlob?.size ?? 0 : 0), settings.maxBytes);
     for (const record of records) await request(tx.objectStore(STORES.detections).add(record));
     if (audioId && audioBlob) await request(tx.objectStore(STORES.audio).add({ id: audioId, blob: audioBlob, bytes: audioBlob.size } satisfies StoredAudio));
+    return records;
   });
   announceQueueChange(['records']);
+  return stored;
 }
 
 /**

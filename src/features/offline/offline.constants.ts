@@ -56,7 +56,7 @@ export const SETTINGS_RECORD_KEY = 'preferences';
 
 /** Preferences the interface may change; the session and cached sites are written by dedicated functions. */
 export const EDITABLE_SETTINGS_KEYS = Object.freeze(
-  ['maxBytes', 'audioConsent', 'locationEnabled', 'activeSiteId', 'shareMap'] as const satisfies readonly (keyof OfflineSettings)[],
+  ['maxBytes', 'audioConsent', 'locationEnabled', 'activeSiteId', 'shareMap', 'keepRecordings', 'saveRecordings'] as const satisfies readonly (keyof OfflineSettings)[],
 );
 
 export type EditableSettingsKey = (typeof EDITABLE_SETTINGS_KEYS)[number];
@@ -116,10 +116,10 @@ export const QUEUE_CHANGED_CHANNEL = 'birdnet-queue-changed';
 
 /**
  * What a committed write changed: the queued and synchronized records, the stored settings (preferences,
- * sync session, cached sites) or the walks (kept in their own database, announced on the same channel). Views
- * re-read only the part they show.
+ * sync session, cached sites), the walks or the recordings (both kept in their own databases, announced on the
+ * same channel). Views re-read only the part they show.
  */
-export const QUEUE_CHANGE_PARTS = Object.freeze(['records', 'settings', 'walks'] as const);
+export const QUEUE_CHANGE_PARTS = Object.freeze(['records', 'settings', 'walks', 'recordings'] as const);
 
 export type QueueChangePart = (typeof QUEUE_CHANGE_PARTS)[number];
 

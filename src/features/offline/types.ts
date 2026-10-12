@@ -50,6 +50,10 @@ export interface OfflineSettings {
   activeSiteId?: string | null;
   /** The person's answer to "share my songs on everyone's map"; absent until they have answered. */
   shareMap?: boolean;
+  /** Whether each song keeps its clip on this phone; absent means yes, since that audio stays here. */
+  keepRecordings?: boolean;
+  /** The person's answer to "also save my recordings in my account"; nothing is uploaded until it is yes. */
+  saveRecordings?: boolean;
   /** Last site list fetched online, so a site can be chosen while offline. */
   sites?: CachedSite[];
   /** Account that fetched `sites`; absent on lists cached before it was recorded. */

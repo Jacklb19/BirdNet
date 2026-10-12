@@ -8,6 +8,7 @@ import {
 } from './inference.constants';
 import { getSettings, persistDetections } from '../offline/queueStore';
 import { recordingLocation } from '../offline/queuePolicy';
+import { forgetSongs, keepSongClips } from '../recordings/songClips';
 import { applyRegionMask, birdnetWeek, countLikely, GEO_INPUT_FEATURES, geoInput, regionMask } from './geoFilter';
 import {
   INFERENCE_ERROR_REASONS, INFERENCE_WORKER_MESSAGES,
@@ -117,8 +118,10 @@ async function infer(message: InferRequest): Promise<void> {
         );
         if (message.persistence) {
           persistenceStarted = true;
-          await persistDetections(applyDetectionPolicy(detections), message.audioBuffer, message.persistence);
+          const stored = await persistDetections(applyDetectionPolicy(detections), message.audioBuffer, message.persistence);
           persistenceStarted = false;
+          // Not awaited: the clip is an extra, and neither its encoding nor a failure may hold back the result.
+          keepSongClips(stored, message.audioBuffer);
         }
         postOutbound({
           type: INFERENCE_WORKER_MESSAGES.inferenceResult, detections, windowIndex: message.windowIndex,
@@ -148,6 +151,7 @@ export async function handleWorkerRequest(message: InferenceWorkerInbound): Prom
       const released = model;
       model = null;
       region = null;
+      forgetSongs();
       if (released) {
         await released.session.release();
         await released.geo?.release();
