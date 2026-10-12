@@ -3,10 +3,16 @@ import { routeHash } from '../../app/routes';
 import { formatCount, useI18n } from '../../i18n';
 import { Icon } from '../../shared/ui/Icon';
 import { SpeciesPhoto } from '../../shared/ui/SpeciesPhoto';
-import { SpeciesRow } from '../../shared/ui/SpeciesRow';
+import { SpeciesRow, type StatusTone } from '../../shared/ui/SpeciesRow';
 import { formatConfidence, formatTime } from './logFormat';
-import type { SpeciesGroup } from './logRecords';
+import { displayStatus, type LogRecord, type SpeciesGroup } from './logRecords';
 import './LogSpeciesGroup.css';
+
+/** A discarded record has no state color: it is no longer an indication of the bird. */
+function toneOf(record: Pick<LogRecord, 'status' | 'review'>): StatusTone {
+  const shown = displayStatus(record);
+  return shown === 'discarded' ? 'neutral' : shown;
+}
 
 export interface LogSpeciesGroupProps {
   readonly group: SpeciesGroup;
@@ -30,7 +36,7 @@ export function LogSpeciesGroup({ group, name }: LogSpeciesGroupProps): React.JS
   if (group.records.length === 1 && only) {
     return (
       <SpeciesRow href={routeHash({ name: 'detection', id: only.id })} scientificName={group.species} name={name}
-        status={dict.common.status[only.status]} tone={only.status}
+        status={dict.common.status[displayStatus(only)]} tone={toneOf(only)}
         detail={[formatTime(only.recordedAt, locale), formatConfidence(only.confidence, locale)].join(dict.common.separator)} />
     );
   }
@@ -60,7 +66,7 @@ export function LogSpeciesGroup({ group, name }: LogSpeciesGroupProps): React.JS
           <li key={record.id}>
             <a className="bn-log-group__record" href={routeHash({ name: 'detection', id: record.id })}>
               <span className="bn-log-group__time">{formatTime(record.recordedAt, locale)}</span>
-              <span className={`bn-log-group__status bn-log-group__status--${record.status}`}>{dict.common.status[record.status]}</span>
+              <span className={`bn-log-group__status bn-log-group__status--${displayStatus(record)}`}>{dict.common.status[displayStatus(record)]}</span>
               <span className="bn-log-group__confidence">{formatConfidence(record.confidence, locale)}</span>
               <Icon name="chevron" size="s" />
             </a>

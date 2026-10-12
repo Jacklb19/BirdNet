@@ -20,6 +20,8 @@ import { SignInForm } from './SignInForm';
 import { SyncRow } from './SyncRow';
 import { pendingSync } from './syncStatus';
 import { useAccountSummary } from './useAccountSummary';
+import { applyReviews } from '../review/reviewPolicy';
+import { useReviews } from '../review/useReviews';
 import { useLocalRecords } from './useLocalRecords';
 
 /** Account screen: the cloud account when this build has one, and what this phone holds in every case. */
@@ -35,7 +37,12 @@ export default function AccountPage(): React.JSX.Element {
   const audioConsent = settings?.audioConsent ?? false;
   const { records, error } = useLocalRecords();
   const summary = useAccountSummary(session?.access_token ?? null);
-  const totals = useMemo(() => (records ? localTotals(records.pending, records.history) : null), [records]);
+  const reviews = useReviews();
+  // Totals count presence; what waits to upload (below) is counted as stored, whatever the verdict on it.
+  const totals = useMemo(
+    () => (records && reviews ? localTotals(applyReviews(records.pending, reviews), applyReviews(records.history, reviews)) : null),
+    [records, reviews],
+  );
   const pending = useMemo(
     () => (records && userId ? pendingSync(records.pending, userId, audioConsent) : null),
     [records, userId, audioConsent],

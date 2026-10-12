@@ -11,8 +11,9 @@ import { DetectionFacts } from './DetectionFacts';
 import { DetectionStatusCard } from './DetectionStatusCard';
 import { FragmentPlayer } from './FragmentPlayer';
 import { formatConfidence, formatDayTime } from './logFormat';
-import type { LogRecord } from './logRecords';
+import { displayStatus, type LogRecord } from './logRecords';
 import { RecordingCard } from './RecordingCard';
+import { ReviewCard } from './ReviewCard';
 import { useAudioFragment } from './useAudioFragment';
 import './DetectionDetail.css';
 
@@ -32,7 +33,7 @@ export function DetectionDetail({ record, online, now }: DetectionDetailProps): 
   const name = commonName(names, record.species, locale);
   const notes = [
     { label: dict.common.confidence, value: formatConfidence(record.confidence, locale) },
-    { label: dict.log.detail.facts.upload, value: dict.common.status[record.status] },
+    { label: dict.log.detail.facts.upload, value: dict.common.status[displayStatus(record)] },
     { label: dict.log.detail.facts.when, value: formatDayTime(record.recordedAt, now, locale) },
   ];
   return (
@@ -45,12 +46,13 @@ export function DetectionDetail({ record, online, now }: DetectionDetailProps): 
         eyebrow={<><Icon name="log" size="s" />{dict.log.title}</>}>
         <Button variant="primary" icon="book" href={routeHash({ name: 'species', species: record.species })}>{dict.log.openSpecies}</Button>
       </SpeciesPlate>
-      <DetectionStatusCard record={record} />
+      <DetectionStatusCard record={record} modelName={record.modelSpecies ? commonName(names, record.modelSpecies, locale) : undefined} />
       {/* Keyed by the audio, so playback state and a past failure never carry over to another one. The clip of
           the song is the same window as the doubtful fragment, so one player is enough. */}
       {recording
         ? <RecordingCard key={recording.url} detectionId={record.id} recording={recording} online={online} />
         : fragment && <FragmentPlayer key={fragment.url} fragment={fragment} />}
+      <ReviewCard record={record} />
       <DetectionFacts record={record} sites={sites} online={online} now={now} />
     </Page>
   );

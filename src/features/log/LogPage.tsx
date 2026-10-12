@@ -32,7 +32,7 @@ export default function LogPage(): React.JSX.Element {
   const queue = useQueueStatus();
   const names = useSpeciesNames();
   const { sites, active } = useSites();
-  const { records, readAt, error, reload } = useLogRecords();
+  const { records, everything, readAt, error, reload } = useLogRecords();
   const { walks } = useWalkData();
   const [filter, setFilter] = useState<LogFilter>('all');
   const [query, setQuery] = useState('');
@@ -40,11 +40,12 @@ export default function LogPage(): React.JSX.Element {
   const [limit, setLimit] = useState(LOG_PAGE_SIZE);
   const searchId = useId();
   const siteId = useId();
-  const visible = useMemo(() => (records ?? []).filter((record) =>
+  // The list shows discarded records too, marked as such; the summaries above it count only presence.
+  const visible = useMemo(() => (everything ?? []).filter((record) =>
     matchesFilter(record, filter) &&
     (site === ALL_SITES || (site === NO_SITE ? record.siteId === null : record.siteId === site)) &&
     matchesSearch(query, record.species, commonName(names, record.species, locale)),
-  ), [records, filter, site, query, names, locale]);
+  ), [everything, filter, site, query, names, locale]);
   // Only the shown slice is grouped and rendered; "show more" extends it.
   const groups = useMemo(() => groupByDay(visible.slice(0, limit), readAt), [visible, limit, readAt]);
   const unlocated = records ? syncCounts(records).noLocation : 0;

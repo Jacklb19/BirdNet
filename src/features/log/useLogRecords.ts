@@ -3,11 +3,14 @@ import { listDetections, listHistory } from '../offline/queueStore';
 import type { HistoryEntry, StoredDetection } from '../offline/types';
 import { useOfflineSettings } from '../offline/useOfflineSettings';
 import { useQueueVersion } from '../offline/useQueueVersion';
-import { mergeRecords, msUntilNextLocalDay, type LogRecord, type SyncUser } from './logRecords';
+import { useReviews } from '../review/useReviews';
+import { isPresence, mergeRecords, msUntilNextLocalDay, type LogRecord, type SyncUser } from './logRecords';
 
 export interface LogRecordsState {
-  /** Null while the first read is in progress. */
+  /** The records that count as presence of a bird: everything but what the person discarded. Null while the first read is in progress. */
   readonly records: readonly LogRecord[] | null;
+  /** Every record, the discarded ones too, for the log itself, where a verdict can still be changed. */
+  readonly everything: readonly LogRecord[] | null;
   /** When the records were read; day labels ("today", "yesterday") are relative to it. */
   readonly readAt: Date;
   readonly error: boolean;
@@ -62,9 +65,11 @@ export function useLogRecords(): LogRecordsState {
     return () => { window.clearTimeout(timer); };
   }, [snapshot.readAt, reload]);
 
-  const records = useMemo(
-    () => (snapshot.stores ? mergeRecords(snapshot.stores.pending, snapshot.stores.history, syncUser) : null),
-    [snapshot.stores, syncUser],
+  const reviews = useReviews();
+  const everything = useMemo(
+    () => (snapshot.stores && reviews ? mergeRecords(snapshot.stores.pending, snapshot.stores.history, syncUser, reviews) : null),
+    [snapshot.stores, syncUser, reviews],
   );
-  return { records, readAt: snapshot.readAt, error: snapshot.error, reload };
+  const records = useMemo(() => everything?.filter(isPresence) ?? null, [everything]);
+  return { records, everything, readAt: snapshot.readAt, error: snapshot.error, reload };
 }

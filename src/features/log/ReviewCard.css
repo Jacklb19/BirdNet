@@ -1,0 +1,80 @@
+.bn-log-review {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-l);
+  background: var(--color-bg-surface);
+}
+
+.bn-log-review__title,
+.bn-log-review__hint,
+.bn-log-review__empty {
+  margin: 0;
+}
+
+.bn-log-review__title {
+  font-size: var(--text-title);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--leading-title);
+}
+
+.bn-log-review__hint,
+.bn-log-review__empty {
+  color: var(--color-text-secondary);
+}
+
+.bn-log-review__empty:empty {
+  display: none;
+}
+
+.bn-log-review__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.bn-log-review__picker {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.bn-log-review__label {
+  font-weight: var(--font-weight-semibold);
+}
+
+.bn-log-review__input {
+  min-height: var(--touch-min);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-m);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.bn-log-review__matches {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bn-log-review__match {
+  display: grid;
+  width: 100%;
+  min-height: var(--touch-min);
+  align-content: center;
+  gap: 0 var(--space-3);
+  padding: var(--space-2) 0;
+  border: 0;
+  border-bottom: var(--border-width) solid var(--color-border-subtle);
+  background: none;
+  color: var(--color-text-primary);
+  font: inherit;
+  text-align: start;
+}
+
+.bn-log-review__scientific {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+}

@@ -18,6 +18,7 @@ const REFERENCES: Record<Plumage, Rgb> = {
 
 const record = (species: string, recordedAt: number, confidence: number, siteId: string | null = null): LogRecord => ({
   id: `${species}-${String(recordedAt)}`, species, confidence, status: 'confirmed', recordedAt, siteId, upload: 'cloud', located: true, audioId: null,
+  review: null, modelSpecies: null,
 });
 
 /** A square thumbnail filled with `color`, with `centre` painted over its middle quarter. */

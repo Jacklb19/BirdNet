@@ -105,6 +105,9 @@
 
 .bn-log-group__status--confirmed { color: var(--color-status-confirmed); }
 .bn-log-group__status--provisional { color: var(--color-status-provisional); }
+.bn-log-group__status--verified { color: var(--color-status-verified); }
+.bn-log-group__status--corrected { color: var(--color-status-corrected); }
+.bn-log-group__status--discarded { color: var(--color-text-secondary); }
 
 .bn-log-group__confidence,
 .bn-log-group__record .bn-icon {

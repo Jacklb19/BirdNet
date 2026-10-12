@@ -9,6 +9,9 @@ import type { OfflineSettings, StoredDetection } from './types';
 /** Hoisted: the configuration mock below is created before the module's own constants. */
 const { storageOrigin } = vi.hoisted(() => ({ storageOrigin: 'https://example.supabase.co' }));
 vi.mock('./queueStore');
+// Verdicts and clips are sent after the detections; each has its own tests.
+vi.mock('../review/reviewSync', () => ({ syncReviews: vi.fn(() => Promise.resolve()) }));
+vi.mock('../recordings/recordingSync', () => ({ uploadRecordings: vi.fn(() => Promise.resolve()) }));
 vi.mock(import('../../config/env'), async (importOriginal) => {
   const actual = await importOriginal();
   return { ...actual, config: actual.readConfig({ VITE_SUPABASE_URL: storageOrigin, VITE_SUPABASE_ANON_KEY: 'test-anon-key' }) };

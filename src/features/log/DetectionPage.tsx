@@ -13,7 +13,7 @@ import './DetectionPage.css';
 export default function DetectionPage({ id }: { readonly id: string }): React.JSX.Element {
   const { dict } = useI18n();
   const queue = useQueueStatus();
-  const { records, readAt, error, reload } = useLogRecords();
+  const { everything: records, readAt, error, reload } = useLogRecords();
   const back = { href: routeHash({ name: 'log' }), label: dict.log.title };
   const record = records?.find((candidate) => candidate.id === id);
 

@@ -5,6 +5,7 @@ import { acknowledgedIds, sharesMap } from './queuePolicy';
 import { acknowledge, getAudio, getSettings, listDetections } from './queueStore';
 import { JSON_HEADERS, SYNC_LOCK_NAME } from './offline.constants';
 import { uploadRecordings } from '../recordings/recordingSync';
+import { syncReviews } from '../review/reviewSync';
 import { isTrustedStorageUrl } from './trustedStorage';
 import type { StoredDetection, SyncSession } from './types';
 
@@ -72,7 +73,8 @@ export async function synchronizeQueue(): Promise<void> {
       if (!finalSession) return;
       await acknowledge(await send([row], finalSession, audioPath), true);
     }
-    // Last, so a clip is sent only once the server has its detection.
+    // After the detections, so a verdict or a clip is sent only once the server has its detection.
+    await syncReviews(session.userId);
     await uploadRecordings(session.userId);
   };
   if ('locks' in navigator) await navigator.locks.request(SYNC_LOCK_NAME, run);

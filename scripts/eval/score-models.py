@@ -205,7 +205,12 @@ def score_model(name: str, spec: ModelSpec, dataset: Path, recordings: list[dict
     started = time.perf_counter()
     with open(out / SCORES_DIR / f"{name}.jsonl", "w", encoding="utf-8") as handle:
         for row in recordings:
-            audio = load_audio(dataset / row["file"], spec.sample_rate, max_seconds)
+            try:
+                audio = load_audio(dataset / row["file"], spec.sample_rate, max_seconds)
+            except sf.LibsndfileError as error:
+                # A file the decoder cannot read is left out for every model alike, and said so.
+                print(f"  [SKIP] {row['file']}: {error}", flush=True)
+                continue
             duration = len(audio) / spec.sample_rate
             centres = grid_centres(duration)
             if latency is None and len(centres):

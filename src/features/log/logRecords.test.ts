@@ -30,7 +30,7 @@ function history(id: string, recordedAt: number, changes: Partial<HistoryEntry> 
 }
 
 function record(recordedAt: number, changes: Partial<LogRecord> = {}): LogRecord {
-  return { id: ids.a, species: 'Zonotrichia capensis', confidence: 0.9, status: 'confirmed', recordedAt, siteId: null, upload: 'cloud', located: true, audioId: null, ...changes };
+  return { id: ids.a, species: 'Zonotrichia capensis', confidence: 0.9, status: 'confirmed', recordedAt, siteId: null, upload: 'cloud', located: true, audioId: null, review: null, modelSpecies: null, ...changes };
 }
 
 describe('upload state', () => {
@@ -159,7 +159,7 @@ describe('place', () => {
 describe('species of a day', () => {
   const record = (id: string, species: string, minute: number, extra: Partial<LogRecord> = {}): LogRecord => ({
     id, species, confidence: 0.8, status: 'confirmed', recordedAt: Date.UTC(2026, 9, 10, 6, minute), siteId: null, upload: 'cloud',
-    located: true, audioId: null, ...extra,
+    located: true, audioId: null, review: null, modelSpecies: null, ...extra,
   });
 
   it('gathers a day by species, the one heard last first, and counts what folding would hide', () => {

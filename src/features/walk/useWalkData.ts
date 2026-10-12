@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { listDetections, listHistory } from '../offline/queueStore';
 import type { HistoryEntry, StoredDetection, StoredWalk } from '../offline/types';
 import { useQueueVersion } from '../offline/useQueueVersion';
+import { applyReviews } from '../review/reviewPolicy';
+import { useReviews } from '../review/useReviews';
 import { toPins, type Pin } from './walkPins';
 import { listWalks } from './walkStore';
 
@@ -27,6 +29,7 @@ const NOTHING_STORED: Stores = Object.freeze({ pending: [], history: [], walks: 
 export function useWalkData(): WalkData {
   const records = useQueueVersion('records');
   const walks = useQueueVersion('walks');
+  const reviews = useReviews();
   // Without IndexedDB nothing can have been stored, so the map is simply empty.
   const [stores, setStores] = useState<Stores | null>(() => (typeof indexedDB === 'undefined' ? NOTHING_STORED : null));
   const [error, setError] = useState(false);
@@ -42,6 +45,7 @@ export function useWalkData(): WalkData {
     return () => { active = false; };
   }, [records, walks]);
 
-  const pins = useMemo(() => (stores ? toPins(stores.pending, stores.history) : null), [stores]);
+  // The map draws presence: what the person discarded is left out and what they corrected shows the bird they heard.
+  const pins = useMemo(() => (stores && reviews ? toPins(applyReviews(stores.pending, reviews), applyReviews(stores.history, reviews)) : null), [stores, reviews]);
   return { pins, walks: stores?.walks ?? NOTHING_STORED.walks, error };
 }
