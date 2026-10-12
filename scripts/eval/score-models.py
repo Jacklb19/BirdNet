@@ -47,6 +47,10 @@ GEO_DAYS_PER_WEEK = 7
 SCORE_FLOOR = 0.01
 MAX_SCORES_PER_WINDOW = 40
 SCORE_DECIMALS = 4
+# Squashing of Perch's raw logits for the "logit" confidence: on the reference clips a clear song scores about
+# 11 to 12 and background classes under 6, so the midpoint sits between them.
+LOGIT_SHIFT = 9.0
+LOGIT_SCALE = 1.0
 BATCH_SIZE = 8
 LATENCY_WARMUP_RUNS = 3
 LATENCY_RUNS = 20
@@ -77,8 +81,11 @@ class ModelSpec:
     target_peak: float | None
     # How the output becomes a confidence. BirdNET scores every species on its own (sigmoid). Perch was trained to
     # pick one class among all: its logits are only meaningful relative to each other (on a clear song more than
-    # a thousand of them are positive), so they are normalized together (softmax).
-    activation: Literal["sigmoid", "softmax"]
+    # a thousand of them are positive), so they are normalized together (softmax). Softmax, though, makes birds
+    # that sing at once share one unit of confidence, which hides the quieter ones; "logit" keeps each class on
+    # its own by squashing the raw logit with a fixed shift and scale. That is not a calibrated probability: it
+    # preserves the order of the scores, so it is fair for the threshold-free metrics and for the best F1.
+    activation: Literal["sigmoid", "softmax", "logit"]
 
 
 BIRDNET = dict(labels=PUBLIC_MODELS / "labels.txt", sample_rate=48_000, window_seconds=3.0, output="output", label_header_lines=0, label_separator="_", target_peak=None, activation="sigmoid")
@@ -92,6 +99,7 @@ MODELS: dict[str, ModelSpec] = {
     "birdnet-fp16": ModelSpec(path=EVAL_MODELS / "birdnet-v2.4" / "BirdNET_v2.4_fp16_dfttrunc.onnx", **BIRDNET),
     "perch-int8": ModelSpec(path=EVAL_MODELS / "perch-v2" / "perch-v2-int8-arm.onnx", **PERCH),
     "perch-fp32": ModelSpec(path=EVAL_MODELS / "perch-v2" / "perch-v2-fp32.onnx", **PERCH),
+    "perch-int8-logit": ModelSpec(path=EVAL_MODELS / "perch-v2" / "perch-v2-int8-arm.onnx", **{**PERCH, "activation": "logit"}),
 }
 
 
@@ -163,6 +171,8 @@ def confidences(logits: np.ndarray, activation: str) -> np.ndarray:
     values = logits.astype(np.float64)
     if activation == "sigmoid":
         return 1.0 / (1.0 + np.exp(-values))
+    if activation == "logit":
+        return 1.0 / (1.0 + np.exp(-(values - LOGIT_SHIFT) / LOGIT_SCALE))
     exponentials = np.exp(values - values.max(axis=1, keepdims=True))
     return exponentials / exponentials.sum(axis=1, keepdims=True)
 
