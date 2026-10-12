@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from math import gcd
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 import onnxruntime as ort
@@ -74,11 +75,15 @@ class ModelSpec:
     label_separator: str | None
     # Peak the model's own pipeline normalizes to; None keeps the level of the app's pipeline.
     target_peak: float | None
+    # How the output becomes a confidence. BirdNET scores every species on its own (sigmoid). Perch was trained to
+    # pick one class among all: its logits are only meaningful relative to each other (on a clear song more than
+    # a thousand of them are positive), so they are normalized together (softmax).
+    activation: Literal["sigmoid", "softmax"]
 
 
-BIRDNET = dict(labels=PUBLIC_MODELS / "labels.txt", sample_rate=48_000, window_seconds=3.0, output="output", label_header_lines=0, label_separator="_", target_peak=None)
+BIRDNET = dict(labels=PUBLIC_MODELS / "labels.txt", sample_rate=48_000, window_seconds=3.0, output="output", label_header_lines=0, label_separator="_", target_peak=None, activation="sigmoid")
 # Perch normalizes every window to a peak of 0.25 (perch-hoplite, `EmbeddingModel.normalize_audio`).
-PERCH = dict(labels=EVAL_MODELS / "perch-v2" / "labels.txt", sample_rate=32_000, window_seconds=5.0, output="label", label_header_lines=1, label_separator=None, target_peak=0.25)
+PERCH = dict(labels=EVAL_MODELS / "perch-v2" / "labels.txt", sample_rate=32_000, window_seconds=5.0, output="label", label_header_lines=1, label_separator=None, target_peak=0.25, activation="softmax")
 MODELS: dict[str, ModelSpec] = {
     # The model the app ships today.
     "birdnet-int8": ModelSpec(path=PUBLIC_MODELS / "birdnet_model.onnx", **BIRDNET),
@@ -153,8 +158,13 @@ def model_windows(audio: np.ndarray, spec: ModelSpec, centres: np.ndarray, norma
     return windows
 
 
-def sigmoid(logits: np.ndarray) -> np.ndarray:
-    return 1.0 / (1.0 + np.exp(-logits.astype(np.float64)))
+def confidences(logits: np.ndarray, activation: str) -> np.ndarray:
+    """Confidence of every class for each row of logits, between 0 and 1."""
+    values = logits.astype(np.float64)
+    if activation == "sigmoid":
+        return 1.0 / (1.0 + np.exp(-values))
+    exponentials = np.exp(values - values.max(axis=1, keepdims=True))
+    return exponentials / exponentials.sum(axis=1, keepdims=True)
 
 
 def sparse_scores(probabilities: np.ndarray, index_of: dict[int, int]) -> list[list[float]]:
@@ -221,14 +231,14 @@ def score_model(name: str, spec: ModelSpec, dataset: Path, recordings: list[dict
             for offset in range(0, len(centres), BATCH_SIZE):
                 windows = model_windows(audio, spec, centres[offset:offset + BATCH_SIZE], normalize)
                 logits = session.run([spec.output], {input_name: windows})[0]
-                scored.extend(sparse_scores(row_probabilities, index_of) for row_probabilities in sigmoid(logits))
+                scored.extend(sparse_scores(row_probabilities, index_of) for row_probabilities in confidences(logits, spec.activation))
             species = [labels[label] for label, _ in sorted(index_of.items(), key=lambda item: item[1])]
             handle.write(json.dumps({"recording": row["file"], "duration": round(duration, 3), "species": species, "windows": scored}) + "\n")
             total_windows += len(centres)
             print(f"  {name}: {row['file']} ({len(centres)} windows)", flush=True)
     meta = {
         "model": name, "file": spec.path.name, "size_bytes": spec.path.stat().st_size, "sample_rate": spec.sample_rate,
-        "window_seconds": spec.window_seconds, "labels": len(labels), "grid_window_seconds": GRID_WINDOW_SECONDS,
+        "window_seconds": spec.window_seconds, "labels": len(labels), "activation": spec.activation, "grid_window_seconds": GRID_WINDOW_SECONDS,
         "grid_hop_seconds": GRID_HOP_SECONDS, "score_floor": SCORE_FLOOR, "app_normalization": normalize, "latency": latency,
         "windows": total_windows, "max_seconds": max_seconds, "scoring_seconds": round(time.perf_counter() - started),
     }

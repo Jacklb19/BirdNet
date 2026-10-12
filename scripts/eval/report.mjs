@@ -23,8 +23,11 @@ const RESULTS_FILE = 'report.json';
 
 /** Stretch scoring (see metrics.ts): fifteen seconds, with three of tolerance at the edges. */
 const STRETCH_OPTIONS = Object.freeze({ stretchSeconds: 15, marginSeconds: 3, minOverlapSeconds: 1 });
-/** Thresholds swept to find the best F1 a detector could reach if the app's thresholds were moved. */
-const SWEEP = Array.from({ length: 19 }, (_, index) => (index + 1) / 20);
+/**
+ * Thresholds swept to find the best F1 a detector could reach if the app's thresholds were moved. The low end is
+ * finer because a model whose confidences are shared among all classes (softmax) rarely gives one a high value.
+ */
+const SWEEP = [0.01, 0.02, 0.03, ...Array.from({ length: 19 }, (_, index) => (index + 1) / 20)];
 const SECONDS_PER_HOUR = 3600;
 const BYTES_PER_MB = 1024 * 1024;
 
@@ -42,6 +45,7 @@ const RULES = [
   { name: 'single window', rule: SINGLE_WINDOW },
   { name: 'mean of 2', rule: { kind: 'mean', windows: 2 } },
   { name: 'mean of 3', rule: { kind: 'mean', windows: 3 } },
+  { name: 'mean of 2, sure stands', rule: { kind: 'mean', windows: 2, standsFrom: CONFIDENCE_THRESHOLDS.confirmedFrom } },
   { name: '2 of 3', rule: { kind: 'rank', windows: 3, rank: 2 } },
 ];
 const KEPT = CONFIDENCE_THRESHOLDS.discardBelow;
@@ -169,8 +173,8 @@ const lines = [
   '# Detection evaluation', '',
   `Dataset: \`${options.dataset}\` (${String(recordings.size)} recordings). Stretches of ${String(STRETCH_OPTIONS.stretchSeconds)} s; thresholds ${String(KEPT)} (kept) and ${String(CONFIRMED)} (confirmed).`, '',
   '## Models', '',
-  '| Model | File | Size (MB) | Labels | Latency mean / p95 (ms, this CPU) | Hours scored |', '|---|---|---|---|---|---|',
-  ...models.map((meta) => `| ${meta.model} | ${meta.file} | ${(meta.size_bytes / BYTES_PER_MB).toFixed(1)} | ${String(meta.labels)} | ${meta.latency ? `${String(meta.latency.mean_ms)} / ${String(meta.latency.p95_ms)}` : '–'} | ${meta.hours.toFixed(2)} |`),
+  '| Model | File | Size (MB) | Labels | Confidence | Latency mean / p95 (ms, this CPU) | Hours scored |', '|---|---|---|---|---|---|---|',
+  ...models.map((meta) => `| ${meta.model} | ${meta.file} | ${(meta.size_bytes / BYTES_PER_MB).toFixed(1)} | ${String(meta.labels)} | ${meta.activation ?? 'sigmoid'} | ${meta.latency ? `${String(meta.latency.mean_ms)} / ${String(meta.latency.p95_ms)}` : '–'} | ${meta.hours.toFixed(2)} |`),
   '', '## Results', '',
   'P, R, F1 in percent. FA/h: false alarms (species and stretch) per hour of fully annotated audio. mAP: mean over species of the average precision. Best F1: the highest over all thresholds, with the threshold that gives it. Species: found / missed / invented, summed over recordings, at the kept threshold. Prov.: share of kept decisions that are provisional.', '',
   '| Model | Geo | Rule | P kept | R kept | F1 kept | P conf. | R conf. | F1 conf. | FA/h kept | FA/h conf. | mAP | Best F1 (thr.) | Species | Prov. |',

@@ -54,3 +54,49 @@ La latencia que informa `score-models.py` es de la CPU donde se ejecuta, no de u
 - **Una ventana**: lo que hace la app hoy.
 - **Promedio de 2 o de 3**: la confianza es el promedio de las últimas ventanas; un pico aislado se diluye.
 - **2 de 3**: la segunda confianza más alta de las tres últimas ventanas, de modo que una especie pasa un umbral solo si lo pasa en al menos dos.
+- **Promedio de 2, lo seguro se queda**: como el promedio de 2, salvo que la ventana más reciente por sí sola llegue al umbral de «confirmada» (0,80): entonces vale su confianza. Solo lo dudoso tiene que oírse dos veces.
+
+## Resultados (2026-10-11)
+
+Medido sobre **7 horas** de Jardín, Antioquia (16.790 ventanas): las 7 grabaciones que se pudieron decodificar de las 10 descargadas hasta ese momento (el conjunto tiene 34; `libsndfile` no lee tres de esas diez). Informe completo en `BirdNet/eval/out/coffee-farms/report.md`. Precisión (P), exhaustividad (R) y F1 en porcentaje; FA/h son falsas alarmas por hora.
+
+### 1. La cuantización no cuesta nada
+
+Con filtro geográfico y una ventana, que es lo que hace la app hoy:
+
+| Modelo | Tamaño | P ≥ 0,45 | R ≥ 0,45 | F1 | P ≥ 0,80 | R ≥ 0,80 | mAP |
+|---|---|---|---|---|---|---|---|
+| int8 (el de la app) | 36,9 MB | 73,2 | 64,9 | 68,8 | 91,5 | 42,0 | 65,0 |
+| fp32 | 51,6 MB | 73,3 | 64,8 | 68,8 | 91,2 | 42,0 | 65,0 |
+| fp16 (generado) | 25,9 MB | 73,6 | 64,8 | 68,9 | 91,6 | 42,0 | 65,0 |
+
+Los tres eligen la misma especie en el 99 % de las ventanas y sus confianzas difieren en 0,003 de media. La razón: el int8 «ARM» solo cuantiza la última capa; el resto del modelo es el mismo. **Cambiar a fp32 o fp16 no mejora la detección.** fp16 solo ahorraría 11 MB de descarga. En la CPU de escritorio los tres tardan entre 11 y 13 ms por ventana; en un teléfono no se midió.
+
+### 2. El filtro geográfico es lo que más pesa
+
+| int8, una ventana | P ≥ 0,45 | R ≥ 0,45 | F1 | FA/h | Especies inventadas |
+|---|---|---|---|---|---|
+| Sin filtro geográfico | 44,9 | 66,1 | 53,5 | 192 | 165 |
+| Con filtro (la app) | 73,2 | 64,9 | 68,8 | 56 | 39 |
+
+A cambio, el filtro deja fuera algunas aves que sí estaban (3 especies más perdidas sumando las grabaciones).
+
+### 3. Decidir con varias ventanas cambia falsas alarmas por cantos perdidos
+
+int8 con filtro geográfico:
+
+| Regla | P ≥ 0,45 | R ≥ 0,45 | F1 | FA/h | P ≥ 0,80 | R ≥ 0,80 | FA/h ≥ 0,80 |
+|---|---|---|---|---|---|---|---|
+| Una ventana (hoy) | 73,2 | 64,9 | 68,8 | 56 | 91,5 | 42,0 | 9,3 |
+| Promedio de 2 | 81,4 | 59,6 | 68,8 | 32 | 92,6 | 33,9 | 6,4 |
+| Promedio de 3 | 86,7 | 53,3 | 66,0 | 19 | 94,5 | 28,1 | 3,9 |
+| 2 de 3 | 84,4 | 54,6 | 66,3 | 24 | 93,9 | 31,3 | 4,9 |
+| Promedio de 2, lo seguro se queda | 81,4 | 59,6 | 68,8 | 32 | 91,3 | 42,1 | 9,6 |
+
+Ninguna regla sube el F1: todas cambian precisión por exhaustividad. La última es la única que no pierde nada entre las confirmadas: quita el 43 % de las falsas alarmas entre lo que se guarda (de 56 a 32 por hora) a cambio de 5 puntos de exhaustividad, todos en la banda provisional.
+
+### Lo que estos números no dicen
+
+- Son grabadoras de campo en un cafetal de Antioquia, no un teléfono en Bogotá: sirven para comparar variantes entre sí, no como la precisión que verá una persona.
+- Más de la mitad de lo que la app guarda (56 %) es provisional.
+- No comparan con Merlin: su modelo no es público.
