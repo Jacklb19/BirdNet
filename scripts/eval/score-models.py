@@ -4,7 +4,7 @@ Runs acoustic models over an annotated evaluation set and writes what each one h
 rules the app applies.
 
     python scripts/eval/score-models.py --dataset <directory with recordings.csv> --out <output directory>
-        [--models birdnet-int8,birdnet-fp32] [--max-seconds 600] [--no-normalize]
+        [--models birdnet-int8,birdnet-fp32] [--max-seconds 600] [--no-normalize] [--hop-seconds 1.0] [--geo v3]
 
 Every model is scored on the app's window grid (3 s every 1.5 s). A model with a longer input, such as Perch
 (5 s), receives the audio centred on the same instant, so all of them answer for the same moments.
@@ -38,7 +38,6 @@ APP_TARGET_PEAK = 0.95
 SILENCE_FLOOR = 1e-4
 
 # BirdNET's geographic model as the app uses it (src/features/inference/geoFilter.ts).
-GEO_MODEL_FILE = "birdnet_geo_model.onnx"
 GEO_THRESHOLD = np.float32(0.03)
 GEO_WEEKS_PER_MONTH = 4
 GEO_DAYS_PER_WEEK = 7
@@ -85,12 +84,19 @@ class ModelSpec:
     # that sing at once share one unit of confidence, which hides the quieter ones; "logit" keeps each class on
     # its own by squashing the raw logit with a fixed shift and scale. That is not a calibrated probability: it
     # preserves the order of the scores, so it is fair for the threshold-free metrics and for the best F1.
-    activation: Literal["sigmoid", "softmax", "logit"]
+    # BirdNET+ V3.0 already returns a probability per class ("none").
+    activation: Literal["sigmoid", "softmax", "logit", "none"]
+    # Field of a label line that holds the scientific name, once split by `label_separator`.
+    label_column: int = 0
 
 
 BIRDNET = dict(labels=PUBLIC_MODELS / "labels.txt", sample_rate=48_000, window_seconds=3.0, output="output", label_header_lines=0, label_separator="_", target_peak=None, activation="sigmoid")
 # Perch normalizes every window to a peak of 0.25 (perch-hoplite, `EmbeddingModel.normalize_audio`).
 PERCH = dict(labels=EVAL_MODELS / "perch-v2" / "labels.txt", sample_rate=32_000, window_seconds=5.0, output="label", label_header_lines=1, label_separator=None, target_peak=0.25, activation="softmax")
+V3_LIVE = EVAL_MODELS / "birdnet-v3-live"
+V3_REGIONAL = EVAL_MODELS / "birdnet-v3"
+V3_LIVE_SPEC = dict(labels=V3_LIVE / "classifier-labels.csv", sample_rate=32_000, window_seconds=3.0, output="predictions", label_header_lines=1, label_separator=";", target_peak=None, activation="none", label_column=2)
+V3_FULL_SPEC = dict(labels=V3_REGIONAL / "full" / "birdnet-v3.0-preview3.1-labels-b1.txt", sample_rate=32_000, window_seconds=5.0, output="output", label_header_lines=0, label_separator="_", target_peak=None, activation="none")
 MODELS: dict[str, ModelSpec] = {
     # The model the app ships today.
     "birdnet-int8": ModelSpec(path=PUBLIC_MODELS / "birdnet_model.onnx", **BIRDNET),
@@ -100,7 +106,21 @@ MODELS: dict[str, ModelSpec] = {
     "perch-int8": ModelSpec(path=EVAL_MODELS / "perch-v2" / "perch-v2-int8-arm.onnx", **PERCH),
     "perch-fp32": ModelSpec(path=EVAL_MODELS / "perch-v2" / "perch-v2-fp32.onnx", **PERCH),
     "perch-int8-logit": ModelSpec(path=EVAL_MODELS / "perch-v2" / "perch-v2-int8-arm.onnx", **{**PERCH, "activation": "logit"}),
+    # BirdNET+ V3.0 developer preview. The variant the official BirdNET Live app ships takes windows of any length;
+    # the regional one is the full model with its classes cut down to a region, and takes five seconds.
+    "birdnet-v3-live": ModelSpec(path=V3_LIVE / "classifier-global-10k-pruned-fp16.onnx", **V3_LIVE_SPEC),
+    "birdnet-v3-live-5s": ModelSpec(path=V3_LIVE / "classifier-global-10k-pruned-fp16.onnx", **{**V3_LIVE_SPEC, "window_seconds": 5.0}),
+    "birdnet-v3-andes": ModelSpec(path=V3_REGIONAL / "andes" / "birdnet-v3.0-preview3.1-andes-fp32-b1.onnx", **{**V3_FULL_SPEC, "labels": V3_REGIONAL / "andes" / "birdnet-v3.0-preview3.1-andes-labels-b1.txt", "output": "predictions"}),
+    "birdnet-v3-full": ModelSpec(path=V3_REGIONAL / "full" / "birdnet-v3.0-preview3.1-fp32-b1.onnx", **V3_FULL_SPEC),
     "perch-fp32-logit": ModelSpec(path=EVAL_MODELS / "perch-v2" / "perch-v2-fp32.onnx", **{**PERCH, "activation": "logit"}),
+}
+
+
+# Geographic models by name: file, labels, and where the scientific name sits in a label line. Each family of
+# classifiers is filtered with its own, since their species lists differ.
+GEO_MODELS: dict[str, tuple[Path, Path, str, int]] = {
+    "v2.4": (PUBLIC_MODELS / "birdnet_geo_model.onnx", PUBLIC_MODELS / "labels.txt", "_", 0),
+    "v3": (V3_LIVE / "geomodel-global-10k-pruned-fp16.onnx", V3_LIVE / "geomodel-labels.txt", "	", 1),
 }
 
 
@@ -119,7 +139,7 @@ def read_aliases(dataset: Path) -> dict[str, str]:
 
 def read_labels(spec: ModelSpec, aliases: dict[str, str]) -> list[str]:
     lines = [line.strip() for line in spec.labels.read_text(encoding="utf-8").splitlines() if line.strip()][spec.label_header_lines:]
-    names = [line.split(spec.label_separator, 1)[0] if spec.label_separator else line for line in lines]
+    names = [line.split(spec.label_separator)[spec.label_column] if spec.label_separator else line for line in lines]
     return [aliases.get(name.lower(), name) for name in names]
 
 
@@ -140,10 +160,10 @@ def normalize_peak(window: np.ndarray, target: float) -> np.ndarray:
     return window * (target / peak) if peak > SILENCE_FLOOR else window
 
 
-def grid_centres(duration: float) -> np.ndarray:
-    """Centre, in seconds, of every full window the app would analyse in a recording of `duration` seconds."""
-    count = int((duration - GRID_WINDOW_SECONDS) // GRID_HOP_SECONDS) + 1 if duration >= GRID_WINDOW_SECONDS else 0
-    return np.arange(count) * GRID_HOP_SECONDS + GRID_WINDOW_SECONDS / 2
+def grid_centres(duration: float, hop: float) -> np.ndarray:
+    """Centre, in seconds, of every full window analysed every `hop` seconds in a recording of `duration` seconds."""
+    count = int((duration - GRID_WINDOW_SECONDS) // hop) + 1 if duration >= GRID_WINDOW_SECONDS else 0
+    return np.arange(count) * hop + GRID_WINDOW_SECONDS / 2
 
 
 def model_windows(audio: np.ndarray, spec: ModelSpec, centres: np.ndarray, normalize: bool) -> np.ndarray:
@@ -170,6 +190,8 @@ def model_windows(audio: np.ndarray, spec: ModelSpec, centres: np.ndarray, norma
 def confidences(logits: np.ndarray, activation: str) -> np.ndarray:
     """Confidence of every class for each row of logits, between 0 and 1."""
     values = logits.astype(np.float64)
+    if activation == "none":
+        return values
     if activation == "sigmoid":
         return 1.0 / (1.0 + np.exp(-values))
     if activation == "logit":
@@ -202,10 +224,11 @@ def birdnet_week(moment: datetime) -> int:
     return (moment.month - 1) * GEO_WEEKS_PER_MONTH + min((moment.day - 1) // GEO_DAYS_PER_WEEK + 1, GEO_WEEKS_PER_MONTH)
 
 
-def write_geo(recordings: list[dict[str, str]], aliases: dict[str, str], out: Path) -> None:
+def write_geo(recordings: list[dict[str, str]], aliases: dict[str, str], out: Path, geo: str) -> None:
     """Species the geographic model allows at the place and week of each recording, as the app's filter would."""
-    session = ort.InferenceSession(str(PUBLIC_MODELS / GEO_MODEL_FILE), providers=ONNX_PROVIDERS)
-    labels = read_labels(MODELS["birdnet-int8"], aliases)
+    model, labels_file, separator, column = GEO_MODELS[geo]
+    session = ort.InferenceSession(str(model), providers=ONNX_PROVIDERS)
+    labels = [aliases.get(name.lower(), name) for name in (line.split(separator)[column] for line in labels_file.read_text(encoding="utf-8").splitlines() if line.strip())]
     allowed: dict[str, list[str]] = {}
     for row in recordings:
         if not row["latitude"] or not row["longitude"] or not row["recorded_at"]:
@@ -217,7 +240,7 @@ def write_geo(recordings: list[dict[str, str]], aliases: dict[str, str], out: Pa
     (out / GEO_FILE).write_text(json.dumps(allowed), encoding="utf-8")
 
 
-def score_model(name: str, spec: ModelSpec, dataset: Path, recordings: list[dict[str, str]], aliases: dict[str, str], out: Path, max_seconds: float | None, normalize: bool) -> None:
+def score_model(name: str, spec: ModelSpec, dataset: Path, recordings: list[dict[str, str]], aliases: dict[str, str], out: Path, max_seconds: float | None, normalize: bool, hop: float) -> None:
     labels = read_labels(spec, aliases)
     session = ort.InferenceSession(str(spec.path), providers=ONNX_PROVIDERS)
     input_name = session.get_inputs()[0].name
@@ -233,7 +256,7 @@ def score_model(name: str, spec: ModelSpec, dataset: Path, recordings: list[dict
                 print(f"  [SKIP] {row['file']}: {error}", flush=True)
                 continue
             duration = len(audio) / spec.sample_rate
-            centres = grid_centres(duration)
+            centres = grid_centres(duration, hop)
             if latency is None and len(centres):
                 latency = measure_latency(session, spec, model_windows(audio, spec, centres[len(centres) // 2:len(centres) // 2 + 1], normalize)[0])
             index_of: dict[int, int] = {}
@@ -250,7 +273,7 @@ def score_model(name: str, spec: ModelSpec, dataset: Path, recordings: list[dict
     meta = {
         "model": name, "file": spec.path.name, "size_bytes": spec.path.stat().st_size, "sample_rate": spec.sample_rate,
         "window_seconds": spec.window_seconds, "labels": len(labels), "activation": spec.activation, "grid_window_seconds": GRID_WINDOW_SECONDS,
-        "grid_hop_seconds": GRID_HOP_SECONDS, "score_floor": SCORE_FLOOR, "app_normalization": normalize, "latency": latency,
+        "grid_hop_seconds": hop, "score_floor": SCORE_FLOOR, "app_normalization": normalize, "latency": latency,
         "windows": total_windows, "max_seconds": max_seconds, "scoring_seconds": round(time.perf_counter() - started),
     }
     (out / SCORES_DIR / f"{name}.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
@@ -263,20 +286,22 @@ def main() -> None:
     parser.add_argument("--models", default=",".join(MODELS), help=f"comma-separated subset of: {', '.join(MODELS)}")
     parser.add_argument("--max-seconds", type=float, default=None, help="score only the first seconds of each recording")
     parser.add_argument("--no-normalize", action="store_true", help="skip the app's per-window peak normalization")
+    parser.add_argument("--geo", choices=sorted(GEO_MODELS), default="v2.4", help="geographic model that writes the allowed species")
+    parser.add_argument("--hop-seconds", type=float, default=GRID_HOP_SECONDS, help="seconds between windows, to try a grid other than the app's")
     arguments = parser.parse_args()
 
     dataset = arguments.dataset.resolve()
     recordings = read_rows(dataset / RECORDINGS_FILE)
     aliases = read_aliases(dataset)
     (arguments.out / SCORES_DIR).mkdir(parents=True, exist_ok=True)
-    write_geo(recordings, aliases, arguments.out)
+    write_geo(recordings, aliases, arguments.out, arguments.geo)
     for name in arguments.models.split(","):
         if name not in MODELS:
             raise SystemExit(f"Unknown model: {name}")
         if not MODELS[name].path.exists():
             print(f"[SKIP] {name}: {MODELS[name].path} is missing")
             continue
-        score_model(name, MODELS[name], dataset, recordings, aliases, arguments.out, arguments.max_seconds, not arguments.no_normalize)
+        score_model(name, MODELS[name], dataset, recordings, aliases, arguments.out, arguments.max_seconds, not arguments.no_normalize, arguments.hop_seconds)
     print(f"[OK] scores written to {arguments.out}")
 
 

@@ -114,10 +114,64 @@ Con softmax, las aves que cantan a la vez se reparten una sola unidad de confian
 
 Leído por grabación completa (una ventana, con filtro, umbral 0,45): de las 63 presencias anotadas (una especie en una grabación), Perch int8 encontró 43 e inventó 102, Perch fp32 encontró 49 e inventó 127, y BirdNET encontró 48 e inventó 39. Todas las especies anotadas existen en el vocabulario de Perch, así que la diferencia no viene de nombres que no coincidan.
 
-**Conclusión.** En estas grabaciones Perch v2, cuantizado o no, no es mejor que el modelo que ya corre en el teléfono, así que no sirve como «modelo grande» que corrija sus dudas: una segunda opinión peor que la primera no verifica nada. Por eso no se buscó dónde alojarlo (el fp32 no cabe en el paquete de 500 MB de una función de Vercel Hobby).
+**Conclusión.** En estas grabaciones Perch v2, cuantizado o no, no es mejor que el modelo que ya corre en el teléfono, así que no sirve como «modelo grande» que lo reemplace. Como segunda opinión sobre las detecciones dudosas sí aporta algo, poco (apartado 6).
+
+### 5. Intentos de mejorar la detección sin entrenar (2026-10-12)
+
+El dueño pidió acercar la detección a la de Merlin tanto como fuera realista. Se probó todo lo que no exige entrenar un modelo. Las filas marcadas con † son cálculos exploratorios sobre los mismos archivos de puntuaciones, hechos fuera de `report.mjs`; el resto se reproduce con las opciones de `score-models.py`.
+
+**Otro modelo: BirdNET+ V3.0 (vista previa de desarrollo).** Es el sucesor del v2.4, del mismo equipo. Se midieron la variante que trae la app oficial BirdNET Live (65 MB, 9.789 especies, Apache-2.0) y el modelo completo (557 MB, 11.560 especies, CC BY-SA 4.0), cada uno con su propio modelo geográfico (`--geo v3`).
+
+| Modelo, una ventana | mAP sin filtro | mAP con filtro | Mejor F1 con filtro | Reales / inventadas por grabación | ms por ventana (este PC, en reposo) |
+|---|---|---|---|---|---|
+| BirdNET v2.4 int8 (el de la app, 37 MB) | 67,6 | 65,0 | 69,2 | 48 / 39 | 15 |
+| BirdNET+ V3.0 podado (65 MB) | 50,8 | 50,8 | 53,5 | 51 / 138 | 61 |
+| BirdNET+ V3.0 completo (557 MB) | 53,1 | 53,1 | 55,3 | 50 / 89 | 97 |
+
+El V3 encuentra dos o tres presencias más e inventa entre el doble y el triple. La variante regional «andes» (809 especies) se descartó sin medir: le faltan 45 de las 89 especies del vocabulario del conjunto, entre ellas varias de los Andes colombianos.
+
+**Lo que oye el modelo.**
+
+| Cambio | Efecto (7 h, regla de la app, con filtro) |
+|---|---|
+| Quitar la normalización de volumen de la app (`--no-normalize`) | Ninguno: ni el v2.4 ni el V3 dependen del nivel (las confianzas cambian menos de 0,01) |
+| Una ventana cada 1,0 s en vez de cada 1,5 s (`--hop-seconds 1.0`) | F1 de 68,8 a 70,2; exhaustividad de 59,6 a 63,3; falsas alarmas de 32 a 41 por hora; 50 % más de cómputo |
+
+**Reglas de decisión †.** Todas se mueven sobre la misma curva: lo que ganan en precisión lo pierden en cantos encontrados.
+
+| Regla | Efecto |
+|---|---|
+| Memoria de sesión: a un ave ya confirmada se le cree desde una confianza menor | +1 a 2 puntos de F1 en las 7 h, ninguno en las 13 h de validación |
+| Quedarse solo con las 1 a 3 aves más probables de cada ventana | Ninguno |
+| Umbral del filtro geográfico de 0,01 a 0,3 | 0,03 (el actual) y 0,1 dan lo mismo; desde 0,2 se pierden especies reales |
+| Promediar 3 ventanas, o mover el umbral de «lo seguro se queda» | Cambian falsas alarmas por cantos perdidos |
+
+**Validación en 13 horas que no se habían usado** (el resto de grabaciones que se dejan decodificar, de los dos sitios). El modelo de la app rinde menos ahí, y la regla del ADR-30 cuesta más de lo que costaba en las 7 primeras:
+
+| 13 h, con filtro | Precisión | Exhaustividad | Falsas alarmas/h | Reales encontradas / inventadas por grabación |
+|---|---|---|---|---|
+| Una ventana | 72,9 | 50,4 | 41,8 | 121 de 194 / 58 |
+| Promedio de 2, lo seguro se queda (ADR-30) | 79,3 | 45,5 | 26,4 | 106 de 194 / 30 |
+
+La regla quita la mitad de las especies inventadas y pierde 15 presencias reales; equivale más o menos a subir el umbral de guardado a 0,60.
+
+**Conclusión.** Sin entrenar no hay mejora realista más allá de lo ya hecho (filtro geográfico y regla de dos ventanas). El límite es el modelo, y ninguno de los modelos públicos medidos supera al v2.4 en estas grabaciones.
+
+### 6. Segunda opinión sobre las detecciones dudosas (RF-09) †
+
+Un modelo peor en conjunto puede servir todavía para respaldar las detecciones dudosas del primero si se equivoca en cosas distintas. De las 450 detecciones dudosas (confianza 0,45 a 0,80) que la app guardaría en las 7 horas, el 65 % eran correctas.
+
+| Segundo modelo | Respalda (umbral) | Casos | Correctas | Dudosas correctas que verificaría |
+|---|---|---|---|---|
+| Perch v2 int8, softmax | ≥ 0,20 | 95 | 89,5 % | 29 % |
+| Perch v2 int8, softmax | ≥ 0,10 | 166 | 78,9 % | 45 % |
+| BirdNET+ V3.0 completo | ≥ 0,70 | 122 | 77,9 % | 33 % |
+
+Cuando el segundo modelo no la respalda, la detección sigue siendo correcta entre el 56 % y el 65 % de las veces: no sirve para descartar. Perch, que es independiente de BirdNET, respalda mejor que el V3, que es de la misma familia. Los umbrales se eligieron mirando estos mismos datos y son pocos casos, así que las cifras son optimistas; además Perch oyó 5 segundos y el fragmento que sube la app dura 3.
 
 ### Lo que estos números no dicen
 
 - Son grabadoras de campo en un cafetal de Antioquia, no un teléfono en Bogotá: sirven para comparar variantes entre sí, no como la precisión que verá una persona.
 - Más de la mitad de lo que la app guarda (56 %) es provisional.
 - No comparan con Merlin: su modelo no es público.
+- El conjunto lo publicó el mismo laboratorio que hace BirdNET, y la literatura sitúa a Perch 2.0 por encima de BirdNET en promedio. No se puede descartar que estas grabaciones favorezcan al v2.4 (por parecerse a sus datos de entrenamiento, o por estar entre ellos). Solo grabaciones propias, hechas con teléfono y con las especies anotadas por alguien que las conoce, lo aclararían.
