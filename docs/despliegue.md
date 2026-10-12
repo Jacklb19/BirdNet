@@ -54,6 +54,7 @@ Ajustes opcionales de la API (tiempos de espera, límites de resultados y export
 - Guía → una ficha: clasificación, estado de conservación y mapa «Dónde vive» (GBIF).
 - Cuenta → crear cuenta (contraseña dos veces) o continuar con Google; «¿Olvidaste tu contraseña?» envía el enlace. Con «Guardar dónde escuchas» activado (o un lugar activo), las detecciones se sincronizan; aparecen en «De todos» solo si la persona eligió compartir.
 - Ajustes → Grabaciones: con sesión, encender «Guardarlas también en mi cuenta»; escuchar hasta registrar un ave; en la Bitácora, abrir el registro y oír la grabación; tras sincronizar, Ajustes muestra cuántas hay en la cuenta y deja borrarlas.
+- Bitácora → un registro → «¿Era esta ave?»: confirmar, corregir (buscar otra especie) o descartar; el estado cambia en la Bitácora y, tras sincronizar, en la ficha de la especie.
 - Bitácora → resumen y últimas caminatas; si hay cantos sin ubicación, «Asignar y subir» con un lugar.
 - Mapa → botón de lugares → crear un lugar, abrir su panel; exportar CSV.
 

@@ -327,3 +327,22 @@ Hasta S8 solo las detecciones dudosas conservaban su audio, y solo hasta subirse
 
 ### Consecuencias
 Migración `20261011000000_recordings_and_review.sql`; se aplica antes de desplegar la API, y la API antes que la web. La política de privacidad y los textos de la portada, Escuchar y Ajustes dejan de decir que el audio nunca sale del teléfono. Un clip reemplazado dentro del mismo canto después de haberse subido deja en la cuenta también el anterior. Si se borra la cuenta, sus objetos de Storage no se borran solos (no hay flujo de borrado de cuenta todavía).
+
+---
+
+## ADR-29. Revisión por una persona: confirmar, corregir o descartar (Sprint 9, RF-11 y HU-06)
+
+### Contexto
+La especificación prevé que la persona confirme, corrija o descarte una detección (RF-11) y que la corrección se distinga de la detección automática (HU-06), pero no define un estado para «confirmada por una persona». Con las grabaciones (ADR-28) ya se puede oír lo que se registró antes de responder.
+
+### Decisión
+- **Tres veredictos**, desde el detalle del registro en la Bitácora, junto al reproductor: «Sí, es esta», «Es otra ave» (buscador sobre las especies del modelo, por nombre común o científico) y «No era un ave». Se puede cambiar cuando se quiera.
+- **Sin estado nuevo** (aprobado por el dueño): confirmar deja la detección como `verified`; corregir, como `corrected`; descartar, como `discarded`. Una columna aparte (`revisada_por`: persona o nube) dice quién revisó, de modo que la verificación en la nube (RF-09) podrá usar el mismo estado sin confundirse con la de una persona.
+- **Lo que dijo el modelo no se pierde**: al corregir, la especie nueva va en `especie` y la del modelo en `especie_modelo`. Corregir de vuelta a la especie del modelo equivale a confirmar. El detalle muestra «El modelo había dicho…» con su confianza.
+- **El veredicto se guarda primero en el teléfono** (base IndexedDB propia `trino-reviews-v1`) y se aplica al leer los registros; la detección guardada no se reescribe, porque es lo que dijo el modelo y así se sincroniza. Se envía con `PATCH /v1/detections/{id}` después de la detección; la petición lleva el veredicto completo, así que repetirla no cambia nada (RNF-07). Funciona sin conexión.
+- **Una detección descartada no es presencia**: deja de contar en el álbum, los totales, la ficha y «Mi mapa», y sigue visible en la Bitácora, marcada, por si la persona cambia de opinión. En el mapa de todos ya no aparecía (S5).
+- **CSV y panel** (aprobado por el dueño): el CSV conserva las descartadas con su estado y añade al final `model_species` y `reviewed_by`; las estadísticas del lugar las excluyen.
+- Reintentar la sincronización de una detección ya corregida no es un conflicto: la API compara el lote con la especie del modelo.
+
+### Consecuencias
+Misma migración que ADR-28 (`20261011000000_recordings_and_review.sql`). Los veredictos hechos en un teléfono no se descargan a otro: la Bitácora es local, y la ficha de especie, que sí lee la nube, muestra el estado ya revisado. El buscador ordena alfabéticamente; todavía no pone primero las aves probables de la zona.
