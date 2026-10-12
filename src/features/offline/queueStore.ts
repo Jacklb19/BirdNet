@@ -1,3 +1,4 @@
+import { isDetectionModel, isDetectionStyle } from '../inference/detectionChoices';
 import type { ClassifiedDetection } from '../inference/detectionPolicy';
 import { CONFIDENCE_THRESHOLDS, FIELD_LIMITS, isUuid } from '../../config/contract';
 import { announceQueueChange } from './queueChanges';
@@ -68,7 +69,9 @@ export async function updateSettings(changes: EditableSettings): Promise<void> {
     const audio = await request(tx.objectStore(STORES.audio).getAll()) as StoredAudio[];
     assertQueueCapacity(records.reduce((total, row) => total + row.bytes, 0) + audio.reduce((total, row) => total + row.bytes, 0), 0, next.maxBytes);
     if (typeof next.audioConsent !== 'boolean' || typeof next.locationEnabled !== 'boolean' ||
-        [next.shareMap, next.keepRecordings, next.saveRecordings].some((choice) => choice !== undefined && typeof choice !== 'boolean')) throw new Error('Invalid preferences.');
+        [next.shareMap, next.keepRecordings, next.saveRecordings].some((choice) => choice !== undefined && typeof choice !== 'boolean') ||
+        (next.detectionModel !== undefined && !isDetectionModel(next.detectionModel)) ||
+        (next.detectionStyle !== undefined && !isDetectionStyle(next.detectionStyle))) throw new Error('Invalid preferences.');
     await writeSettings(tx, next);
   });
   announceQueueChange(['settings']);

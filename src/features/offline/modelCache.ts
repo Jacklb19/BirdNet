@@ -1,9 +1,9 @@
 import { API_ROUTES, apiUrl } from '../../config/api';
 import { MODEL_LABELS_LINE_SEPARATOR } from '../inference/inference.constants';
 import type { ModelManifest } from '../inference/inference.types';
-import { downloadBytes, resolveManifestResource, STATIC_MANIFEST_URL, validateManifest } from '../inference/modelManifest';
+import { downloadBytes, resolveManifestResource, STATIC_MANIFEST_URL, validateAlternate, validateManifest } from '../inference/modelManifest';
 import {
-  ACTIVE_MODEL_URL, JSON_MIME_TYPE, MODEL_CACHE_NAME, MODEL_CACHE_PATH_PREFIX, MODEL_RESOURCE_EXTENSIONS, type ModelResourceKind,
+  ACTIVE_MODEL_URL, ALTERNATE_MODEL_URL, JSON_MIME_TYPE, MODEL_CACHE_NAME, MODEL_CACHE_PATH_PREFIX, MODEL_RESOURCE_EXTENSIONS, type ModelResourceKind,
 } from './offline.constants';
 import { isTrustedStorageUrl } from './trustedStorage';
 
@@ -16,17 +16,17 @@ export function modelResource(hash: string, kind: ModelResourceKind): string {
   return `${MODEL_CACHE_PATH_PREFIX}${hash}.${MODEL_RESOURCE_EXTENSIONS[kind]}`;
 }
 
-function safeResource(path: string, manifestUrl: string): string {
+export function safeResource(path: string, manifestUrl: string): string {
   const url = new URL(resolveManifestResource(path, manifestUrl, self.location.origin));
   if (!isTrustedStorageUrl(url)) throw new Error('Untrusted model origin.');
   return url.href;
 }
-async function hash(buffer: ArrayBuffer): Promise<string> {
+export async function hash(buffer: ArrayBuffer): Promise<string> {
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', buffer));
   return Array.from(digest, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 /** One class per non-blank line of the labels file. */
-function countLabels(labels: string): number {
+export function countLabels(labels: string): number {
   return labels.split(MODEL_LABELS_LINE_SEPARATOR).filter((label) => label.trim()).length;
 }
 
@@ -69,21 +69,27 @@ function isSameOriginPath(value: string): boolean {
   try { return new URL(value, self.location.origin).origin === self.location.origin; } catch { return false; }
 }
 
-/** Streams one resource into memory, reporting each chunk, and checks its exact size and content hash. */
-async function fetchVerified(url: string, size: number, sha256: string, onBytes: (bytes: number) => void): Promise<Uint8Array<ArrayBuffer>> {
-  const response = await fetch(url, { cache: 'no-store' });
-  if (!response.ok || !response.body) throw new Error('Model download failed.');
-  const reader = response.body.getReader();
+/**
+ * Streams one resource into memory, reporting each chunk, and checks its exact size and content hash. A resource
+ * published in parts (a host that limits file size) is read part after part into the same buffer: the size and
+ * the hash are those of the whole.
+ */
+export async function fetchVerified(urls: readonly string[], size: number, sha256: string, onBytes: (bytes: number) => void): Promise<Uint8Array<ArrayBuffer>> {
   const buffer = new Uint8Array(size);
   let received = 0;
-  try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      if (received + value.length > buffer.length) throw new Error('Unexpected model size.');
-      buffer.set(value, received); received += value.length; onBytes(value.length);
-    }
-  } catch (error) { await reader.cancel(); throw error; }
+  for (const url of urls) {
+    const response = await fetch(url, { cache: 'no-store' });
+    if (!response.ok || !response.body) throw new Error('Model download failed.');
+    const reader = response.body.getReader();
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (received + value.length > buffer.length) throw new Error('Unexpected model size.');
+        buffer.set(value, received); received += value.length; onBytes(value.length);
+      }
+    } catch (error) { await reader.cancel(); throw error; }
+  }
   if (received !== size || await hash(buffer.buffer) !== sha256) throw new Error('Model integrity check failed.');
   return buffer;
 }
@@ -101,9 +107,9 @@ export async function downloadModel(manifestUrl: string, progress: (received: nu
   let received = 0;
   const onBytes = (bytes: number): void => { received += bytes; progress(received, total); };
   progress(received, total);
-  const model = await fetchVerified(modelUrl, manifest.size_bytes, manifest.sha256, onBytes);
+  const model = await fetchVerified([modelUrl], manifest.size_bytes, manifest.sha256, onBytes);
   const geo = geoUrl && manifest.geo_size_bytes && manifest.geo_sha256
-    ? await fetchVerified(geoUrl, manifest.geo_size_bytes, manifest.geo_sha256, onBytes)
+    ? await fetchVerified([geoUrl], manifest.geo_size_bytes, manifest.geo_sha256, onBytes)
     : null;
   const labelsResponse = await fetch(labelsUrl, { cache: 'no-store' });
   if (!labelsResponse.ok) throw new Error('Model labels unavailable.');
@@ -124,14 +130,25 @@ export async function downloadModel(manifestUrl: string, progress: (received: nu
   await cache.put(active.labels_file, new Response(labels));
   if (geo && active.geo_model_file) await cache.put(active.geo_model_file, new Response(geo));
   await cache.put(ACTIVE_MODEL_URL, Response.json(active));
+  const alternateHash = await installedAlternateHash(cache);
   for (const key of await cache.keys()) {
     const url = new URL(key.url);
-    if (url.pathname !== ACTIVE_MODEL_URL && !url.pathname.includes(manifest.sha256) && !(previousHash && url.pathname.includes(previousHash))) {
+    const kept = url.pathname === ACTIVE_MODEL_URL || url.pathname === ALTERNATE_MODEL_URL || url.pathname.includes(manifest.sha256) ||
+      Boolean(previousHash && url.pathname.includes(previousHash)) || Boolean(alternateHash && url.pathname.includes(alternateHash));
+    if (!kept) {
       // Cleanup is optional; a failed cleanup must not report a verified installation as failed.
       try { await cache.delete(key); } catch { break; }
     }
   }
   return active;
+}
+
+/** Hash of the second model's installation, whose files a new download of the first must leave alone. */
+async function installedAlternateHash(cache: Cache): Promise<string | undefined> {
+  try {
+    const pointer = await cache.match(ALTERNATE_MODEL_URL);
+    return pointer ? validateAlternate(await pointer.json()).sha256 : undefined;
+  } catch { return undefined; }
 }
 
 /** Cache presence alone is insufficient: verify bytes again before offline inference. */

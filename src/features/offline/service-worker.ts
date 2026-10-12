@@ -2,6 +2,7 @@ import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { config } from '../../config/env';
 import { STATIC_PAGES } from '../../config/staticPages';
+import { activeAlternate, downloadAlternate, removeAlternate } from './alternateCache';
 import { activeModel, availableManifest, downloadModel, requestedManifestUrl } from './modelCache';
 import {
   APP_SHELL_URL, isOfflineOperation, MODEL_CACHE_NAME, MODEL_CACHE_PATH_PREFIX, OFFLINE_OPERATIONS, SYNC_TAG,
@@ -68,11 +69,15 @@ async function synchronizeOnce(): Promise<undefined> {
 scope.addEventListener('sync', (event) => { if (event.tag === SYNC_TAG) event.waitUntil(synchronizeOnce()); });
 
 let downloading: Promise<unknown> | null = null;
-async function download(manifestUrl: string | undefined, progress: (update: OfflineProgress) => void): Promise<OfflineResult<typeof OFFLINE_OPERATIONS.downloadModel>> {
+/** One model download at a time: two would compete for the connection and for memory. */
+async function exclusively<Result>(start: () => Promise<Result>): Promise<Result> {
   if (downloading) throw new Error('Model download already in progress.');
-  const pending = downloadModel(requestedManifestUrl(manifestUrl), (received, total) => { progress({ received, total }); });
+  const pending = start();
   downloading = pending;
   try { return await pending; } finally { downloading = null; }
+}
+function download(manifestUrl: string | undefined, progress: (update: OfflineProgress) => void): Promise<OfflineResult<typeof OFFLINE_OPERATIONS.downloadModel>> {
+  return exclusively(() => downloadModel(requestedManifestUrl(manifestUrl), (received, total) => { progress({ received, total }); }));
 }
 
 type OfflineHandlers = {
@@ -83,6 +88,9 @@ const handlers: OfflineHandlers = {
   [OFFLINE_OPERATIONS.modelStatus]: () => activeModel(),
   [OFFLINE_OPERATIONS.modelManifest]: async () => (await availableManifest()).manifest,
   [OFFLINE_OPERATIONS.downloadModel]: (request, progress) => download(request?.manifestUrl, progress),
+  [OFFLINE_OPERATIONS.alternateStatus]: () => activeAlternate(),
+  [OFFLINE_OPERATIONS.downloadAlternate]: (_request, progress) => exclusively(() => downloadAlternate((received, total) => { progress({ received, total }); })),
+  [OFFLINE_OPERATIONS.removeAlternate]: async () => { await removeAlternate(); return undefined; },
   [OFFLINE_OPERATIONS.getSettings]: () => getSettings(),
   [OFFLINE_OPERATIONS.updateSettings]: async (request) => { await updateSettings(request.changes); return undefined; },
   [OFFLINE_OPERATIONS.queueStats]: () => queueStats(),

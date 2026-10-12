@@ -1,14 +1,16 @@
 /** InferenceService lifecycle against a simulated worker: model load, inference and cleanup. */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { InferenceService } from './inference.service';
-import { MIN_CANDIDATE_CONFIDENCE, TOP_K } from './inference.constants';
-import { STATIC_MANIFEST_URL } from './modelManifest';
+import { DECISION_RULE, MIN_CANDIDATE_CONFIDENCE, TOP_K } from './inference.constants';
+import { STATIC_MANIFEST_URL, formatCombinedVersion, formatModelVersion } from './modelManifest';
+import { SINGLE_WINDOW } from './windowPooling';
 import type { InferenceWorkerOutbound } from './inference.types';
 import { AUDIO_CONSTANTS } from '../audio/dsp/audio.constants';
 import { MODEL_CACHE_PATH_PREFIX, OFFLINE_OPERATIONS } from '../offline/offline.constants';
 
-const offline = vi.hoisted(() => ({ operation: vi.fn() }));
+const offline = vi.hoisted(() => ({ operation: vi.fn(), settings: vi.fn() }));
 vi.mock('../offline/offlineClient', () => ({ offlineOperation: offline.operation }));
+vi.mock('../offline/queueStore', () => ({ getSettings: offline.settings }));
 
 class MockWorker {
   public onmessage: ((event: MessageEvent<InferenceWorkerOutbound>) => void) | null = null;
@@ -135,10 +137,15 @@ describe('InferenceService', () => {
     expect(fetch).toHaveBeenCalledWith(STATIC_MANIFEST_URL);
     expect(mockWorkerInstance.postMessage).toHaveBeenCalledWith({
       type: 'LOAD_MODEL',
-      modelUrl: new URL(mockManifest.model_file, new URL(STATIC_MANIFEST_URL, location.origin)).href,
-      labelsUrl: new URL(mockManifest.labels_file, new URL(STATIC_MANIFEST_URL, location.origin)).href,
-      windowSamples: mockManifest.window_samples,
+      models: [{
+        modelUrls: [new URL(mockManifest.model_file, new URL(STATIC_MANIFEST_URL, location.origin)).href],
+        labelsUrl: new URL(mockManifest.labels_file, new URL(STATIC_MANIFEST_URL, location.origin)).href,
+        sampleRate: mockManifest.sample_rate,
+        windowSamples: mockManifest.window_samples,
+      }],
+      capture: { sampleRate: AUDIO_CONSTANTS.TARGET_SAMPLE_RATE, windowSamples: AUDIO_CONSTANTS.WINDOW_SAMPLES },
       modelSizeBytes: mockManifest.size_bytes,
+      decisionRule: DECISION_RULE,
     });
   });
 
@@ -148,7 +155,8 @@ describe('InferenceService', () => {
       model_file: `${MODEL_CACHE_PATH_PREFIX}model.onnx`,
       labels_file: `${MODEL_CACHE_PATH_PREFIX}labels.txt`,
     };
-    offline.operation.mockResolvedValueOnce(cached);
+    // The installed model, then the second one, which this device does not have.
+    offline.operation.mockResolvedValueOnce(cached).mockResolvedValueOnce(null);
     Object.defineProperty(navigator, 'serviceWorker', { value: { controller: {} }, configurable: true });
     try {
       // A manifest on another host must not move the cached files there.
@@ -159,9 +167,49 @@ describe('InferenceService', () => {
     expect(offline.operation).toHaveBeenCalledWith(OFFLINE_OPERATIONS.modelStatus);
     expect(fetch).not.toHaveBeenCalled();
     expect(mockWorkerInstance.postMessage).toHaveBeenCalledWith(expect.objectContaining({
-      modelUrl: new URL(cached.model_file, location.origin).href,
-      labelsUrl: new URL(cached.labels_file, location.origin).href,
+      models: [expect.objectContaining({
+        modelUrls: [new URL(cached.model_file, location.origin).href],
+        labelsUrl: new URL(cached.labels_file, location.origin).href,
+      })],
     }));
+  });
+
+  it('loads what the person chose: the second model once installed, or both, each with its own version', async () => {
+    const alternate = {
+      model_id: 'birdnet-plus', variant: 'birds', sample_rate: 32_000, window_samples: 96_000, window_seconds: 3,
+      num_classes: 8923, sha256: 'b'.repeat(64), size_bytes: 2_000_000,
+      model_files: ['plus.part1.onnx', 'plus.part2.onnx'], labels_file: 'plus-labels.txt',
+      geo_model_file: 'plus-geo.onnx', geo_sha256: 'c'.repeat(64), geo_size_bytes: 10,
+    };
+    vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => Promise.resolve({ ...mockManifest, alternate }) } as Response);
+    const models = (): { modelUrls: string[]; sampleRate: number }[] =>
+      (mockWorkerInstance.postMessage.mock.lastCall?.[0] as { models: { modelUrls: string[]; sampleRate: number }[] }).models;
+
+    // The choices live in IndexedDB; here its reader is mocked, so the store only has to exist.
+    vi.stubGlobal('indexedDB', {});
+    offline.settings.mockResolvedValue({ detectionModel: 'preview', detectionStyle: 'wide' });
+    const preview = new InferenceService();
+    await preview.loadModel();
+    expect(models().map((model) => model.sampleRate)).toEqual([alternate.sample_rate]);
+    expect(models()[0]?.modelUrls).toHaveLength(alternate.model_files.length);
+    expect(mockWorkerInstance.postMessage).toHaveBeenLastCalledWith(expect.objectContaining({ decisionRule: SINGLE_WINDOW }));
+    expect(preview.getModelVersion()).toBe(formatModelVersion(alternate));
+
+    offline.settings.mockResolvedValue({ detectionModel: 'combined' });
+    const combined = new InferenceService();
+    await combined.loadModel();
+    expect(models().map((model) => model.sampleRate)).toEqual([mockManifest.sample_rate, alternate.sample_rate]);
+    expect(combined.getModelVersion()).toBe(formatCombinedVersion(mockManifest, alternate));
+    // Two models share a longer label list, so its length is not that of either manifest.
+    mockWorkerInstance.simulateMessage({ type: 'MODEL_LOADED', numClasses: 9000, modelSizeBytes: 0 });
+    expect(combined.getStatus()).toBe('ready');
+
+    // A choice that needs the second model falls back while it is not on the device.
+    vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => Promise.resolve(mockManifest) } as Response);
+    const fallback = new InferenceService();
+    await fallback.loadModel();
+    expect(models()).toHaveLength(1);
+    expect(fallback.getModelVersion()).toBe(formatModelVersion(mockManifest));
   });
 
   it('does not send INFER before the model is ready', () => {
