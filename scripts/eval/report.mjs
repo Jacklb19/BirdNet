@@ -8,7 +8,7 @@
  * so the numbers describe what the app would do and not a reimplementation of it.
  */
 import { createReadStream } from 'node:fs';
-import { readFile, readdir, writeFile } from 'node:fs/promises';
+import { access, readFile, readdir, writeFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { parseArgs } from 'node:util';
@@ -136,7 +136,14 @@ const scoreFiles = (await readdir(join(options.scores, SCORES_DIR))).filter((fil
 const results = [];
 const models = [];
 for (const file of scoreFiles) {
-  const meta = JSON.parse(await readFile(join(options.scores, SCORES_DIR, file.replace(/\.jsonl$/, '.json')), 'utf8'));
+  const metaPath = join(options.scores, SCORES_DIR, file.replace(/\.jsonl$/, '.json'));
+  // The description is written when a model has been scored on every recording; without it the scores are partial.
+  if (!await access(metaPath).then(() => true, () => false)) {
+    process.stderr.write(`Skipping ${file}: still being scored.
+`);
+    continue;
+  }
+  const meta = JSON.parse(await readFile(metaPath, 'utf8'));
   models.push(meta);
   const configurations = [false, true].flatMap((filtered) => RULES.map((entry) => ({ ...entry, filtered, totals: newTotals() })));
   let seconds = 0;
