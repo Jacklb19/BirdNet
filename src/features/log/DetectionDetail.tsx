@@ -3,6 +3,7 @@ import { useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
 import { Icon } from '../../shared/ui/Icon';
 import { Page } from '../../shared/ui/Page';
+import { useLocalRecording } from '../recordings/useRecordings';
 import { commonName, useSpeciesNames } from '../species/speciesNames';
 import { SpeciesPlate } from '../species/SpeciesPlate';
 import { useSites } from '../sites/useSites';
@@ -11,6 +12,7 @@ import { DetectionStatusCard } from './DetectionStatusCard';
 import { FragmentPlayer } from './FragmentPlayer';
 import { formatConfidence, formatDayTime } from './logFormat';
 import type { LogRecord } from './logRecords';
+import { RecordingCard } from './RecordingCard';
 import { useAudioFragment } from './useAudioFragment';
 import './DetectionDetail.css';
 
@@ -20,12 +22,13 @@ export interface DetectionDetailProps {
   readonly now: Date;
 }
 
-/** One detection: the bird on its plate, verification state with its confidence, the kept fragment if any, and the facts. */
+/** One detection: the bird on its plate, verification state with its confidence, its recording or kept fragment if any, and the facts. */
 export function DetectionDetail({ record, online, now }: DetectionDetailProps): React.JSX.Element {
   const { dict, locale } = useI18n();
   const names = useSpeciesNames();
   const { sites } = useSites();
   const fragment = useAudioFragment(record.audioId);
+  const recording = useLocalRecording(record.id);
   const name = commonName(names, record.species, locale);
   const notes = [
     { label: dict.common.confidence, value: formatConfidence(record.confidence, locale) },
@@ -43,8 +46,11 @@ export function DetectionDetail({ record, online, now }: DetectionDetailProps): 
         <Button variant="primary" icon="book" href={routeHash({ name: 'species', species: record.species })}>{dict.log.openSpecies}</Button>
       </SpeciesPlate>
       <DetectionStatusCard record={record} />
-      {/* Keyed by the fragment, so playback state and a past failure never carry over to another one. */}
-      {fragment && <FragmentPlayer key={fragment.url} fragment={fragment} />}
+      {/* Keyed by the audio, so playback state and a past failure never carry over to another one. The clip of
+          the song is the same window as the doubtful fragment, so one player is enough. */}
+      {recording
+        ? <RecordingCard key={recording.url} detectionId={record.id} recording={recording} online={online} />
+        : fragment && <FragmentPlayer key={fragment.url} fragment={fragment} />}
       <DetectionFacts record={record} sites={sites} online={online} now={now} />
     </Page>
   );

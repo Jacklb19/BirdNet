@@ -182,6 +182,18 @@
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
+/* A record kept only in the account: the button that plays its recording sits before the row. */
+.bn-species-page__playable {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.bn-species-page__playable > .bn-species-page__record {
+  min-width: 0;
+  flex: 1;
+}
+
 .bn-species-page__record .bn-species-page__muted {
   grid-column: 1;
 }

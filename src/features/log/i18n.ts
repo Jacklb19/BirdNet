@@ -112,6 +112,15 @@ export const logMessages = defineMessages({
         pause: 'Pausar el fragmento',
         error: 'No se pudo reproducir el fragmento.',
       },
+      recording: {
+        play: (duration: string) => `Escuchar la grabación (${duration})`,
+        pause: 'Pausar la grabación',
+        error: 'No se pudo reproducir la grabación.',
+        onPhone: 'Grabación guardada en este teléfono.',
+        inAccount: 'Grabación guardada en este teléfono y en tu cuenta, donde solo tú puedes oírla.',
+        delete: 'Borrar la grabación',
+        deleteFailed: 'No se pudo borrar de tu cuenta. Inténtalo de nuevo con conexión y sesión iniciada.',
+      },
       facts: {
         when: 'Cuándo',
         where: 'Dónde',
@@ -252,6 +261,15 @@ export const logMessages = defineMessages({
         play: (duration: string) => `Play the saved fragment (${duration})`,
         pause: 'Pause the fragment',
         error: 'The fragment could not be played.',
+      },
+      recording: {
+        play: (duration: string) => `Play the recording (${duration})`,
+        pause: 'Pause the recording',
+        error: 'The recording could not be played.',
+        onPhone: 'Recording kept on this phone.',
+        inAccount: 'Recording kept on this phone and in your account, where only you can listen to it.',
+        delete: 'Delete the recording',
+        deleteFailed: 'It could not be deleted from your account. Try again online and signed in.',
       },
       facts: {
         when: 'When',

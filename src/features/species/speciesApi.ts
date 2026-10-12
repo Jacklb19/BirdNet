@@ -20,6 +20,8 @@ export interface SpeciesRecord {
     readonly status: DetectionStatus;
     readonly siteId: string | null;
     readonly hasAudio: boolean;
+    /** A recording of this detection is kept in the account. */
+    readonly hasRecording: boolean;
   }[];
 }
 
@@ -58,6 +60,8 @@ export function parseSpeciesRecord(body: unknown): SpeciesRecord {
       .map((item) => ({
         id: item.id as string, recordedAt: item.recorded_at as string, confidence: item.confidence as number,
         status: item.status as DetectionStatus, siteId: item.site_id as string | null, hasAudio: item.has_audio as boolean,
+        // Absent from an API older than the recordings: then there is none.
+        hasRecording: item.has_recording === true,
       })),
   };
 }

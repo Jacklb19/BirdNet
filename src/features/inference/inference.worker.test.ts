@@ -5,8 +5,9 @@ import { AUDIO_CONSTANTS } from '../audio/dsp/audio.constants';
 const runtime = vi.hoisted(() => ({
   create: vi.fn(), run: vi.fn(), release: vi.fn(), disposeInput: vi.fn(), disposeOutput: vi.fn(),
 }));
-const persistence = vi.hoisted(() => ({ save: vi.fn() }));
+const persistence = vi.hoisted(() => ({ save: vi.fn(), keepClips: vi.fn() }));
 vi.mock('../offline/queueStore', () => ({ persistDetections: persistence.save }));
+vi.mock('../recordings/songClips', () => ({ keepSongClips: persistence.keepClips, forgetSongs: vi.fn() }));
 vi.mock('onnxruntime-web/wasm', () => ({
   env: { wasm: {} },
   InferenceSession: { create: runtime.create },
@@ -27,7 +28,7 @@ describe('inference worker protocol', () => {
   beforeEach(async () => {
     vi.resetModules();
     vi.clearAllMocks();
-    persistence.save.mockResolvedValue(undefined);
+    persistence.save.mockResolvedValue([]);
     vi.stubGlobal('self', { location: { href: 'http://localhost:5173/' }, postMessage, onmessage: null });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true, text: () => Promise.resolve('Turdus fuscater_Great Thrush\nZonotrichia capensis_Rufous-collared Sparrow'),
@@ -113,14 +114,17 @@ describe('inference worker protocol', () => {
   it('publishes a classified window only after persistent storage commits', async () => {
     await handle(loadRequest);
     postMessage.mockClear();
+    const stored = [{ id: 'stored-detection' }];
     let commit: (() => void) | undefined;
-    persistence.save.mockReturnValueOnce(new Promise<void>((resolve) => { commit = resolve; }));
+    persistence.save.mockReturnValueOnce(new Promise<typeof stored>((resolve) => { commit = () => { resolve(stored); }; }));
     const pending = handle({ ...inferRequest, persistence: { recordedAt: '2026-10-06T12:00:00Z', location: null, modelVersion: 'test-model' } });
     await vi.waitFor(() => { expect(persistence.save).toHaveBeenCalled(); });
     expect(postMessage).not.toHaveBeenCalled();
     commit?.();
     await pending;
     expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'INFERENCE_RESULT' }));
+    // The clips are kept from what was actually stored, with the audio of that window.
+    expect(persistence.keepClips).toHaveBeenCalledWith(stored, expect.any(Float32Array));
   });
 
   it('reports storage failure instead of publishing an unsaved detection', async () => {

@@ -7,8 +7,17 @@ import type { AudioFragment } from './useAudioFragment';
 import { useWaveform } from './useWaveform';
 import './FragmentPlayer.css';
 
+/** Accessible names and the failure message of the player; they say what is being played. */
+export interface PlayerLabels {
+  readonly play: (duration: string) => string;
+  readonly pause: string;
+  readonly error: string;
+}
+
 export interface FragmentPlayerProps {
-  readonly fragment: AudioFragment;
+  readonly fragment: Pick<AudioFragment, 'blob' | 'url'>;
+  /** Defaults to the texts of the doubtful fragment. */
+  readonly labels?: PlayerLabels;
 }
 
 /** Pausing before playback starts rejects `play()` with this; it is not a failure of the fragment. */
@@ -16,8 +25,8 @@ function isInterruptedPlay(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError';
 }
 
-/** Plays the doubtful fragment kept on this phone; it never leaves the device from here. */
-export function FragmentPlayer({ fragment }: FragmentPlayerProps): React.JSX.Element {
+/** Plays one analysis window kept on this phone: the doubtful fragment or the clip of a song. Playing sends nothing anywhere. */
+export function FragmentPlayer({ fragment, labels }: FragmentPlayerProps): React.JSX.Element {
   const { dict, locale } = useI18n();
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -25,7 +34,7 @@ export function FragmentPlayer({ fragment }: FragmentPlayerProps): React.JSX.Ele
   const [failed, setFailed] = useState(false);
   const peaks = useWaveform(fragment.blob, WAVEFORM_BARS);
   const duration = formatSeconds(AUDIO_CONSTANTS.WINDOW_DURATION_SEC, locale, DURATION_FRACTION_DIGITS);
-  const texts = dict.log.detail.fragment;
+  const texts = labels ?? dict.log.detail.fragment;
 
   const toggle = (): void => {
     const audio = audioRef.current;

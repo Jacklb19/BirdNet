@@ -20,6 +20,9 @@ export const RECORDING_BITRATE = 32_000;
 /** Largest clip the API accepts (`MAX_RECORDING_BYTES`); a bigger one stays on the phone. */
 export const RECORDING_MAX_UPLOAD_BYTES = 100_000;
 
+/** Limit shown before the account answers with its real one (`RECORDING_QUOTA_BYTES` of the API, 50 MiB by default). */
+export const ACCOUNT_RECORDINGS_DEFAULT_LIMIT_BYTES = 50 * 1024 * 1024;
+
 /** Clips kept on the phone; beyond it the oldest are dropped (those already in the account stay there). */
 export const LOCAL_RECORDINGS_MAX_BYTES = 100 * 1024 * 1024;
 
