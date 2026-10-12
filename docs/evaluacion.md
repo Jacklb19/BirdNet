@@ -107,8 +107,13 @@ Perch v2 (Google DeepMind, Apache-2.0) es otro modelo, entrenado con otros datos
 |---|---|---|---|---|
 | BirdNET int8 | 67,6 | 65,0 | 58,8 | 69,2 |
 | Perch v2 int8, confianza softmax | 47,7 | 45,8 | 43,3 | 52,5 |
+| Perch v2 int8, puntuación propia de cada especie | 50,1 | 48,0 | 43,4 | 51,8 |
 
-Con softmax, las aves que cantan a la vez se reparten una sola unidad de confianza, lo que perjudica a Perch en un coro del amanecer; esa fila es por tanto un piso, no su techo. La comparación ordenando cada especie por su puntuación propia se añade abajo cuando termine de medirse.
+Con softmax, las aves que cantan a la vez se reparten una sola unidad de confianza, lo que perjudica a Perch en un coro del amanecer. La segunda fila le quita esa desventaja: ordena cada especie por su puntuación propia, sin repartirla con las demás. Sube 2 puntos de mAP y sigue 17 por debajo de BirdNET.
+
+Leído por grabación completa (una ventana, con filtro, umbral 0,45, que para Perch coincide con su mejor umbral): Perch encontró 43 de las 63 especies anotadas e inventó 102; BirdNET encontró 48 e inventó 39.
+
+**Conclusión.** En estas grabaciones Perch v2 int8 no es mejor que el modelo que ya corre en el teléfono, así que no sirve como «modelo grande» que corrija sus dudas: una segunda opinión peor que la primera no verifica nada. Queda fuera de la medición la variante fp32 de Perch (409 MB), que junto con el entorno de ejecución no cabe en el límite de 500 MB de una función de Vercel Hobby.
 
 ### Lo que estos números no dicen
 
