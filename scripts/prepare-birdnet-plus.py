@@ -24,9 +24,14 @@ It writes into public/models/:
 - birdnet_plus_geo_model.onnx: the V3 geographic model reordered to those labels.
 
 A species is matched between the two families by scientific name and, when the taxonomies name it
-differently, by English common name. A bird of BirdNET+ matched that way keeps the scientific name the app
-already uses, so its Spanish name, photo and past records still line up. A v2.4 class the V3 geographic
-model does not know (its non-bird sounds and a few renamed species) gets probability zero.
+differently, by English common name, whatever its spelling (grey or gray, hyphens). A bird of BirdNET+
+matched that way keeps the scientific name the app already uses, so its Spanish name, photo and past records
+still line up. Some 240 classes of v2.4 have no match in the V3 geographic model. For those, the model the app
+shipped before (public/models/birdnet_geo_model.onnx, prepare-geo-model.py) is asked once, here: a class it
+expects somewhere in the world is a bird, usually rare or range-restricted, and passes the filter inside the
+box around those places, with the lowest probability that passes, so it stays detectable where it lives
+without leading any list of likely birds. A class it expects nowhere (its non-bird sounds: engine, dog,
+human voice) never passes, as before.
 
 The script prints the sizes and hashes that go into public/models/manifest.json and into the API's
 birdnet_api/model_manifest.json.
@@ -34,6 +39,7 @@ birdnet_api/model_manifest.json.
 
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import numpy as np
@@ -59,6 +65,8 @@ SOURCE_FILES = {
 }
 
 APP_LABELS_FILE = "labels.txt"
+# The geographic model the app shipped before; here it only tells birds from the other sounds of v2.4.
+FORMER_GEO_FILE = "birdnet_geo_model.onnx"
 APP_GEO_FILE = "birdnet_geo_model_v3.onnx"
 PLUS_MODEL_PARTS = ("birdnet_plus_model.part1.onnx", "birdnet_plus_model.part2.onnx")
 PLUS_LABELS_FILE = "birdnet_plus_labels.txt"
@@ -84,8 +92,15 @@ MAX_PART_BYTES = 50 * 1024 * 1024
 
 GEO_OUTPUT_NAME = "species_probs"
 LOGITS_OUTPUT_NAME = "logits"
-UNKNOWN_PROBABILITY = 0.0
+NEVER_PROBABILITY = 0.0
+# Year-round predictions of the former model on this grid give the range of a class the V3 model does not know.
+WORLD_GRID_DEGREES = 1
+WORLD_LATITUDES = (-85, 85)
+YEAR_ROUND_WEEK = -1
+GRID_BATCH = 8192
 LOCATION_FILTER_THRESHOLD = 0.03
+# What a class gets inside its range box: just enough to pass the filter, so it ranks after every bird the V3 model predicts.
+IN_RANGE_PROBABILITY = LOCATION_FILTER_THRESHOLD
 # Rewiring the graphs must not change what they compute.
 MAX_ABS_DIFF = 1e-5
 REGION = {"name": "Bogotá", "latitude": 4.70, "longitude": -74.07}
@@ -147,22 +162,58 @@ def set_single_output(model: onnx.ModelProto, name: str, classes: int) -> None:
     model.graph.output.append(helper.make_tensor_value_info(name, TensorProto.FLOAT, [batch, classes]))
 
 
-def reorder_geo(source: Path, indices: list[int]) -> bytes:
-    """The geographic model with one output per index, in order; an index of -1 gets UNKNOWN_PROBABILITY."""
+# Where a class of the reordered model takes its probability from: a class of the V3 geographic model (its index),
+# the box (south, north, west, east) inside which it passes the filter, or nowhere (None).
+Box = tuple[float, float, float, float]
+Source = int | Box | None
+
+
+def reorder_geo(source: Path, sources: list[Source]) -> bytes:
+    """The geographic model with one output per source, in order."""
     model = onnx.load(str(source))
+    place = model.graph.input[0].name
     probabilities = model.graph.output[0].name
     classes = len(read_lines(SOURCE_DIR / GEO_LABELS_FILE))
+    boxes = [entry for entry in sources if isinstance(entry, tuple)]
+    columns = probabilities
+    if boxes:
+        bounds = np.array(boxes, dtype=np.float32)
+        model.graph.initializer.extend([
+            numpy_helper.from_array(np.array([0], dtype=np.int64), "latitude_column"),
+            numpy_helper.from_array(np.array([1], dtype=np.int64), "longitude_column"),
+            *(numpy_helper.from_array(bounds[None, :, side], name) for side, name in enumerate(("south", "north", "west", "east"))),
+            numpy_helper.from_array(np.array(IN_RANGE_PROBABILITY, dtype=np.float32), "in_range_value"),
+        ])
+        model.graph.node.extend([
+            helper.make_node("Gather", [place, "latitude_column"], ["latitude"], axis=1),
+            helper.make_node("Gather", [place, "longitude_column"], ["longitude"], axis=1),
+            helper.make_node("GreaterOrEqual", ["latitude", "south"], ["north_of_south"]),
+            helper.make_node("LessOrEqual", ["latitude", "north"], ["south_of_north"]),
+            helper.make_node("GreaterOrEqual", ["longitude", "west"], ["east_of_west"]),
+            helper.make_node("LessOrEqual", ["longitude", "east"], ["west_of_east"]),
+            helper.make_node("And", ["north_of_south", "south_of_north"], ["in_latitudes"]),
+            helper.make_node("And", ["east_of_west", "west_of_east"], ["in_longitudes"]),
+            helper.make_node("And", ["in_latitudes", "in_longitudes"], ["in_box"]),
+            helper.make_node("Cast", ["in_box"], ["in_box_number"], to=TensorProto.FLOAT),
+            helper.make_node("Mul", ["in_box_number", "in_range_value"], ["in_range"]),
+            # The boxed classes come right after the species of the model.
+            helper.make_node("Concat", [probabilities, "in_range"], ["with_ranges"], axis=1),
+        ])
+        columns = "with_ranges"
+    never = classes + len(boxes)
+    box_columns = iter(range(classes, never))
+    order = [entry if isinstance(entry, int) else never if entry is None else next(box_columns) for entry in sources]
     model.graph.initializer.extend([
-        numpy_helper.from_array(np.array([0, 0, 0, 1], dtype=np.int64), "unknown_pads"),
-        numpy_helper.from_array(np.array(UNKNOWN_PROBABILITY, dtype=np.float32), "unknown_value"),
-        numpy_helper.from_array(np.array([classes if index < 0 else index for index in indices], dtype=np.int64), "label_order"),
+        numpy_helper.from_array(np.array([0, 0, 0, 1], dtype=np.int64), "one_column"),
+        numpy_helper.from_array(np.array(NEVER_PROBABILITY, dtype=np.float32), "never_value"),
+        numpy_helper.from_array(np.array(order, dtype=np.int64), "label_order"),
     ])
     model.graph.node.extend([
-        # One extra column after the last species holds the probability of a species the model does not know.
-        helper.make_node("Pad", [probabilities, "unknown_pads", "unknown_value"], ["with_unknown"], mode="constant"),
-        helper.make_node("Gather", ["with_unknown", "label_order"], [GEO_OUTPUT_NAME], axis=1),
+        # One last column holds the probability of a class that never passes.
+        helper.make_node("Pad", [columns, "one_column", "never_value"], ["with_never"], mode="constant"),
+        helper.make_node("Gather", ["with_never", "label_order"], [GEO_OUTPUT_NAME], axis=1),
     ])
-    set_single_output(model, GEO_OUTPUT_NAME, len(indices))
+    set_single_output(model, GEO_OUTPUT_NAME, len(sources))
     onnx.checker.check_model(model)
     return model.SerializeToString()
 
@@ -190,9 +241,62 @@ def run(model: bytes | Path, feed: np.ndarray) -> np.ndarray:
     return session.run([session.get_outputs()[0].name], {session.get_inputs()[0].name: feed})[0]
 
 
-def match(names: list[tuple[str, str]], by_scientific: dict[str, int], by_common: dict[str, int]) -> list[int]:
-    """Index of each (scientific, common) name in another label list: by scientific name, else by common name."""
-    return [by_scientific.get(scientific, by_common.get(common.lower(), -1)) for scientific, common in names]
+def spelling(common_name: str) -> str:
+    """A common name without what the taxonomies write differently: case, hyphens, and British or American spelling."""
+    return re.sub(r"[^a-z]", "", common_name.lower().replace("grey", "gray").replace("colour", "color"))
+
+
+def by_spelling(names: list[str]) -> dict[str, int]:
+    """Index of each common name by its spelling; a spelling two names share identifies neither."""
+    found: dict[str, int] = {}
+    shared: set[str] = set()
+    for index, name in enumerate(names):
+        key = spelling(name)
+        if key in found:
+            shared.add(key)
+        found[key] = index
+    return {key: index for key, index in found.items() if key not in shared}
+
+
+def former_ranges(model: Path) -> list[Box | None]:
+    """
+    For each class of the geographic model the app shipped before, the box around the places of a world grid where
+    it passes the location filter, one grid step wider on every side; None for a class that passes nowhere. A range
+    that crosses the antimeridian gets a box around the whole world, which only filters less.
+    """
+    session = ort.InferenceSession(str(model), providers=ONNX_PROVIDERS)
+    south, north = WORLD_LATITUDES
+    grid = np.array([
+        [latitude, longitude, YEAR_ROUND_WEEK]
+        for latitude in range(south, north + 1, WORLD_GRID_DEGREES) for longitude in range(-180, 180, WORLD_GRID_DEGREES)
+    ], dtype=np.float32)
+    passes = np.concatenate([
+        session.run(None, {session.get_inputs()[0].name: grid[start:start + GRID_BATCH]})[0] >= LOCATION_FILTER_THRESHOLD
+        for start in range(0, len(grid), GRID_BATCH)
+    ])
+    ranges: list[Box | None] = []
+    for index in range(passes.shape[1]):
+        places = grid[passes[:, index]]
+        ranges.append(None if len(places) == 0 else (
+            float(places[:, 0].min() - WORLD_GRID_DEGREES), float(places[:, 0].max() + WORLD_GRID_DEGREES),
+            float(places[:, 1].min() - WORLD_GRID_DEGREES), float(places[:, 1].max() + WORLD_GRID_DEGREES),
+        ))
+    return ranges
+
+
+def predicted(original: np.ndarray, sources: list[Source], points: np.ndarray) -> np.ndarray:
+    """What a reordered geographic model must return at `points`, given the predictions of the original there."""
+    columns = []
+    for entry in sources:
+        if isinstance(entry, int):
+            columns.append(original[:, entry])
+        elif entry is None:
+            columns.append(np.full(len(points), NEVER_PROBABILITY, dtype=np.float32))
+        else:
+            south, north, west, east = entry
+            inside = (points[:, 0] >= south) & (points[:, 0] <= north) & (points[:, 1] >= west) & (points[:, 1] <= east)
+            columns.append(np.where(inside, IN_RANGE_PROBABILITY, NEVER_PROBABILITY).astype(np.float32))
+    return np.stack(columns, axis=1)
 
 
 def main() -> None:
@@ -207,30 +311,34 @@ def main() -> None:
     app_labels = [tuple(line.split(LABEL_SEPARATOR, 1)) for line in read_lines(PUBLIC_MODELS / APP_LABELS_FILE)]
     geo_rows = [line.split(GEO_SEPARATOR) for line in read_lines(SOURCE_DIR / GEO_LABELS_FILE)]
     geo_by_scientific = {row[GEO_SCIENTIFIC]: index for index, row in enumerate(geo_rows)}
-    geo_by_common = {row[GEO_COMMON].lower(): index for index, row in enumerate(geo_rows)}
+    geo_by_common = by_spelling([row[GEO_COMMON] for row in geo_rows])
     classifier_rows = [line.split(CSV_SEPARATOR) for line in read_lines(SOURCE_DIR / CLASSIFIER_LABELS_FILE)[1:]]
     birds = [index for index, row in enumerate(classifier_rows) if row[CSV_CLASS] == BIRD_CLASS]
 
     # 1. The V3 geographic model as the filter of the acoustic model the app ships.
-    app_order = match(app_labels, geo_by_scientific, geo_by_common)
-    app_geo = reorder_geo(SOURCE_DIR / GEO_FILE, app_order)
+    ranges = former_ranges(PUBLIC_MODELS / FORMER_GEO_FILE)
+    app_sources: list[Source] = [
+        geo_by_scientific.get(scientific, geo_by_common.get(spelling(common), ranges[index]))
+        for index, (scientific, common) in enumerate(app_labels)
+    ]
+    app_geo = reorder_geo(SOURCE_DIR / GEO_FILE, app_sources)
     original = run(SOURCE_DIR / GEO_FILE, VALIDATION_POINTS)
     reordered = run(app_geo, VALIDATION_POINTS)
-    expected = np.where(np.array(app_order) < 0, UNKNOWN_PROBABILITY, original[:, np.maximum(app_order, 0)])
-    if np.abs(reordered - expected).max() > MAX_ABS_DIFF:
+    if np.abs(reordered - predicted(original, app_sources, VALIDATION_POINTS)).max() > MAX_ABS_DIFF:
         raise SystemExit("The reordered geographic model does not reproduce the original.")
     kept = {app_labels[index][0] for index in np.flatnonzero(reordered[0] >= LOCATION_FILTER_THRESHOLD)}
     missing = [name for name in EXPECTED_BOGOTA_SPECIES if name not in kept]
     if missing:
         raise SystemExit(f"{REGION['name']} should include {missing}")
     (PUBLIC_MODELS / APP_GEO_FILE).write_bytes(app_geo)
-    unknown = [app_labels[index][0] for index, source in enumerate(app_order) if source < 0]
-    by_name = sum(1 for (scientific, _), source in zip(app_labels, app_order) if source >= 0 and scientific not in geo_by_scientific)
-    print(f"[OK] {APP_GEO_FILE}: {len(app_labels)} classes, {by_name} matched by common name, {len(unknown)} unknown to the V3 model")
+    by_name = sum(1 for (scientific, _), entry in zip(app_labels, app_sources) if isinstance(entry, int) and scientific not in geo_by_scientific)
+    boxed = sum(1 for entry in app_sources if isinstance(entry, tuple))
+    print(f"[OK] {APP_GEO_FILE}: {len(app_labels)} classes, {by_name} matched by common name, "
+          f"{boxed} birds the V3 model does not know keep the range the former model gave them, {app_sources.count(None)} other classes never pass")
     print(f"     {REGION['name']} week 1: {len(kept)} species kept")
 
     # 2. BirdNET+ for the browser: birds only, one output of logits, in two parts.
-    app_by_common = {common.lower(): scientific for scientific, common in app_labels}
+    app_by_common = {key: app_labels[index][0] for key, index in by_spelling([common for _, common in app_labels]).items()}
     app_scientific = {scientific for scientific, _ in app_labels}
     plus_scientific = {classifier_rows[index][CSV_SCIENTIFIC] for index in birds}
     plus_labels: list[tuple[str, str]] = []
@@ -238,7 +346,7 @@ def main() -> None:
         scientific, common = classifier_rows[index][CSV_SCIENTIFIC], classifier_rows[index][CSV_COMMON]
         # A bird the app already knows under another scientific name keeps the name the app uses, unless
         # BirdNET+ has a class of its own with that name (a species one taxonomy splits in two).
-        known_as = app_by_common.get(common.lower(), scientific)
+        known_as = app_by_common.get(spelling(common), scientific)
         plus_labels.append((scientific if scientific in app_scientific or known_as in plus_scientific else known_as, common))
     if len({scientific for scientific, _ in plus_labels}) != len(plus_labels):
         raise SystemExit("Two BirdNET+ classes ended up with the same scientific name.")
@@ -257,9 +365,9 @@ def main() -> None:
     (PUBLIC_MODELS / PLUS_LABELS_FILE).write_text("".join(f"{scientific}{LABEL_SEPARATOR}{common}\n" for scientific, common in plus_labels), encoding="utf-8", newline="\n")
 
     # 3. The geographic model in the order of those labels.
-    plus_order = [geo_by_scientific.get(classifier_rows[index][CSV_SCIENTIFIC], -1) for index in birds]
-    plus_geo = reorder_geo(SOURCE_DIR / GEO_FILE, plus_order)
-    if np.abs(run(plus_geo, VALIDATION_POINTS) - np.where(np.array(plus_order) < 0, UNKNOWN_PROBABILITY, original[:, np.maximum(plus_order, 0)])).max() > MAX_ABS_DIFF:
+    plus_sources: list[Source] = [geo_by_scientific[classifier_rows[index][CSV_SCIENTIFIC]] for index in birds]
+    plus_geo = reorder_geo(SOURCE_DIR / GEO_FILE, plus_sources)
+    if np.abs(run(plus_geo, VALIDATION_POINTS) - predicted(original, plus_sources, VALIDATION_POINTS)).max() > MAX_ABS_DIFF:
         raise SystemExit("The geographic model of BirdNET+ does not reproduce the original.")
     (PUBLIC_MODELS / PLUS_GEO_FILE).write_bytes(plus_geo)
     renamed = sum(1 for (known_as, _), index in zip(plus_labels, birds) if known_as != classifier_rows[index][CSV_SCIENTIFIC])

@@ -28,7 +28,7 @@ Tachyspiza albogularis_Pied Goshawk
 Astur atricapillus_American Goshawk
 Accipiter gentilis_Eurasian Goshawk
 Accipiter badius_Shikra
-Astur bicolor_Bicolored Hawk
+Accipiter bicolor_Bicolored Hawk
 Tachyspiza brevipes_Levant Sparrowhawk
 Astur chilensis_Chilean Hawk
 Accipiter cirrocephalus_Collared Sparrowhawk
@@ -394,7 +394,7 @@ Charadrius collaris_Collared Plover
 Anarhynchus dealbatus_White-faced Plover
 Charadrius falklandicus_Two-banded Plover
 Anarhynchus frontalis_Wrybill
-Anarhynchus leschenaultii_Greater Sand Plover
+Charadrius leschenaultii_Greater Sand Plover
 Anarhynchus marginatus_White-fronted Plover
 Anarhynchus mongolus_Siberian Sand Plover
 Charadrius nivosus_Snowy Plover
@@ -1669,8 +1669,8 @@ Chaetura pelagica_Chimney Swift
 Chaetura spinicaudus_Band-rumped Swift
 Chaetura vauxi_Vaux's Swift
 Phoenicurus leucocephalus_White-capped Redstart
-Chalcites basalis_Horsfield's Bronze Cuckoo
-Chalcites lucidus_Shining Bronze Cuckoo
+Chrysococcyx basalis_Horsfield's Bronze Cuckoo
+Chrysococcyx lucidus_Shining Bronze Cuckoo
 Chrysococcyx osculans_Black-eared Cuckoo
 Chalcites ruficollis_Rufous-throated Bronze Cuckoo
 Chalcomitra adelberti_Buff-throated Sunbird
@@ -1996,7 +1996,7 @@ Circaetus cinerascens_Western Banded Snake Eagle
 Circaetus cinereus_Brown Snake Eagle
 Circaetus fasciolatus_Southern Banded Snake Eagle
 Circaetus gallicus_Short-toed Snake Eagle
-Circaetus spectabilis_Congo Serpent Eagle
+Dryotriorchis spectabilis_Congo Serpent Eagle
 Circus aeruginosus_Western Marsh Harrier
 Circus approximans_Swamp Harrier
 Circus buffoni_Long-winged Harrier
@@ -2356,7 +2356,7 @@ Coryphistera alaudina_Lark-like Brushrunner
 Coryphospingus cucullatus_Red Pileated Finch
 Coryphospingus pileatus_Grey Pileated Finch
 Corythaeola cristata_Great Blue Turaco
-Crinifer concolor_Grey Go-away-bird
+Corythaixoides concolor_Grey Go-away-bird
 Corythaixoides leucogaster_White-bellied Go-away-bird
 Crinifer personatus_Bare-faced Go-away-bird
 Corythopis delalandi_Southern Antpipit
@@ -2378,7 +2378,7 @@ Cossypha humeralis_White-throated Robin-Chat
 Cossyphicula isabellae_Mountain Robin-Chat
 Cossypha natalensis_Red-capped Robin-Chat
 Cossypha niveicapilla_Snowy-crowned Robin-Chat
-Sheppardia polioptera_Grey-winged Robin-Chat
+Cossypha polioptera_Grey-winged Robin-Chat
 Cossypha semirufa_Rüppell's Robin-Chat
 Cossyphicula roberti_White-bellied Robin-Chat
 Cotinga amabilis_Lovely Cotinga
@@ -2774,7 +2774,7 @@ Dendroma rufa_Buff-fronted Foliage-gleaner
 Dendronanthus indicus_Forest Wagtail
 Chloropicus fuscescens_Cardinal Woodpecker
 Dendropicos gabonensis_Gabon Woodpecker
-Dendropicos goertae_African Grey Woodpecker
+Chloropicus goertae_African Grey Woodpecker
 Chloropicus griseocephalus_Olive Woodpecker
 Dendropicos lugubris_Melancholy Woodpecker
 Dendropicos obsoletus_Brown-backed Woodpecker
@@ -3799,10 +3799,10 @@ Gypsophila annamensis_Annam Limestone Babbler
 Gypsophila brevicaudata_Streaked Wren-Babbler
 Gypsophila crassa_Mountain Wren-Babbler
 Gypsophila rufipectus_Rusty-breasted Wren-Babbler
-Driophlox atrimaxillaris_Black-cheeked Ant Tanager
-Driophlox cristata_Crested Ant Tanager
-Driophlox fuscicauda_Red-throated Ant Tanager
-Driophlox gutturalis_Sooty Ant Tanager
+Habia atrimaxillaris_Black-cheeked Ant Tanager
+Habia cristata_Crested Ant Tanager
+Habia fuscicauda_Red-throated Ant Tanager
+Habia gutturalis_Sooty Ant Tanager
 Habia rubica_Red-crowned Ant Tanager
 Haematoderus militaris_Crimson Fruitcrow
 Haematopus ater_Blackish Oystercatcher
@@ -3835,13 +3835,13 @@ Halcyon senegalensis_Woodland Kingfisher
 Halcyon senegaloides_Mangrove Kingfisher
 Halcyon smyrnensis_White-throated Kingfisher
 Haliaeetus albicilla_White-tailed Eagle
-Icthyophaga humilis_Lesser Fish Eagle
-Icthyophaga ichthyaetus_Grey-headed Fish Eagle
+Haliaeetus humilis_Lesser Fish Eagle
+Haliaeetus ichthyaetus_Grey-headed Fish Eagle
 Haliaeetus leucocephalus_Bald Eagle
-Icthyophaga leucogaster_White-bellied Sea Eagle
+Haliaeetus leucogaster_White-bellied Sea Eagle
 Haliaeetus leucoryphus_Pallas's Fish Eagle
 Haliaeetus pelagicus_Steller's Sea Eagle
-Icthyophaga vocifer_African Fish Eagle
+Haliaeetus vocifer_African Fish Eagle
 Icthyophaga vociferoides_Madagascar Fish Eagle
 Haliastur indus_Brahminy Kite
 Haliastur sphenurus_Whistling Kite
@@ -5093,7 +5093,7 @@ Brachypodius eutilotus_Puff-backed Bulbul
 Microtarsus fuscoflavescens_Andaman Bulbul
 Brachypodius melanocephalos_Black-headed Bulbul
 Brachypodius melanoleucos_Black-and-white Bulbul
-Microtarsus priocephalus_Grey-headed Bulbul
+Brachypodius priocephalus_Grey-headed Bulbul
 Microxenops milleri_Rufous-tailed Xenops
 Milvus migrans_Black Kite
 Milvus milvus_Red Kite
@@ -5117,14 +5117,14 @@ Mionectes roraimae_Sierra de Lema Flycatcher
 Mionectes oleagineus_Ochre-bellied Flycatcher
 Mionectes rufiventris_Grey-hooded Flycatcher
 Mionectes striaticollis_Streak-necked Flycatcher
-Plocealauda affinis_Jerdon's Bush Lark
+Mirafra affinis_Jerdon's Bush Lark
 Mirafra albicauda_White-tailed Lark
 Amirafra angolensis_Angola Lark
 Mirafra apiata_Cape Clapper Lark
-Plocealauda assamica_Bengal Bush Lark
+Mirafra assamica_Bengal Bush Lark
 Mirafra cheniana_Melodious Lark
-Plocealauda erythrocephala_Indochinese Bush Lark
-Plocealauda erythroptera_Indian Bush Lark
+Mirafra erythrocephala_Indochinese Bush Lark
+Mirafra erythroptera_Indian Bush Lark
 Mirafra fasciolata_Eastern Clapper Lark
 Mirafra javanica_Singing Bush Lark
 Plocealauda microptera_Burmese Bush Lark
@@ -6334,16 +6334,16 @@ Phyllomyias weedeni_Yungas Tyrannulet
 Phylloscartes beckeri_Bahia Tyrannulet
 Phylloscartes ceciliae_Alagoas Tyrannulet
 Pogonotriccus difficilis_Serra do Mar Bristle Tyrant
-Pogonotriccus eximius_Southern Bristle Tyrant
+Phylloscartes eximius_Southern Bristle Tyrant
 Phylloscartes flavovirens_Panama Tyrannulet
 Phylloscartes gualaquizae_Ecuadorian Tyrannulet
 Phylloscartes kronei_Restinga Tyrannulet
-Pogonotriccus ophthalmicus_Marble-faced Bristle Tyrant
+Phylloscartes ophthalmicus_Marble-faced Bristle Tyrant
 Pogonotriccus orbitalis_Spectacled Bristle Tyrant
 Phylloscartes oustaleti_Oustalet's Tyrannulet
 Phylloscartes parkeri_Cinnamon-faced Tyrannulet
 Pogonotriccus paulista_Sao Paulo Bristle Tyrant
-Pogonotriccus poecilotis_Variegated Bristle Tyrant
+Phylloscartes poecilotis_Variegated Bristle Tyrant
 Phylloscartes roquettei_Minas Gerais Tyrannulet
 Phylloscartes superciliaris_Rufous-browed Tyrannulet
 Phylloscartes sylviolus_Bay-ringed Tyrannulet
@@ -7088,7 +7088,7 @@ Ptilinopus greyi_Red-bellied Fruit Dove
 Ptilinopus insolitus_Knob-billed Fruit Dove
 Ptilinopus iozonus_Orange-bellied Fruit Dove
 Ptilinopus luteovirens_Golden Dove
-Megaloprepia magnifica_Wompoo Fruit Dove
+Ptilinopus magnificus_Wompoo Fruit Dove
 Ptilinopus melanospilus_Black-naped Fruit Dove
 Ptilinopus monacha_Blue-capped Fruit Dove
 Ptilinopus nainus_Dwarf Fruit Dove
@@ -8831,8 +8831,8 @@ Yungipicus nanus_Brown-capped Pygmy Woodpecker
 Yungipicus temminckii_Sulawesi Pygmy Woodpecker
 Zanclostomus javanicus_Red-billed Malkoha
 Zanda baudinii_Baudin's Black Cockatoo
-Zanda funerea_Yellow-tailed Black Cockatoo
-Zanda latirostris_Carnaby's Black Cockatoo
+Calyptorhynchus funereus_Yellow-tailed Black Cockatoo
+Calyptorhynchus latirostris_Carnaby's Black Cockatoo
 Zaratornis stresemanni_White-cheeked Cotinga
 Zavattariornis stresemanni_Ethiopian Bushcrow
 Zebrilus undulatus_Zigzag Heron
