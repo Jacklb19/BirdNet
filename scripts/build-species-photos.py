@@ -2,9 +2,9 @@
 Builds public/models/species-photos.json: the photo of every bird likely in the deployment region, so the app shows
 it at once instead of asking two services per species (ADR-23).
 
-The region's species come from BirdNET's geographic model (public/models/birdnet_geo_model_v3.onnx, see
+The region's species come from the geographic model of each acoustic model the manifest offers (see
 prepare-birdnet-plus.py): every label whose year-round probability passes BirdNET's location threshold at any of
-REGION_POINTS. For each one, the lead image of its Wikipedia article is looked up and its thumbnail, author and
+REGION_POINTS, so a bird only the second model knows has its photo too. For each one, the lead image of its Wikipedia article is looked up and its thumbnail, author and
 license are read from Wikimedia Commons, the same sources and rules as src/features/species/speciesPhotos.ts.
 Species without an article image or without a license are left out; the app looks those up itself.
 
@@ -26,8 +26,8 @@ import requests
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 MODELS_DIR = BASE_DIR / "public" / "models"
-GEO_MODEL_PATH = MODELS_DIR / "birdnet_geo_model_v3.onnx"
-LABELS_PATH = MODELS_DIR / "labels.txt"
+# Mirrors MODEL_FILES.manifest in build.config.mjs; it names the labels and the geographic model of each acoustic model.
+MANIFEST_PATH = MODELS_DIR / "manifest.json"
 # Mirrors MODEL_FILES.speciesPhotos in build.config.mjs.
 OUTPUT_PATH = MODELS_DIR / "species-photos.json"
 
@@ -67,10 +67,19 @@ TAG_PATTERN = re.compile(r"<[^>]*>")
 SPACE_PATTERN = re.compile(r"\s+")
 
 
-def region_species() -> list[str]:
-    """Scientific names likely at any region point over the year, in label order."""
-    labels = [line.strip() for line in LABELS_PATH.read_text(encoding="utf-8").splitlines() if line.strip()]
-    session = ort.InferenceSession(str(GEO_MODEL_PATH), providers=["CPUExecutionProvider"])
+def model_resources() -> list[tuple[Path, Path]]:
+    """Labels and geographic model of every acoustic model the manifest offers."""
+    manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    return [
+        (MODELS_DIR / model["labels_file"], MODELS_DIR / model["geo_model_file"])
+        for model in (manifest, manifest.get("alternate")) if model and model.get("geo_model_file")
+    ]
+
+
+def region_species(labels_path: Path, geo_model_path: Path) -> list[str]:
+    """Scientific names of one model likely at any region point over the year, in label order."""
+    labels = [line.strip() for line in labels_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    session = ort.InferenceSession(str(geo_model_path), providers=["CPUExecutionProvider"])
     input_name = session.get_inputs()[0].name
     points = np.array([[lat, lon, YEAR_ROUND_WEEK] for lat, lon in REGION_POINTS.values()], dtype=np.float32)
     probabilities = session.run(None, {input_name: points})[0]
@@ -151,7 +160,8 @@ def image_infos(session: requests.Session, files: list[str]) -> dict[str, tuple[
 
 
 def main() -> None:
-    species = region_species()
+    # A species two models know is asked for once; the order only decides how the queries are batched.
+    species = list(dict.fromkeys(name for labels, geo in model_resources() for name in region_species(labels, geo)))
     with requests.Session() as session:
         session.headers["User-Agent"] = USER_AGENT
         files = page_images(session, species)
