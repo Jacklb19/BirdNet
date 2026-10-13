@@ -1,4 +1,5 @@
 import { config } from '../../config/env';
+import { watchForUpdates } from './appUpdate';
 import {
   dispatchSyncError, OFFLINE_OPERATION_TIMEOUT_MS, OFFLINE_OPERATIONS, SERVICE_WORKER_URL, SYNC_RETRY_INTERVAL_MS, SYNC_TAG,
   type OfflineOperation, type OfflineReply, type OfflineRequest, type OfflineResult,
@@ -7,7 +8,7 @@ import {
 /** Registration follows `config.offlineEnabled`, so development keeps Vite's module graph untouched. */
 export async function registerOffline(): Promise<void> {
   if (!config.offlineEnabled || !('serviceWorker' in navigator)) return;
-  await navigator.serviceWorker.register(SERVICE_WORKER_URL, { type: 'module' });
+  watchForUpdates(await navigator.serviceWorker.register(SERVICE_WORKER_URL, { type: 'module' }));
   const retry = (): void => { void scheduleSynchronization().catch(dispatchSyncError); };
   window.addEventListener('online', retry);
   setInterval(() => { if (document.visibilityState === 'visible' && navigator.onLine) retry(); }, SYNC_RETRY_INTERVAL_MS);

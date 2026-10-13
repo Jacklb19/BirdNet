@@ -178,6 +178,9 @@ export const TAXON_CACHE_MAX_ENTRIES = 800;
 
 // ─── Page ↔ service worker protocol ──────────────────────────────────────
 
+/** How often an app left open asks whether a new version exists, when the person comes back to it (one hour). */
+export const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000;
+
 /** Longest wait for one operation (five minutes); sized for downloading the model on a slow connection. */
 export const OFFLINE_OPERATION_TIMEOUT_MS = 5 * 60 * 1000;
 

@@ -1,7 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import fs from 'node:fs';
-import { API_PROXY_PREFIX, OFFLINE_CHECK_BUNDLE, TMP_DIR } from '../build.config.mjs';
-import { MIN_QUEUE_BYTES, OFFLINE_OPERATIONS, type OfflineRequestMessage } from '../src/features/offline/offline.constants';
+import path from 'node:path';
+import { API_PROXY_PREFIX, OFFLINE_CHECK_BUNDLE, OUT_DIR, TMP_DIR } from '../build.config.mjs';
+import { MIN_QUEUE_BYTES, OFFLINE_OPERATIONS, SERVICE_WORKER_URL, type OfflineRequestMessage } from '../src/features/offline/offline.constants';
 import { STORAGE_KEYS } from '../src/config/storage';
 import { routeHash } from '../src/app/routes';
 import { DEFAULT_LOCALE } from '../src/i18n/locales';
@@ -17,6 +18,8 @@ const REVIEW_HEIGHT = 900;
 const THEMES = ['light', 'dark'] as const;
 /** The first model download fetches about 37 MiB, far beyond the default expectation timeout. */
 const MODEL_DOWNLOAD_TIMEOUT_MS = 90_000;
+/** A browser lets a new worker take over once the previous one has been idle, which can take about half a minute. */
+const UPDATE_TAKEOVER_TIMEOUT_MS = 75_000;
 /** Fault-injection routes of the backend fixture (tests/local_server.py), reached through the preview proxy. */
 const FIXTURE_ROUTES = {
   counts: `${API_PROXY_PREFIX}/test/counts`,
@@ -174,6 +177,45 @@ test('the preview model installs on request, listens offline when chosen and fre
   expect(await reopened.evaluate(() => window.offlineChecks.inferReference())).toContain('Turdus fuscater');
   expect(await lastVersion(reopened)).toContain(productionManifest.model_id);
   expect(await lastVersion(reopened)).not.toContain(productionManifest.alternate.model_id);
+});
+
+// Regression: a new version stayed behind the old one for as long as any tab was open, however often it was reloaded.
+test('a new version takes over while the app is open and is offered, not forced on the person', async ({ page }) => {
+  test.setTimeout(3 * UPDATE_TAKEOVER_TIMEOUT_MS);
+  const workerFile = path.join(OUT_DIR, SERVICE_WORKER_URL);
+  const original = fs.readFileSync(workerFile, 'utf8');
+  /** Publishes another version of the worker and makes the browser notice it, as a deployment would. */
+  const publish = async (version: string): Promise<void> => {
+    fs.writeFileSync(workerFile, [original, `// ${version}`, ''].join('\n'));
+    await page.evaluate(async () => { await (await navigator.serviceWorker.getRegistration())?.update(); });
+  };
+  const waiting = (): Promise<boolean> => page.evaluate(async () => Boolean((await navigator.serviceWorker.getRegistration())?.waiting));
+  const offer = page.getByRole('button', { name: texts.app.update.action });
+  const loads: string[] = [];
+  page.on('load', () => { loads.push(page.url()); });
+  try {
+    await ready(page, routeHash({ name: 'settings' }));
+    await expect(offer).toHaveCount(0);
+    const loadsBefore = loads.length;
+    await publish('second version');
+    await expect(offer).toBeVisible({ timeout: UPDATE_TAKEOVER_TIMEOUT_MS });
+    // The new worker is in charge, and the page was not reloaded under the person.
+    expect(await waiting()).toBe(false);
+    expect(loads).toHaveLength(loadsBefore);
+    await Promise.all([page.waitForEvent('load'), offer.click()]);
+    await expect(page.getByRole('heading', { name: texts.settings.title })).toBeVisible();
+    await expect(offer).toHaveCount(0);
+
+    // Someone who ignores the offer gets the new version the next time they open the app.
+    await publish('third version');
+    await expect(offer).toBeVisible({ timeout: UPDATE_TAKEOVER_TIMEOUT_MS });
+    await page.reload();
+    await expect(page.getByRole('heading', { name: texts.settings.title })).toBeVisible();
+    await expect(offer).toHaveCount(0);
+    expect(await waiting()).toBe(false);
+  } finally {
+    fs.writeFileSync(workerFile, original);
+  }
 });
 
 for (const width of REVIEW_WIDTHS) {

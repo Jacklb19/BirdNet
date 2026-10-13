@@ -26,6 +26,7 @@ export const appMessages = defineMessages({
       open: 'Ir a Escuchar',
     },
     pageError: 'Esta sección no se pudo abrir. Recarga la página para intentarlo de nuevo.',
+    update: { text: 'Hay una versión nueva de Trino.', listening: 'Hay una versión nueva de Trino. Al actualizar se detiene la escucha.', action: 'Actualizar' },
     reload: 'Recargar',
   },
   en: {
@@ -52,6 +53,7 @@ export const appMessages = defineMessages({
       open: 'Go to Listen',
     },
     pageError: 'This section could not be opened. Reload the page to try again.',
+    update: { text: 'There is a new version of Trino.', listening: 'There is a new version of Trino. Updating stops listening.', action: 'Update' },
     reload: 'Reload',
   },
 });
