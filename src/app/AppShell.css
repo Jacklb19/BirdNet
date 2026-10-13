@@ -34,6 +34,13 @@
   outline: none;
 }
 
+/* Above whatever screen is open, with the gutter and width of a narrow page. */
+.bn-shell__update {
+  max-width: var(--content-narrow);
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-4) 0;
+}
+
 .bn-shell__loading,
 .bn-shell__error {
   max-width: var(--content-narrow);

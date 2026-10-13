@@ -58,6 +58,7 @@ Ajustes opcionales de la API (tiempos de espera, límites de resultados y export
 
 - `https://bird-back.vercel.app/v1/health` y `https://birdnet-nu.vercel.app/api/v1/health` responden `{"status":"ok"}`.
 - `https://birdnet-nu.vercel.app/privacy.html` muestra la política de privacidad.
+- Tras un despliegue, una pestaña que ya estaba abierta muestra en menos de un minuto el aviso «Hay una versión nueva de Trino» con el botón «Actualizar» (ADR-33); una visita nueva abre directamente la versión nueva.
 - Primera visita → página de inicio → «Abrir Trino» (descarga una sola vez el modelo acústico y el geográfico); Escuchar → iniciar la escucha.
 - Mapa → «Empezar caminata»: pide micrófono y ubicación, la pantalla se queda encendida, el sendero se dibuja al moverse y cada ave queda en su punto; «Terminar caminata» la guarda y aparece en la Bitácora.
 - Guía → una ficha: clasificación, estado de conservación y mapa «Dónde vive» (GBIF).

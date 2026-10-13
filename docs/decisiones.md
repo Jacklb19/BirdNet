@@ -403,3 +403,20 @@ RF-09 pedía verificar en la nube las detecciones de confianza intermedia con un
 - En la base de datos quedan sin uso la columna `ruta_audio` y la tabla `verification_jobs`; no se escribe una migración para quitarlas. El bucket de fragmentos dudosos y la variable `SUPABASE_AUDIO_BUCKET` se pueden borrar a mano.
 - La API sigue enviando `has_audio`, siempre falso, en el registro de una especie: las versiones de la app instaladas antes de este cambio descartan los registros que no lo traen.
 - Si más adelante existe un modelo que sí verifique mejor, RF-09 se puede retomar; las grabaciones confirmadas por las personas (ADR-28 y ADR-29) son además los datos que haría falta para entrenar un clasificador propio, que sigue sin autorizarse.
+
+---
+
+## ADR-33. Una versión nueva de la app entra sin esperar a que se cierren las pestañas (Sprint 9, completa ADR-19)
+
+### Contexto
+El Service Worker guarda la app para usarla sin señal, y el navegador retiene al de una versión nueva mientras quede alguna pestaña abierta con la anterior: recargar no basta. Tras desplegar S9 el dueño seguía viendo la versión anterior. Quien deja la app abierta, o instalada en el teléfono sin cerrarla del todo, podía quedarse en una versión vieja indefinidamente.
+
+### Decisión
+- **El Service Worker de una versión nueva toma el control en cuanto el navegador lo permite** (`skipWaiting` al instalarse), sin esperar a que se cierren las pestañas. Desde ese momento, cualquier recarga o visita nueva es la versión nueva.
+- **La pantalla que estaba abierta no se recarga sola**: sigue con el código de la versión anterior y muestra un aviso, «Hay una versión nueva de Trino», con el botón «Actualizar». Recargarla por su cuenta cortaría una escucha o borraría lo que la persona estuviera escribiendo.
+- Una app que se deja abierta pregunta por una versión nueva al volver a ella, como mucho una vez por hora.
+
+### Consecuencias
+- El navegador solo cede el control cuando el Service Worker anterior lleva un rato sin actividad (unos 30 segundos, medido en Chrome), así que el aviso puede tardar ese tiempo. Por eso se descartó aplicar la versión sola al abrir la app: la recarga habría llegado medio minuto después, con la persona ya usándola.
+- Mientras la persona no actualiza, su pantalla habla con el Service Worker nuevo; las operaciones entre ambos son las mismas o un superconjunto. Una sección que no hubiera abierto todavía puede no cargar (sus archivos eran de la versión anterior): el aviso y el mensaje de error de la sección piden recargar.
+- Las instalaciones anteriores a este cambio reciben la versión nueva sin cerrar nada: abrir la app, esperar medio minuto y recargar.

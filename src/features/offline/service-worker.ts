@@ -20,8 +20,9 @@ interface WorkerScope {
   __WB_MANIFEST: { url: string; revision: string | null }[];
   addEventListener(type: 'message', callback: (event: MessageEventWithLifetime) => void): void;
   addEventListener(type: 'sync', callback: (event: SyncEvent) => void): void;
-  addEventListener(type: 'activate', callback: (event: ExtendableEvent) => void): void;
+  addEventListener(type: 'install' | 'activate', callback: (event: ExtendableEvent) => void): void;
   clients: { claim(): Promise<void> };
+  skipWaiting(): Promise<void>;
 }
 const scope = self as unknown as WorkerScope;
 const SERVICE_UNAVAILABLE = 503;
@@ -58,6 +59,11 @@ registerRoute(
   ({ url }) => isTaxonUrl(url),
   ({ request, event }: { request: Request; event: ExtendableEvent }) => cachedTaxon(request, (task) => { event.waitUntil(task); }),
 );
+// A new version does not wait for every tab of the previous one to be closed, which may never happen: it takes
+// over as soon as the browser lets it, so the next reload or visit is the new version. A page that is open
+// keeps running its own code and offers the reload (`appUpdate.ts`). The operations of both versions are the
+// same or a superset, so such a page goes on working meanwhile.
+scope.addEventListener('install', (event) => { event.waitUntil(scope.skipWaiting()); });
 scope.addEventListener('activate', (event) => { event.waitUntil(scope.clients.claim()); });
 
 let synchronization: Promise<void> | null = null;
