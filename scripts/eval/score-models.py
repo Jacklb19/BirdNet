@@ -121,6 +121,8 @@ MODELS: dict[str, ModelSpec] = {
 GEO_MODELS: dict[str, tuple[Path, Path, str, int]] = {
     "v2.4": (PUBLIC_MODELS / "birdnet_geo_model.onnx", PUBLIC_MODELS / "labels.txt", "_", 0),
     "v3": (V3_LIVE / "geomodel-global-10k-pruned-fp16.onnx", V3_LIVE / "geomodel-labels.txt", "	", 1),
+    # What the app ships since ADR-31: the V3 model reordered to the labels of v2.4 (scripts/prepare-birdnet-plus.py).
+    "app": (PUBLIC_MODELS / "birdnet_geo_model_v3.onnx", PUBLIC_MODELS / "labels.txt", "_", 0),
 }
 
 

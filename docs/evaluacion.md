@@ -38,6 +38,10 @@ Sus límites: son grabadoras de campo, no teléfonos, y Jardín no es Bogotá. U
 
 `scripts/eval/store-weights-as-half.py` genera la variante fp16 de un modelo fp32 (los pesos se guardan en media precisión y el cálculo sigue en float32).
 
+`python scripts/eval/explore.py` prueba ideas sobre puntuaciones ya calculadas, antes de construir ninguna en la app: reglas de decisión que la app no tiene (`rules`, que también acepta con `--geo` otra lista de especies permitidas por grabación), un segundo modelo como respaldo de las detecciones dudosas (`second-opinion`) y dos modelos decidiendo juntos (`combine`). Repite en Python el recuento de `metrics.ts`, así que su fila de una ventana debe coincidir con la de `report.mjs`; las cifras de referencia son las de `report.mjs`. Lo que este documento marca con † sale de ese script.
+
+`score-models.py --geo` elige el modelo geográfico que escribe las especies permitidas: `v2.4` (el que la app usaba hasta el ADR-31, por defecto, para repetir las mediciones anteriores), `v3` (el del V3, para sus propios clasificadores) o `app` (el archivo que la app despliega desde el ADR-31).
+
 ### Métricas
 
 Cada grabación se parte en tramos de 15 s y a cada tramo se le pregunta lo que una persona le pregunta a la Bitácora: ¿anotó la app esta especie más o menos cuando cantó? Así se comparan en igualdad de condiciones modelos con ventanas distintas y reglas que combinan varias ventanas. Una detección de una especie anotada hasta 3 s fuera del tramo no cuenta ni a favor ni en contra.
@@ -120,7 +124,7 @@ Leído por grabación completa (una ventana, con filtro, umbral 0,45): de las 63
 
 ### 5. Intentos de mejorar la detección sin entrenar (2026-10-12)
 
-El dueño pidió acercar la detección a la de Merlin tanto como fuera realista. Se probó todo lo que no exige entrenar un modelo. Las filas marcadas con † son cálculos exploratorios sobre los mismos archivos de puntuaciones, hechos fuera de `report.mjs`; el resto se reproduce con las opciones de `score-models.py`.
+El dueño pidió acercar la detección a la de Merlin tanto como fuera realista. Se probó todo lo que no exige entrenar un modelo. Las filas marcadas con † salen de `scripts/eval/explore.py` sobre los mismos archivos de puntuaciones; el resto se reproduce con las opciones de `score-models.py` y `report.mjs`.
 
 **Otro modelo: BirdNET+ V3.0 (vista previa de desarrollo).** Es el sucesor del v2.4, del mismo equipo. Se midieron la variante que trae la app oficial BirdNET Live (65 MB, 9.789 especies, Apache-2.0) y el modelo completo (557 MB, 11.560 especies, CC BY-SA 4.0), cada uno con su propio modelo geográfico (`--geo v3`).
 
