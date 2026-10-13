@@ -2,10 +2,13 @@ import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { config } from '../../config/env';
 import { STATIC_PAGES } from '../../config/staticPages';
-import { activeAlternate, downloadAlternate, removeAlternate } from './alternateCache';
+import {
+  activeAlternate, alternateFetchPending, downloadAlternate, forgetAlternateFetch, installFetchedAlternate, prepareAlternateFetch, removeAlternate,
+  type FetchedRecord,
+} from './alternateCache';
 import { activeModel, availableManifest, downloadModel, requestedManifestUrl } from './modelCache';
 import {
-  APP_SHELL_URL, isOfflineOperation, MODEL_CACHE_NAME, MODEL_CACHE_PATH_PREFIX, OFFLINE_OPERATIONS, SYNC_TAG,
+  ALTERNATE_FETCH_ID, APP_SHELL_URL, isOfflineOperation, MODEL_CACHE_NAME, MODEL_CACHE_PATH_PREFIX, OFFLINE_OPERATIONS, SYNC_TAG,
   type OfflineOperation, type OfflineProgress, type OfflineReply, type OfflineRequest, type OfflineRequestMessage, type OfflineResult,
 } from './offline.constants';
 import { cachedPhoto, cachedSummary, cachedTaxon, isSpeciesPhotoUrl, isSpeciesSummaryUrl, isTaxonUrl } from './photoCache';
@@ -16,11 +19,14 @@ import { synchronizeQueue } from './syncQueue';
 interface ExtendableEvent extends Event { waitUntil(task: Promise<unknown>): void }
 interface MessageEventWithLifetime extends ExtendableEvent { data: unknown; ports: readonly MessagePort[] }
 interface SyncEvent extends ExtendableEvent { tag: string }
+/** A background download (Background Fetch) the browser finished, gave up on, or the person cancelled. */
+interface BackgroundFetchEvent extends ExtendableEvent { registration: { id: string; matchAll(): Promise<FetchedRecord[]> } }
 interface WorkerScope {
   __WB_MANIFEST: { url: string; revision: string | null }[];
   addEventListener(type: 'message', callback: (event: MessageEventWithLifetime) => void): void;
   addEventListener(type: 'sync', callback: (event: SyncEvent) => void): void;
   addEventListener(type: 'install' | 'activate', callback: (event: ExtendableEvent) => void): void;
+  addEventListener(type: 'backgroundfetchsuccess' | 'backgroundfetchfail' | 'backgroundfetchabort', callback: (event: BackgroundFetchEvent) => void): void;
   clients: { claim(): Promise<void> };
   skipWaiting(): Promise<void>;
 }
@@ -74,17 +80,40 @@ async function synchronizeOnce(): Promise<undefined> {
 }
 scope.addEventListener('sync', (event) => { if (event.tag === SYNC_TAG) event.waitUntil(synchronizeOnce()); });
 
-let downloading: Promise<unknown> | null = null;
-/** One model download at a time: two would compete for the connection and for memory. */
-async function exclusively<Result>(start: () => Promise<Result>): Promise<Result> {
-  if (downloading) throw new Error('Model download already in progress.');
-  const pending = start();
-  downloading = pending;
-  try { return await pending; } finally { downloading = null; }
+type Report = (update: OfflineProgress) => void;
+let downloading: { readonly what: string; readonly task: Promise<unknown>; readonly watchers: Set<Report> } | null = null;
+/**
+ * One model download at a time: two would compete for the connection and for memory. A page that asks for the
+ * one already running joins it, which is what happens when it took a quiet download for stopped and asked again.
+ */
+async function exclusively<Result>(what: string, report: Report, start: (progress: (received: number, total: number) => void) => Promise<Result>): Promise<Result> {
+  if (downloading) {
+    if (downloading.what !== what) throw new Error('Another model download is in progress.');
+    downloading.watchers.add(report);
+    return downloading.task as Promise<Result>;
+  }
+  const watchers = new Set([report]);
+  const task = start((received, total) => { for (const watcher of watchers) watcher({ received, total }); });
+  downloading = { what, task, watchers };
+  try { return await task; } finally { downloading = null; }
 }
-function download(manifestUrl: string | undefined, progress: (update: OfflineProgress) => void): Promise<OfflineResult<typeof OFFLINE_OPERATIONS.downloadModel>> {
-  return exclusively(() => downloadModel(requestedManifestUrl(manifestUrl), (received, total) => { progress({ received, total }); }));
+function download(manifestUrl: string | undefined, progress: Report): Promise<OfflineResult<typeof OFFLINE_OPERATIONS.downloadModel>> {
+  const url = requestedManifestUrl(manifestUrl);
+  return exclusively(`${OFFLINE_OPERATIONS.downloadModel} ${url}`, progress, (report) => downloadModel(url, report));
 }
+
+// The second model may also arrive through a background download the page started (`alternateFetch.ts`): the
+// browser wakes this worker when it ends, with or without the app open. Either way the note of what was asked
+// for is gone afterwards, which is how an open page knows this worker is done (`alternateFetchPending`).
+async function settleAlternateFetch(event: BackgroundFetchEvent, install: boolean): Promise<void> {
+  try {
+    if (install) await installFetchedAlternate(await event.registration.matchAll());
+    else await forgetAlternateFetch();
+  } catch { /* Nothing was installed; the person can ask for the model again. */ }
+}
+scope.addEventListener('backgroundfetchsuccess', (event) => { if (event.registration.id === ALTERNATE_FETCH_ID) event.waitUntil(settleAlternateFetch(event, true)); });
+scope.addEventListener('backgroundfetchfail', (event) => { if (event.registration.id === ALTERNATE_FETCH_ID) event.waitUntil(settleAlternateFetch(event, false)); });
+scope.addEventListener('backgroundfetchabort', (event) => { if (event.registration.id === ALTERNATE_FETCH_ID) event.waitUntil(settleAlternateFetch(event, false)); });
 
 type OfflineHandlers = {
   readonly [O in OfflineOperation]: (request: OfflineRequest<O>, progress: (update: OfflineProgress) => void) => Promise<OfflineResult<O>>;
@@ -95,7 +124,10 @@ const handlers: OfflineHandlers = {
   [OFFLINE_OPERATIONS.modelManifest]: async () => (await availableManifest()).manifest,
   [OFFLINE_OPERATIONS.downloadModel]: (request, progress) => download(request?.manifestUrl, progress),
   [OFFLINE_OPERATIONS.alternateStatus]: () => activeAlternate(),
-  [OFFLINE_OPERATIONS.downloadAlternate]: (_request, progress) => exclusively(() => downloadAlternate((received, total) => { progress({ received, total }); })),
+  [OFFLINE_OPERATIONS.downloadAlternate]: (_request, progress) => exclusively(OFFLINE_OPERATIONS.downloadAlternate, progress, (report) => downloadAlternate(report)),
+  [OFFLINE_OPERATIONS.prepareAlternateFetch]: () => prepareAlternateFetch(),
+  [OFFLINE_OPERATIONS.forgetAlternateFetch]: async () => { await forgetAlternateFetch(); return undefined; },
+  [OFFLINE_OPERATIONS.alternateFetchPending]: () => alternateFetchPending(),
   [OFFLINE_OPERATIONS.removeAlternate]: async () => { await removeAlternate(); return undefined; },
   [OFFLINE_OPERATIONS.getSettings]: () => getSettings(),
   [OFFLINE_OPERATIONS.updateSettings]: async (request) => { await updateSettings(request.changes); return undefined; },

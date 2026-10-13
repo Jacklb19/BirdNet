@@ -1,7 +1,7 @@
 import { config } from '../../config/env';
 import { watchForUpdates } from './appUpdate';
 import {
-  dispatchSyncError, OFFLINE_OPERATION_TIMEOUT_MS, OFFLINE_OPERATIONS, SERVICE_WORKER_URL, SYNC_RETRY_INTERVAL_MS, SYNC_TAG,
+  dispatchSyncError, DOWNLOAD_STALL_TIMEOUT_MS, OFFLINE_OPERATION_TIMEOUT_MS, OFFLINE_OPERATIONS, SERVICE_WORKER_URL, SYNC_RETRY_INTERVAL_MS, SYNC_TAG,
   type OfflineOperation, type OfflineReply, type OfflineRequest, type OfflineResult,
 } from './offline.constants';
 
@@ -26,6 +26,10 @@ export type OfflineOperationArguments<O extends OfflineOperation> = undefined ex
 /**
  * Runs `operation` in the service worker and resolves with its typed result. A MessageChannel keeps download
  * progress and the worker's lifetime out of React rendering.
+ *
+ * The browser may stop the worker in the middle of an operation, and then no answer ever comes. An operation
+ * followed with `progress` is given up after a short silence, counted from its last report, so a stopped download
+ * is noticed soon and can be asked for again; the others are given the long wait.
  */
 export async function offlineOperation<O extends OfflineOperation>(operation: O, ...[request, progress]: OfflineOperationArguments<O>): Promise<OfflineResult<O>> {
   if (!('serviceWorker' in navigator)) throw new Error('Service workers are unavailable.');
@@ -34,10 +38,17 @@ export async function offlineOperation<O extends OfflineOperation>(operation: O,
   if (!worker) throw new Error('Offline worker is not active.');
   return new Promise((resolve, reject) => {
     const channel = new MessageChannel();
-    const timeout = setTimeout(() => { channel.port1.close(); reject(new Error('Offline operation timed out.')); }, OFFLINE_OPERATION_TIMEOUT_MS);
+    const patience = progress ? DOWNLOAD_STALL_TIMEOUT_MS : OFFLINE_OPERATION_TIMEOUT_MS;
+    const giveUp = (): void => { channel.port1.close(); reject(new Error('Offline operation timed out.')); };
+    let timeout = setTimeout(giveUp, patience);
     channel.port1.onmessage = (event: MessageEvent<OfflineReply<O>>) => {
       const message = event.data;
-      if ('progress' in message) { progress?.(message.progress.received, message.progress.total); return; }
+      if ('progress' in message) {
+        clearTimeout(timeout);
+        timeout = setTimeout(giveUp, patience);
+        progress?.(message.progress.received, message.progress.total);
+        return;
+      }
       clearTimeout(timeout); channel.port1.close();
       if (message.ok) resolve(message.result); else reject(new Error('Offline operation failed.'));
     };

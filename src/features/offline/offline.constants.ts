@@ -150,6 +150,27 @@ export const ACTIVE_MODEL_URL = `${MODEL_CACHE_PATH_PREFIX}active.json`;
 /** Pointer to the verified installation of the second model (ADR-31), written last like `ACTIVE_MODEL_URL`. */
 export const ALTERNATE_MODEL_URL = `${MODEL_CACHE_PATH_PREFIX}alternate.json`;
 
+/**
+ * Bytes of a model resource asked for per request while downloading (`verifiedDownload.ts`). Small enough that
+ * an interruption loses seconds of a mobile connection, large enough that a model takes a few dozen requests.
+ */
+export const DOWNLOAD_PIECE_BYTES = 4 * 1024 * 1024;
+
+/**
+ * What a background download of the second model was started for (`alternateCache.ts`), kept until the browser
+ * hands the files over, so they are checked against what was asked for.
+ */
+export const ALTERNATE_PENDING_URL = `${MODEL_CACHE_PATH_PREFIX}alternate-pending.json`;
+
+/** Name of the one background download (Background Fetch) the app starts: the second model. */
+export const ALTERNATE_FETCH_ID = 'birdnet-alternate-model';
+
+/** What the page hands to the browser to download in the background: the files of the second model and their size. */
+export interface AlternateFetchPlan {
+  readonly urls: readonly string[];
+  readonly total: number;
+}
+
 /** File extension of each verified resource cached under `MODEL_CACHE_PATH_PREFIX`, named by its content hash. */
 export const MODEL_RESOURCE_EXTENSIONS = Object.freeze({ model: 'onnx', labels: 'txt', geo: 'geo.onnx' } as const);
 
@@ -181,8 +202,32 @@ export const TAXON_CACHE_MAX_ENTRIES = 800;
 /** How often an app left open asks whether a new version exists, when the person comes back to it (one hour). */
 export const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000;
 
-/** Longest wait for one operation (five minutes); sized for downloading the model on a slow connection. */
+/** Longest wait for one operation without progress to report (five minutes). */
 export const OFFLINE_OPERATION_TIMEOUT_MS = 5 * 60 * 1000;
+
+/**
+ * Longest silence of a download before the page takes it for stopped. A download reports every network chunk, so
+ * a minute without news means the worker was suspended or stopped by the browser (which it does to any worker
+ * busy for long, and when the person leaves the app); the page then asks again and the download goes on from the
+ * pieces already kept (`downloadAttempts.ts`).
+ */
+export const DOWNLOAD_STALL_TIMEOUT_MS = 60 * 1000;
+
+/** Longest wait for the browser to accept a background download before downloading inside the app instead. */
+export const BACKGROUND_FETCH_START_TIMEOUT_MS = 10 * 1000;
+
+/**
+ * Longest wait for the first bytes of a background download. A browser may accept one and never begin it (one
+ * without a place to show downloads does); past this the download is cancelled and made inside the app.
+ */
+export const BACKGROUND_FETCH_FIRST_BYTES_TIMEOUT_MS = 20 * 1000;
+
+/**
+ * Once the browser has finished a background download, the service worker verifies and installs it. The page asks
+ * at this period whether it is done, and stops asking after the longest wait.
+ */
+export const BACKGROUND_INSTALL_POLL_MS = 1000;
+export const BACKGROUND_INSTALL_TIMEOUT_MS = 2 * 60 * 1000;
 
 /** Wire names of the operations the page asks the service worker to perform. */
 export const OFFLINE_OPERATIONS = Object.freeze({
@@ -191,6 +236,9 @@ export const OFFLINE_OPERATIONS = Object.freeze({
   downloadModel: 'DOWNLOAD_MODEL',
   alternateStatus: 'ALTERNATE_STATUS',
   downloadAlternate: 'DOWNLOAD_ALTERNATE',
+  prepareAlternateFetch: 'PREPARE_ALTERNATE_FETCH',
+  forgetAlternateFetch: 'FORGET_ALTERNATE_FETCH',
+  alternateFetchPending: 'ALTERNATE_FETCH_PENDING',
   removeAlternate: 'REMOVE_ALTERNATE',
   getSettings: 'GET_SETTINGS',
   updateSettings: 'UPDATE_SETTINGS',
@@ -227,6 +275,12 @@ export interface OfflineOperationContracts {
   readonly [OFFLINE_OPERATIONS.alternateStatus]: OperationContract<undefined, AlternateModel | null>;
   /** Downloads, verifies and installs the second model the published manifest describes. */
   readonly [OFFLINE_OPERATIONS.downloadAlternate]: OperationContract<undefined, AlternateModel>;
+  /** Writes down what a background download of the second model is for, and tells the page what to hand the browser. */
+  readonly [OFFLINE_OPERATIONS.prepareAlternateFetch]: OperationContract<undefined, AlternateFetchPlan>;
+  /** Forgets a background download the browser did not take. */
+  readonly [OFFLINE_OPERATIONS.forgetAlternateFetch]: OperationContract<undefined, undefined>;
+  /** Whether a background download is still to be installed or discarded by the service worker. */
+  readonly [OFFLINE_OPERATIONS.alternateFetchPending]: OperationContract<undefined, boolean>;
   /** Frees the space of the second model. */
   readonly [OFFLINE_OPERATIONS.removeAlternate]: OperationContract<undefined, undefined>;
   readonly [OFFLINE_OPERATIONS.getSettings]: OperationContract<undefined, OfflineSettings>;

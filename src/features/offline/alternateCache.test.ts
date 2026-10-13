@@ -2,9 +2,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createHash, webcrypto } from 'node:crypto';
 import { alternateBytes, STATIC_MANIFEST_URL } from '../inference/modelManifest';
-import { activeAlternate, downloadAlternate, removeAlternate } from './alternateCache';
+import {
+  activeAlternate, alternateFetchPending, downloadAlternate, installFetchedAlternate, prepareAlternateFetch, removeAlternate, type FetchedRecord,
+} from './alternateCache';
 import { activeModel, downloadModel, modelResource } from './modelCache';
-import { ALTERNATE_MODEL_URL } from './offline.constants';
+import { ALTERNATE_MODEL_URL, ALTERNATE_PENDING_URL } from './offline.constants';
 import productionManifest from '../../../public/models/manifest.json';
 
 const origin = 'https://birdnet.example';
@@ -97,5 +99,44 @@ describe('installation of the second model', () => {
     expect([...stored.keys()].some((key) => key.includes(alternate.sha256))).toBe(false);
     // The first model is untouched by the removal.
     expect(await activeModel()).not.toBeNull();
+  });
+});
+
+describe('second model downloaded by the browser in the background', () => {
+  /** The files as the browser hands them over, in the order they were asked for: the two parts, then the geo model. */
+  const handedOver = (urls: readonly string[], bodies: readonly Uint8Array<ArrayBuffer>[] = [...parts, geoBytes]): FetchedRecord[] =>
+    urls.map((url, index) => ({ request: { url }, responseReady: Promise.resolve(new Response(bodies[index])) }));
+
+  it('asks the browser for exactly the bytes whose size is published, and installs them once verified', async () => {
+    const plan = await prepareAlternateFetch();
+    expect(plan.urls.map((url) => new URL(url).pathname.split('/').pop())).toEqual(['plus.part1.onnx', 'plus.part2.onnx', 'plus-geo.onnx']);
+    expect(plan.total).toBe(alternateBytes(alternate));
+    expect(await activeAlternate()).toBeNull();
+    expect(await alternateFetchPending()).toBe(true);
+    const installed = await installFetchedAlternate(handedOver(plan.urls));
+    expect(await activeAlternate()).toEqual(installed);
+    // An open page waits for this to know the files were dealt with.
+    expect(await alternateFetchPending()).toBe(false);
+  });
+
+  it('checks the files against what was asked for, whatever is published by the time they arrive', async () => {
+    const plan = await prepareAlternateFetch();
+    published = { ...manifest, alternate: { ...alternate, sha256: digest(geoBytes) } };
+    expect((await installFetchedAlternate(handedOver(plan.urls))).sha256).toBe(alternate.sha256);
+  });
+
+  it.each(['changed', 'missing'])('installs nothing when a file is %s, and the download has to be asked for again', async (failure) => {
+    const plan = await prepareAlternateFetch();
+    const records = failure === 'missing' ? handedOver(plan.urls).slice(1) : handedOver(plan.urls, [new Uint8Array([4, 5, 6]), new Uint8Array([0, 0]), geoBytes]);
+    await expect(installFetchedAlternate(records)).rejects.toThrow();
+    expect(await activeAlternate()).toBeNull();
+    expect(await alternateFetchPending()).toBe(false);
+    await expect(installFetchedAlternate(handedOver(plan.urls))).rejects.toThrow('No background download');
+  });
+
+  it('is not handed to the browser when the labels are not those of the model', async () => {
+    vi.mocked(fetch).mockImplementation((requested) => Promise.resolve((requested as string).endsWith('.txt') ? new Response('only one') : Response.json(published)));
+    await expect(prepareAlternateFetch()).rejects.toThrow('labels');
+    expect(stored.has(ALTERNATE_PENDING_URL)).toBe(false);
   });
 });

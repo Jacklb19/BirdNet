@@ -1,6 +1,7 @@
 import { config } from '../../config/env';
 import type { ModelManifest } from '../inference/inference.types';
 import { downloadBytes, sameInstallation } from '../inference/modelManifest';
+import { untilComplete } from './downloadAttempts';
 import { offlineOperation } from './offlineClient';
 import { OFFLINE_OPERATIONS } from './offline.constants';
 
@@ -127,7 +128,10 @@ async function download(): Promise<void> {
   try {
     // Ask before the large download, so the browser can keep the model instead of evicting it.
     if ('persist' in navigator.storage) update({ evictable: !await navigator.storage.persist() });
-    const verified = await offlineOperation(OFFLINE_OPERATIONS.downloadModel, {}, (received, total) => { update({ progress: { received, total } }); });
+    const verified = await untilComplete(
+      (progress) => offlineOperation(OFFLINE_OPERATIONS.downloadModel, {}, progress),
+      (received, total) => { update({ progress: { received, total } }); },
+    );
     update({ state: 'ready', installed: verified, available: verified, updateCheck: 'idle' });
   } catch {
     // A failed update keeps the installed model in use; only a first download leaves nothing usable.

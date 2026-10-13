@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MessageChannel, type MessagePort } from 'node:worker_threads';
-import { OFFLINE_OPERATIONS } from './offline.constants';
+import { DOWNLOAD_STALL_TIMEOUT_MS, OFFLINE_OPERATIONS } from './offline.constants';
 import { offlineOperation, registerOffline, scheduleSynchronization } from './offlineClient';
 
 let reply: (port: MessagePort) => void;
@@ -12,13 +12,30 @@ beforeEach(() => {
   registration = { active: { postMessage: vi.fn((_message: unknown, ports: MessagePort[]) => { const port = ports[0]; if (port) reply(port); }) }, sync: { register: vi.fn(() => Promise.resolve()) } };
   vi.stubGlobal('navigator', { serviceWorker: { ready: Promise.resolve(registration), controller: {} }, onLine: true });
 });
-afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
+afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 describe('offline worker communication', () => {
   it('delivers progress and a final result without treating progress as completion', async () => {
     const progress = vi.fn();
     await expect(offlineOperation(OFFLINE_OPERATIONS.downloadModel, {}, progress)).resolves.toBe('ready');
     expect(progress).toHaveBeenCalledWith(5, 10);
+  });
+  it('takes a download that went quiet for stopped, counting from its last report', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    let worker: MessagePort | undefined;
+    reply = (port) => { worker = port; };
+    let outcome = 'pending';
+    const delivered = (): Promise<void> => new Promise((resolve) => { setImmediate(resolve); });
+    void offlineOperation(OFFLINE_OPERATIONS.downloadModel, {}, () => undefined).then(() => { outcome = 'done'; }, () => { outcome = 'stopped'; });
+    await delivered();
+    await vi.advanceTimersByTimeAsync(DOWNLOAD_STALL_TIMEOUT_MS - 1);
+    worker?.postMessage({ progress: { received: 5, total: 10 } });
+    await delivered();
+    await vi.advanceTimersByTimeAsync(DOWNLOAD_STALL_TIMEOUT_MS - 1);
+    expect(outcome).toBe('pending');
+    await vi.advanceTimersByTimeAsync(1);
+    expect(outcome).toBe('stopped');
+    worker?.close();
   });
   it('reports failed operations', async () => {
     reply = (port) => { port.postMessage({ ok: false }); port.close(); };
