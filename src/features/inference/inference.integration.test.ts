@@ -77,6 +77,8 @@ describe.runIf(fs.existsSync(modelPath))('Real BirdNET inference and confidence 
 
 const plusManifest = productionManifest.alternate;
 const plusParts = plusManifest.model_files.map((file) => path.resolve('public/models', file));
+/** Reading and compiling a 64 MB model takes most of the default time of a test when the suite runs in parallel. */
+const PLUS_TEST_TIMEOUT_MS = 60_000;
 /** Species BirdNET+ names after a taxonomy that split them: the bird of the reference recording under its new name. */
 const PLUS_NAMES: Readonly<Record<string, string>> = { 'Troglodytes aedon': 'Troglodytes musculus' };
 
@@ -110,5 +112,5 @@ describe.runIf(plusParts.every((part) => fs.existsSync(part)))('Real BirdNET+ in
       input.dispose();
       output.dispose();
     }
-  });
+  }, PLUS_TEST_TIMEOUT_MS);
 });
