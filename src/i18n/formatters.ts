@@ -122,6 +122,19 @@ export function formatBytes(bytes: number, locale: Locale): string {
   return formatUnit(bytes / BYTES_PER_MEGABYTE, 'megabyte', locale, fixedDigits(DEFAULT_FRACTION_DIGITS));
 }
 
+const BYTES_PER_KILOBYTE = 1000;
+/** Under this, megabytes with one decimal would read "0,0 MB", so the size is given in kilobytes. */
+const KILOBYTES_BELOW_BYTES = 100_000;
+
+/**
+ * Formats a byte count that may be small: whole kilobytes under 0.1 MB, megabytes from there on.
+ * Example: 28028 -> "28 kB"; 38727042 -> "38,7 MB" (es).
+ */
+export function formatDataSize(bytes: number, locale: Locale): string {
+  if (bytes >= KILOBYTES_BELOW_BYTES) return formatBytes(bytes, locale);
+  return formatUnit(Math.round(bytes / BYTES_PER_KILOBYTE), 'kilobyte', locale, fixedDigits(0));
+}
+
 /**
  * Formats a distance in whole metres with the locale's unit symbol.
  * Example: 100 -> "100 m" (es and en).

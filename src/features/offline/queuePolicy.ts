@@ -1,5 +1,4 @@
-import { AUDIO_CONSTANTS } from '../audio/dsp/audio.constants';
-import { AUDIO_UPLOAD_MIME_TYPE, LOCATION_GRID_DECIMALS } from '../../config/contract';
+import { LOCATION_GRID_DECIMALS } from '../../config/contract';
 import { distanceMeters } from '../walk/walkGeometry';
 import { MIN_QUEUE_BYTES, PLACE_RADIUS_METERS } from './offline.constants';
 import type { ApproximateLocation, CachedSite, OfflineSettings, StoredDetection } from './types';
@@ -71,44 +70,6 @@ export function assertQueueCapacity(current: number, addition: number, maximum: 
   if (![current, addition, maximum].every(Number.isSafeInteger) || current < 0 || addition < 0 || maximum < MIN_QUEUE_BYTES || current + addition > maximum) {
     throw new Error('Queue capacity exceeded.');
   }
-}
-
-// Canonical RIFF/WAVE PCM layout: RIFF header, "fmt " chunk, "data" chunk. Every value below derives from the
-// capture contract, so a change of sample rate cannot leave a stale header behind.
-const CHUNK_HEADER_BYTES = 8;
-const FOURCC_BYTES = 4;
-const FMT_CHUNK_BYTES = 16;
-const WAV_HEADER_BYTES = CHUNK_HEADER_BYTES + FOURCC_BYTES + CHUNK_HEADER_BYTES + FMT_CHUNK_BYTES + CHUNK_HEADER_BYTES;
-const PCM_FORMAT = 1;
-const WAV_CHANNELS = 1;
-const BITS_PER_BYTE = 8;
-const BYTES_PER_SAMPLE = Int16Array.BYTES_PER_ELEMENT;
-const BITS_PER_SAMPLE = BYTES_PER_SAMPLE * BITS_PER_BYTE;
-const BLOCK_ALIGN = WAV_CHANNELS * BYTES_PER_SAMPLE;
-const BYTE_RATE = AUDIO_CONSTANTS.TARGET_SAMPLE_RATE * BLOCK_ALIGN;
-/** Signed PCM is asymmetric: -1 maps to the most negative value, +1 to the most positive one. */
-const PCM_NEGATIVE_SCALE = 2 ** (BITS_PER_SAMPLE - 1);
-const PCM_POSITIVE_SCALE = PCM_NEGATIVE_SCALE - 1;
-
-/** WAV PCM16 is independent of the model's floating-point tensor representation. */
-export function encodeAudio(samples: Float32Array): Blob {
-  if (samples.length !== AUDIO_CONSTANTS.WINDOW_SAMPLES || samples.some((sample) => !Number.isFinite(sample))) throw new Error('Invalid audio.');
-  const dataBytes = samples.length * BLOCK_ALIGN;
-  const buffer = new ArrayBuffer(WAV_HEADER_BYTES + dataBytes);
-  const view = new DataView(buffer);
-  let offset = 0;
-  const fourcc = (value: string): void => { for (let index = 0; index < FOURCC_BYTES; index++) view.setUint8(offset + index, value.charCodeAt(index)); offset += FOURCC_BYTES; };
-  const uint32 = (value: number): void => { view.setUint32(offset, value, true); offset += Uint32Array.BYTES_PER_ELEMENT; };
-  const uint16 = (value: number): void => { view.setUint16(offset, value, true); offset += Uint16Array.BYTES_PER_ELEMENT; };
-  fourcc('RIFF'); uint32(buffer.byteLength - CHUNK_HEADER_BYTES); fourcc('WAVE');
-  fourcc('fmt '); uint32(FMT_CHUNK_BYTES); uint16(PCM_FORMAT); uint16(WAV_CHANNELS);
-  uint32(AUDIO_CONSTANTS.TARGET_SAMPLE_RATE); uint32(BYTE_RATE); uint16(BLOCK_ALIGN); uint16(BITS_PER_SAMPLE);
-  fourcc('data'); uint32(dataBytes);
-  samples.forEach((sample, index) => {
-    const value = Math.min(1, Math.max(-1, sample));
-    view.setInt16(WAV_HEADER_BYTES + index * BYTES_PER_SAMPLE, Math.round(value * (value < 0 ? PCM_NEGATIVE_SCALE : PCM_POSITIVE_SCALE)), true);
-  });
-  return new Blob([buffer], { type: AUDIO_UPLOAD_MIME_TYPE });
 }
 
 /** Untrusted acknowledgements must identify only records in the submitted batch. */

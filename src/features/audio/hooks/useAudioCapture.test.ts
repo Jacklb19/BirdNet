@@ -43,7 +43,7 @@ describe('useAudioCapture listening session', () => {
       inferenceCallbacks = callbacks ?? {};
       this.loadModel = vi.fn(() => { status = 'loading'; callbacks?.onStatusChange?.('loading'); return Promise.resolve(); });
       this.getStatus = () => status;
-      this.getManifest = () => manifest;
+      this.getModelVersion = () => (manifest ? formatModelVersion(manifest) : null);
       this.infer = infer;
       this.dispose = dispose;
     });

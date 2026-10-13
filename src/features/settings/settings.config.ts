@@ -2,8 +2,8 @@ import { bytesToMib, DEFAULT_QUEUE_BYTES } from '../offline/offline.constants';
 
 /**
  * Capacities offered for songs waiting to upload, in whole MiB (the unit the offline layer chooses limits in).
- * Doubling steps around the default: the smallest still holds dozens of doubtful audio fragments, the largest
- * covers weeks in the field without signal while staying far below what browsers grant a site.
+ * Doubling steps around the default: the smallest already holds tens of thousands of songs, the largest covers
+ * weeks in the field without signal while staying far below what browsers grant a site.
  */
 export const CAPACITY_OPTIONS_MIB: readonly number[] = Object.freeze([16, 32, bytesToMib(DEFAULT_QUEUE_BYTES), 128, 256]);
 

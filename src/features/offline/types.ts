@@ -1,3 +1,4 @@
+import type { DetectionModel, DetectionStyle } from '../inference/detectionChoices';
 import type { ModelManifest } from '../inference/inference.types';
 import type { QueuedDetectionStatus } from './offline.constants';
 
@@ -11,8 +12,6 @@ export interface StoredDetection {
   location: ApproximateLocation | null;
   model_version: string;
   owner: string | null;
-  audioId: string | null;
-  metadataSynced: boolean;
   bytes: number;
   /** Monitoring site chosen when the window was captured; absent on records from before sites existed. */
   siteId?: string | null;
@@ -40,16 +39,22 @@ export interface StoredWalk {
   track: TrackPoint[];
 }
 export interface CachedSite { id: string; name: string; latitude: number; longitude: number }
-export interface StoredAudio { id: string; blob: Blob; bytes: number }
 export interface SyncSession { userId: string; accessToken: string; expiresAt: number }
 export interface OfflineSettings {
   maxBytes: number;
-  audioConsent: boolean;
   locationEnabled: boolean;
   session: SyncSession | null;
   activeSiteId?: string | null;
   /** The person's answer to "share my songs on everyone's map"; absent until they have answered. */
   shareMap?: boolean;
+  /** Whether each song keeps its clip on this phone; absent means yes, since that audio stays here. */
+  keepRecordings?: boolean;
+  /** The person's answer to "also save my recordings in my account"; nothing is uploaded until it is yes. */
+  saveRecordings?: boolean;
+  /** Which acoustic model listens (ADR-31); absent means the one every installation has. */
+  detectionModel?: DetectionModel;
+  /** Whether a doubtful call must be heard twice (ADR-30); absent means it must. */
+  detectionStyle?: DetectionStyle;
   /** Last site list fetched online, so a site can be chosen while offline. */
   sites?: CachedSite[];
   /** Account that fetched `sites`; absent on lists cached before it was recorded. */

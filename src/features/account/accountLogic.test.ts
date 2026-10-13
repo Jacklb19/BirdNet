@@ -55,18 +55,12 @@ describe('pendingSync', () => {
 
   it('counts as uploadable only records of this person that carry a location, as the queue does', () => {
     const rows = [
-      { owner: USER, location: CELL, metadataSynced: false },
-      { owner: USER, location: null, metadataSynced: false },
-      { owner: null, location: CELL, metadataSynced: false },
-      { owner: 'another-user', location: CELL, metadataSynced: false },
+      { owner: USER, location: CELL },
+      { owner: USER, location: null },
+      { owner: null, location: CELL },
+      { owner: 'another-user', location: CELL },
     ];
-    expect(pendingSync(rows, USER, false)).toEqual({ uploadable: 1, withoutLocation: 1 });
-  });
-
-  it('counts an acknowledged song kept for its audio fragment as pending only while audio may be sent', () => {
-    const rows = [{ owner: USER, location: CELL, metadataSynced: true }];
-    expect(pendingSync(rows, USER, true)).toEqual({ uploadable: 1, withoutLocation: 0 });
-    expect(pendingSync(rows, USER, false)).toEqual({ uploadable: 0, withoutLocation: 0 });
+    expect(pendingSync(rows, USER)).toEqual({ uploadable: 1, withoutLocation: 1 });
   });
 });
 

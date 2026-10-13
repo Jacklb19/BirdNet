@@ -4,7 +4,7 @@
  */
 import type { DetectionStatus } from '../../config/contract';
 import type { LocalDetectionStatus } from '../inference/detectionPolicy';
-import type { ModelManifest } from '../inference/inference.types';
+import type { AlternateModel, ModelManifest } from '../inference/inference.types';
 import type { OfflineSettings, QueueStats } from './types';
 
 // ─── Local queue (IndexedDB) ─────────────────────────────────────────────
@@ -22,12 +22,6 @@ export const QUEUED_STATUS_BY_LOCAL_STATUS = Object.freeze({
 
 export type QueuedDetectionStatus = (typeof QUEUED_STATUS_BY_LOCAL_STATUS)[LocalDetectionStatus];
 
-/**
- * Only detections in this state keep their audio window: the fragment lets a person verify an uncertain call,
- * and it leaves the device only with explicit consent.
- */
-export const AUDIO_REVIEW_STATUS = 'provisional' satisfies LocalDetectionStatus;
-
 /** Bump with every change to `STORES` or their key paths; the upgrade only creates missing stores. */
 export const DATABASE_VERSION = 2;
 
@@ -35,7 +29,11 @@ export const DATABASE_VERSION = 2;
 export const STORES = Object.freeze({
   /** Pending detections, keyed by their client UUID (the idempotency key of synchronization). */
   detections: 'detections',
-  /** Audio fragments that are waiting for authorized upload. */
+  /**
+   * Leftover, never written: it held the doubtful fragments earlier versions uploaded for verification. Dropping a
+   * store needs a new `DATABASE_VERSION`, which a service worker of the previous release could not open during an
+   * update, so the store stays and `queueStore` empties it.
+   */
   audio: 'audio',
   /** One record (`SETTINGS_RECORD_KEY`) with the person's offline preferences. */
   settings: 'settings',
@@ -56,7 +54,7 @@ export const SETTINGS_RECORD_KEY = 'preferences';
 
 /** Preferences the interface may change; the session and cached sites are written by dedicated functions. */
 export const EDITABLE_SETTINGS_KEYS = Object.freeze(
-  ['maxBytes', 'audioConsent', 'locationEnabled', 'activeSiteId', 'shareMap'] as const satisfies readonly (keyof OfflineSettings)[],
+  ['maxBytes', 'locationEnabled', 'activeSiteId', 'shareMap', 'keepRecordings', 'saveRecordings', 'detectionModel', 'detectionStyle'] as const satisfies readonly (keyof OfflineSettings)[],
 );
 
 export type EditableSettingsKey = (typeof EDITABLE_SETTINGS_KEYS)[number];
@@ -80,7 +78,7 @@ export function bytesToMib(bytes: number): number {
 /** Queue capacity until the person chooses another one. */
 export const DEFAULT_QUEUE_BYTES = mibToBytes(64);
 
-/** Smallest capacity accepted; it still holds several audio fragments besides the metadata. */
+/** Smallest capacity accepted; it still holds a few thousand songs waiting to upload. */
 export const MIN_QUEUE_BYTES = mibToBytes(1);
 
 // ─── Synchronization ─────────────────────────────────────────────────────
@@ -116,10 +114,10 @@ export const QUEUE_CHANGED_CHANNEL = 'birdnet-queue-changed';
 
 /**
  * What a committed write changed: the queued and synchronized records, the stored settings (preferences,
- * sync session, cached sites) or the walks (kept in their own database, announced on the same channel). Views
- * re-read only the part they show.
+ * sync session, cached sites), the walks, the recordings or the reviews (each kept in its own database, announced
+ * on the same channel). Views re-read only the part they show.
  */
-export const QUEUE_CHANGE_PARTS = Object.freeze(['records', 'settings', 'walks'] as const);
+export const QUEUE_CHANGE_PARTS = Object.freeze(['records', 'settings', 'walks', 'recordings', 'reviews'] as const);
 
 export type QueueChangePart = (typeof QUEUE_CHANGE_PARTS)[number];
 
@@ -148,6 +146,9 @@ export const MODEL_CACHE_PATH_PREFIX = '/__birdnet_models/';
 
 /** Pointer to the verified installation in `MODEL_CACHE_NAME`; written last so a partial download is never activated. */
 export const ACTIVE_MODEL_URL = `${MODEL_CACHE_PATH_PREFIX}active.json`;
+
+/** Pointer to the verified installation of the second model (ADR-31), written last like `ACTIVE_MODEL_URL`. */
+export const ALTERNATE_MODEL_URL = `${MODEL_CACHE_PATH_PREFIX}alternate.json`;
 
 /** File extension of each verified resource cached under `MODEL_CACHE_PATH_PREFIX`, named by its content hash. */
 export const MODEL_RESOURCE_EXTENSIONS = Object.freeze({ model: 'onnx', labels: 'txt', geo: 'geo.onnx' } as const);
@@ -185,6 +186,9 @@ export const OFFLINE_OPERATIONS = Object.freeze({
   modelStatus: 'MODEL_STATUS',
   modelManifest: 'MODEL_MANIFEST',
   downloadModel: 'DOWNLOAD_MODEL',
+  alternateStatus: 'ALTERNATE_STATUS',
+  downloadAlternate: 'DOWNLOAD_ALTERNATE',
+  removeAlternate: 'REMOVE_ALTERNATE',
   getSettings: 'GET_SETTINGS',
   updateSettings: 'UPDATE_SETTINGS',
   queueStats: 'QUEUE_STATS',
@@ -216,6 +220,12 @@ export interface OfflineOperationContracts {
   readonly [OFFLINE_OPERATIONS.modelManifest]: OperationContract<undefined, ModelManifest>;
   /** Downloads, verifies and activates a model; `manifestUrl` defaults to the published one. */
   readonly [OFFLINE_OPERATIONS.downloadModel]: OperationContract<{ readonly manifestUrl?: string } | undefined, ModelManifest>;
+  /** The verified installed second model, or null when it is not installed or no longer intact. */
+  readonly [OFFLINE_OPERATIONS.alternateStatus]: OperationContract<undefined, AlternateModel | null>;
+  /** Downloads, verifies and installs the second model the published manifest describes. */
+  readonly [OFFLINE_OPERATIONS.downloadAlternate]: OperationContract<undefined, AlternateModel>;
+  /** Frees the space of the second model. */
+  readonly [OFFLINE_OPERATIONS.removeAlternate]: OperationContract<undefined, undefined>;
   readonly [OFFLINE_OPERATIONS.getSettings]: OperationContract<undefined, OfflineSettings>;
   readonly [OFFLINE_OPERATIONS.updateSettings]: OperationContract<{ readonly changes: EditableSettings }, undefined>;
   readonly [OFFLINE_OPERATIONS.queueStats]: OperationContract<undefined, QueueStats>;

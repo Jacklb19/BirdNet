@@ -50,7 +50,10 @@ export const accountMessages = defineMessages({
       samePassword: 'La contraseña nueva debe ser distinta de la anterior.',
       rateLimited: 'Hubo demasiados intentos seguidos. Espera unos minutos y vuelve a intentarlo.',
       generic: 'No se pudo completar. Revisa la conexión e inténtalo de nuevo.',
+      linkExpired: 'Ese enlace ya se usó o venció. Pide uno nuevo.',
+      returnFailed: 'No se pudo iniciar la sesión: el servicio de cuentas respondió con un error al volver. Inténtalo de nuevo.',
     } satisfies Record<AccountFailure, string>,
+    errorDetail: (detail: string) => `Detalle: ${detail}`,
     profile: {
       label: 'Tu cuenta',
       signedIn: 'Sesión iniciada',
@@ -177,7 +180,10 @@ export const accountMessages = defineMessages({
       samePassword: 'The new password must be different from the old one.',
       rateLimited: 'Too many attempts in a row. Wait a few minutes and try again.',
       generic: 'That did not work. Check the connection and try again.',
+      linkExpired: 'That link was already used or has expired. Ask for a new one.',
+      returnFailed: 'The session could not be started: the account service answered with an error on the way back. Try again.',
     },
+    errorDetail: (detail: string) => `Detail: ${detail}`,
     profile: {
       label: 'Your account',
       signedIn: 'Signed in',

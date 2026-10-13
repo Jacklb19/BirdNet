@@ -35,7 +35,7 @@ export const homeMessages = defineMessages({
     how: {
       title: 'Cómo funciona',
       steps: {
-        listen: { title: 'Escucha', text: 'Pulsas una vez. El audio se analiza en tu teléfono y no se guarda.' },
+        listen: { title: 'Escucha', text: 'Pulsas una vez. El audio se analiza en tu teléfono; de cada canto queda allí un clip corto para oírlo después.' },
         identify: { title: 'Reconoce', text: 'Trino identifica el canto y te dice qué tan seguro está.' },
         collect: { title: 'Colecciona', text: 'Cada ave va a tu álbum y a tu mapa, con su hora y su lugar.' },
       } satisfies Record<HomeStep, { title: string; text: string }>,
@@ -53,7 +53,7 @@ export const homeMessages = defineMessages({
     privacy: {
       title: 'Privacidad',
       promises: {
-        audio: 'El audio se analiza en tu teléfono y no se envía a ningún servidor.',
+        audio: 'El audio se analiza en tu teléfono. Solo sale de él si tú eliges guardar tus grabaciones en tu cuenta, donde solo tú las oyes.',
         account: 'La cuenta es opcional: sin ella todo funciona en el teléfono.',
         offline: 'Funciona sin conexión y sube tus cantos cuando vuelve la señal.',
       } satisfies Record<Exclude<HomePromise, 'location'>, string>,
@@ -95,7 +95,7 @@ export const homeMessages = defineMessages({
     how: {
       title: 'How it works',
       steps: {
-        listen: { title: 'Listen', text: 'You tap once. Audio is analysed on your phone and is not kept.' },
+        listen: { title: 'Listen', text: 'You tap once. Audio is analysed on your phone; a short clip of each song stays there so you can listen to it later.' },
         identify: { title: 'Identify', text: 'Trino recognizes the song and tells you how sure it is.' },
         collect: { title: 'Collect', text: 'Each bird goes to your album and your map, with its time and place.' },
       },
@@ -113,7 +113,7 @@ export const homeMessages = defineMessages({
     privacy: {
       title: 'Privacy',
       promises: {
-        audio: 'Audio is analysed on your phone and is not sent to any server.',
+        audio: 'Audio is analysed on your phone. It leaves it only if you choose to save your recordings in your account, where only you can play them.',
         account: 'The account is optional: without it everything works on the phone.',
         offline: 'It works offline and uploads your songs when the signal is back.',
       },

@@ -8,7 +8,10 @@ export const API_ROUTES = {
   modelLatest: `${VERSION}/model/latest`,
   detections: `${VERSION}/detections`,
   detectionsBatch: `${VERSION}/detections/batch`,
-  detectionAudioUrl: (detectionId: string): string => `${VERSION}/detections/${encodeURIComponent(detectionId)}/audio-url`,
+  /** Review of one detection (confirm, correct, discard). */
+  detection: (detectionId: string): string => `${VERSION}/detections/${encodeURIComponent(detectionId)}`,
+  detectionRecordingUrl: (detectionId: string): string => `${VERSION}/detections/${encodeURIComponent(detectionId)}/recording-url`,
+  detectionRecording: (detectionId: string): string => `${VERSION}/detections/${encodeURIComponent(detectionId)}/recording`,
   sites: `${VERSION}/sites`,
   siteStats: (siteId: string): string => `${VERSION}/sites/${encodeURIComponent(siteId)}/stats`,
   export: `${VERSION}/export`,
@@ -17,6 +20,7 @@ export const API_ROUTES = {
   meSummary: `${VERSION}/me/summary`,
   meSpecies: `${VERSION}/me/species`,
   meSharing: `${VERSION}/me/sharing`,
+  meRecordings: `${VERSION}/me/recordings`,
   meSpeciesRecord: (species: string): string => `${VERSION}/me/species/${encodeURIComponent(species)}`,
 } as const;
 

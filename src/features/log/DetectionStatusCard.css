@@ -36,3 +36,22 @@
   font-size: var(--text-small);
   line-height: var(--leading-small);
 }
+
+/* Verdicts of the person: on the plain surface, with the color of the state only on the title. */
+.bn-log-status--verified,
+.bn-log-status--corrected,
+.bn-log-status--discarded {
+  background: var(--color-bg-surface);
+}
+
+.bn-log-status--verified .bn-log-status__title {
+  color: var(--color-status-verified);
+}
+
+.bn-log-status--corrected .bn-log-status__title {
+  color: var(--color-status-corrected);
+}
+
+.bn-log-status--discarded .bn-log-status__title {
+  color: var(--color-text-secondary);
+}

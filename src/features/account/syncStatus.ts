@@ -9,20 +9,16 @@ export interface PendingSync {
   readonly withoutLocation: number;
 }
 
-type PendingRow = Pick<StoredDetection, 'owner' | 'location' | 'metadataSynced'>;
+type PendingRow = Pick<StoredDetection, 'owner' | 'location'>;
 
-/**
- * Records without an owner are left out: the claim card asks about them before they count as the person's.
- * A record whose song the server already acknowledged only stays queued for its doubtful audio fragment, which
- * uploads only with consent; without it the fragment stays on the phone and the song counts as synchronized.
- */
-export function pendingSync(rows: readonly PendingRow[], userId: string, audioConsent: boolean): PendingSync {
+/** Records without an owner are left out: the claim card asks about them before they count as the person's. */
+export function pendingSync(rows: readonly PendingRow[], userId: string): PendingSync {
   let uploadable = 0;
   let withoutLocation = 0;
   for (const row of rows) {
     if (row.owner !== userId) continue;
     if (!row.location) withoutLocation += 1;
-    else if (!row.metadataSynced || audioConsent) uploadable += 1;
+    else uploadable += 1;
   }
   return { uploadable, withoutLocation };
 }

@@ -20,13 +20,6 @@ export const FIELD_LIMITS = Object.freeze({ speciesName: 200, modelVersion: 200,
 /** Maximum detections per synchronization request. */
 export const SYNC_BATCH_SIZE = 50;
 
-export const AUDIO_UPLOAD_MIME_TYPE = 'audio/wav';
-
-/** Storage object key the API issues for a detection's audio fragment. */
-export function audioObjectPath(userId: string, detectionId: string): string {
-  return `${userId}/${detectionId}.wav`;
-}
-
 /** Profile photo: a square WebP the client resizes before upload, kept under the API's size limit. */
 export const AVATAR_UPLOAD = Object.freeze({ mimeType: 'image/webp', sidePx: 256, quality: 0.85, maxBytes: 200_000 });
 

@@ -76,7 +76,7 @@ export const AUDIO_CONSTANTS = Object.freeze({
 
   SILENCE_THRESHOLD_RMS,
 
-  /** Peak after normalization; the headroom below full scale keeps the PCM16 fragment and model input unclipped. */
+  /** Peak after normalization; the headroom below full scale keeps the saved clip and the model input unclipped. */
   NORMALIZATION_TARGET_PEAK: 0.95,
 
   /** Seconds between input level reports: about ten meter updates per second without flooding the main thread. */

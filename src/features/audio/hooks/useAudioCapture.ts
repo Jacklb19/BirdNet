@@ -5,7 +5,6 @@ import { AUDIO_CONSTANTS } from '../dsp/audio.constants';
 import { InferenceService } from '../../inference/inference.service';
 import { MIN_CANDIDATE_CONFIDENCE, TOP_K } from '../../inference/inference.constants';
 import type { ModelStatus } from '../../inference/inference.types';
-import { formatModelVersion } from '../../inference/modelManifest';
 import { applyDetectionPolicy, type ClassifiedDetection } from '../../inference/detectionPolicy';
 import { getSettings } from '../../offline/queueStore';
 import { scheduleSynchronization } from '../../offline/offlineClient';
@@ -73,11 +72,10 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
       onLevelUpdate: (rms, peak) => { setRmsLevel(rms); setPeakLevel(peak); },
       onWindowReady: (buffer, windowIndex, timestamp) => {
         if (!requestedRef.current) return;
-        const manifest = inference.getManifest();
+        const modelVersion = inference.getModelVersion();
         // Windows are stored only when the exact model that classified them is known.
-        const persistence: PersistenceContext | undefined = manifest ? {
-          recordedAt: new Date(performance.timeOrigin + timestamp).toISOString(), location,
-          modelVersion: formatModelVersion(manifest),
+        const persistence: PersistenceContext | undefined = modelVersion ? {
+          recordedAt: new Date(performance.timeOrigin + timestamp).toISOString(), location, modelVersion,
         } : undefined;
         inference.infer(buffer, windowIndex, timestamp, TOP_K, MIN_CANDIDATE_CONFIDENCE, persistence);
       },

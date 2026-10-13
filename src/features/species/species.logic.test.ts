@@ -17,7 +17,8 @@ const REFERENCES: Record<Plumage, Rgb> = {
 };
 
 const record = (species: string, recordedAt: number, confidence: number, siteId: string | null = null): LogRecord => ({
-  id: `${species}-${String(recordedAt)}`, species, confidence, status: 'confirmed', recordedAt, siteId, upload: 'cloud', located: true, audioId: null,
+  id: `${species}-${String(recordedAt)}`, species, confidence, status: 'confirmed', recordedAt, siteId, upload: 'cloud', located: true,
+  review: null, modelSpecies: null,
 });
 
 /** A square thumbnail filled with `color`, with `centre` painted over its middle quarter. */
@@ -134,7 +135,7 @@ describe('external responses', () => {
       detections: 2, best_confidence: 0.9, first_recorded_at: '2026-10-01T06:00:00Z', last_recorded_at: '2026-10-07T06:00:00Z', hours,
       sites: [{ id: '7d9c2a52-1f0e-4f39-9a59-0d0f2f0d6c11', name: 'Humedal', detections: 2 }, { id: 'bad' }],
       cells: [{ latitude: 4.7, longitude: -74.1, detections: 2 }, { latitude: 95, longitude: 0, detections: 1 }],
-      recent: [{ id: '7d9c2a52-1f0e-4f39-9a59-0d0f2f0d6c12', recorded_at: '2026-10-07T06:00:00Z', confidence: 0.9, status: 'confirmed', site_id: null, has_audio: false }],
+      recent: [{ id: '7d9c2a52-1f0e-4f39-9a59-0d0f2f0d6c12', recorded_at: '2026-10-07T06:00:00Z', confidence: 0.9, status: 'confirmed', site_id: null }],
     });
     expect([record.sites.length, record.cells.length, record.recent.length]).toEqual([1, 1, 1]);
     // A species never recorded answers with nulls and empty lists, not an error.

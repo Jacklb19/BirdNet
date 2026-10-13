@@ -5,6 +5,8 @@
 import { classifyConfidence } from '../inference/detectionPolicy';
 import { QUEUED_STATUS_BY_LOCAL_STATUS, type QueuedDetectionStatus } from '../offline/offline.constants';
 import type { CachedSite, HistoryEntry, StoredDetection } from '../offline/types';
+import type { ReviewIndex } from '../review/reviewPolicy';
+import type { ReviewAction } from '../review/types';
 
 /**
  * Where a record stands on its way to the shared map: in the cloud, waiting for the next synchronization, or kept
@@ -31,8 +33,24 @@ export interface LogRecord {
   readonly upload: UploadState;
   /** Whether an approximate cell was stored with the record. */
   readonly located: boolean;
-  /** Doubtful fragment still kept on this phone, if any. */
-  readonly audioId: string | null;
+  /** Verdict of the person on this record, if they gave one; `status` stays what the model said. */
+  readonly review: ReviewAction | null;
+  /** Species the model gave, when the person corrected it (`species` is then the one they heard). */
+  readonly modelSpecies: string | null;
+}
+
+/** State shown for a record: the verdict of the person when there is one, otherwise the state the model gave. */
+export type DisplayStatus = QueuedDetectionStatus | 'verified' | 'corrected' | 'discarded';
+
+const STATUS_BY_REVIEW: Readonly<Record<ReviewAction, DisplayStatus>> = Object.freeze({ confirm: 'verified', correct: 'corrected', discard: 'discarded' });
+
+export function displayStatus(record: Pick<LogRecord, 'status' | 'review'>): DisplayStatus {
+  return record.review ? STATUS_BY_REVIEW[record.review] : record.status;
+}
+
+/** A discarded record stays in the log, so the verdict can be changed, but it is no presence of the bird. */
+export function isPresence(record: Pick<LogRecord, 'review'>): boolean {
+  return record.review !== 'discard';
 }
 
 const QUEUED_STATUSES: readonly string[] = Object.values(QUEUED_STATUS_BY_LOCAL_STATUS);
@@ -47,8 +65,7 @@ function isValid(record: LogRecord): boolean {
     Number.isFinite(record.confidence) && record.confidence >= 0 && record.confidence <= 1;
 }
 
-export function uploadStateOf(row: Pick<StoredDetection, 'metadataSynced' | 'location' | 'owner'>, syncUser: SyncUser): UploadState {
-  if (row.metadataSynced) return 'cloud';
+export function uploadStateOf(row: Pick<StoredDetection, 'location' | 'owner'>, syncUser: SyncUser): UploadState {
   // Checked before the account: a record without a cell is never sent, even after signing in.
   if (!row.location) return 'noLocation';
   if (!row.owner) return 'needsAccount';
@@ -60,7 +77,8 @@ export function uploadStateOf(row: Pick<StoredDetection, 'metadataSynced' | 'loc
 function fromPending(row: StoredDetection, syncUser: SyncUser): LogRecord {
   return {
     id: row.id, species: row.species, confidence: row.confidence, status: row.status, recordedAt: Date.parse(row.recorded_at),
-    siteId: row.siteId ?? null, upload: uploadStateOf(row, syncUser), located: Boolean(row.location), audioId: row.audioId,
+    siteId: row.siteId ?? null, upload: uploadStateOf(row, syncUser), located: Boolean(row.location),
+    review: null, modelSpecies: null,
   };
 }
 
@@ -68,7 +86,7 @@ function fromHistory(entry: HistoryEntry): LogRecord {
   // Synchronization only sends records with a cell, so every acknowledged record had one (history does not keep it).
   return {
     id: entry.id, species: entry.species, confidence: entry.confidence, status: entry.status, recordedAt: Date.parse(entry.recorded_at),
-    siteId: entry.siteId, upload: 'cloud', located: true, audioId: null,
+    siteId: entry.siteId, upload: 'cloud', located: true, review: null, modelSpecies: null,
   };
 }
 
@@ -78,12 +96,16 @@ function newestFirst(a: LogRecord, b: LogRecord): number {
 
 /**
  * One list, newest first. A record acknowledged between reading the pending queue and the history can appear in
- * both; the history copy is the newer state, so it wins.
+ * both; the history copy is the newer state, so it wins. Each record carries the verdict the person gave on it:
+ * a corrected one shows the species they heard and remembers the one the model gave.
  */
-export function mergeRecords(pending: readonly StoredDetection[], history: readonly HistoryEntry[], syncUser: SyncUser): LogRecord[] {
+export function mergeRecords(pending: readonly StoredDetection[], history: readonly HistoryEntry[], syncUser: SyncUser, reviews: ReviewIndex = new Map()): LogRecord[] {
   const byId = new Map<string, LogRecord>();
   for (const record of [...pending.map((row) => fromPending(row, syncUser)), ...history.map(fromHistory)]) {
-    if (isValid(record)) byId.set(record.id, record);
+    if (!isValid(record)) continue;
+    const review = reviews.get(record.id);
+    const corrected = review?.action === 'correct' && review.species ? review.species : null;
+    byId.set(record.id, review ? { ...record, review: review.action, species: corrected ?? record.species, modelSpecies: corrected ? record.species : null } : record);
   }
   return [...byId.values()].sort(newestFirst);
 }
@@ -95,7 +117,7 @@ export type LogFilter = (typeof LOG_FILTERS)[number];
 export function matchesFilter(record: LogRecord, filter: LogFilter): boolean {
   switch (filter) {
     case 'all': return true;
-    case 'toVerify': return record.status === 'provisional';
+    case 'toVerify': return record.status === 'provisional' && record.review === null;
     case 'notUploaded': return record.upload !== 'cloud';
   }
 }

@@ -15,6 +15,7 @@ export {
   formatSeconds,
   formatDecibels,
   formatBytes,
+  formatDataSize,
   formatDistance,
   formatMeters,
   formatDate,

@@ -128,8 +128,7 @@ export const listenMessages = defineMessages({
       windows: { one: (count: string) => `${count} ventana`, other: (count: string) => `${count} ventanas` },
     },
     privacy: {
-      local: 'El audio se analiza en el teléfono y no sale de él.',
-      fragments: 'El audio se analiza en el teléfono. Solo salen los fragmentos dudosos, porque lo autorizaste en Ajustes.',
+      local: 'El audio se analiza en el teléfono. Solo sale de él lo que tú enciendas en Ajustes.',
     },
     announce: {
       preparingModel: 'Preparando el modelo',
@@ -265,8 +264,7 @@ export const listenMessages = defineMessages({
       windows: { one: (count: string) => `${count} window`, other: (count: string) => `${count} windows` },
     },
     privacy: {
-      local: 'Audio is analyzed on the phone and never leaves it.',
-      fragments: 'Audio is analyzed on the phone. Only doubtful fragments leave it, because you allowed it in Settings.',
+      local: 'Audio is analyzed on the phone. Only what you turn on in Settings leaves it.',
     },
     announce: {
       preparingModel: 'Preparing the model',

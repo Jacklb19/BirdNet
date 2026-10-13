@@ -21,7 +21,7 @@ const hasStorage = (): boolean => typeof indexedDB !== 'undefined';
 
 /**
  * Reads the local stores again after every change to the records, made here, by the inference worker or by
- * background synchronization: a new song, an acknowledgement (also of a song whose fragment still waits) or a claim.
+ * background synchronization: a new song, an acknowledgement or a claim.
  */
 export function useLocalRecords(): LocalRecordsState {
   const version = useQueueVersion('records');

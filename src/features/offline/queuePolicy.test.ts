@@ -1,15 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { AUDIO_CONSTANTS } from '../audio/dsp/audio.constants';
-import { AUDIO_UPLOAD_MIME_TYPE } from '../../config/contract';
 import { MIN_QUEUE_BYTES } from './offline.constants';
-import { acknowledgedIds, approximateLocation, assertQueueCapacity, encodeAudio, recordingLocation, recordingSite, sharesMap, unlocatedAssignment } from './queuePolicy';
+import { acknowledgedIds, approximateLocation, assertQueueCapacity, recordingLocation, recordingSite, sharesMap, unlocatedAssignment } from './queuePolicy';
 import type { CachedSite, StoredDetection } from './types';
-
-/** Canonical PCM WAV header size and field offsets, from the RIFF/WAVE format specification. */
-const WAV_HEADER_BYTES = 44;
-const SAMPLE_RATE_OFFSET = 24;
-const BYTE_RATE_OFFSET = 28;
-const PCM16_BYTES = 2;
 
 describe('persistent queue policy', () => {
   it('checks capacity and acknowledgement membership across 1000 scenarios', () => {
@@ -30,16 +22,6 @@ describe('persistent queue policy', () => {
   });
   it.each([null, {}, { accepted_ids: [], existing_ids: [42] }, { accepted_ids: null, existing_ids: [] }])('rejects malformed acknowledgements %j', (response) => {
     expect(() => acknowledgedIds(response, [])).toThrow();
-  });
-  it('encodes exactly one window with a header that follows the capture sample rate', async () => {
-    const blob = encodeAudio(new Float32Array(AUDIO_CONSTANTS.WINDOW_SAMPLES).fill(0.5));
-    expect(blob.size).toBe(WAV_HEADER_BYTES + AUDIO_CONSTANTS.WINDOW_SAMPLES * PCM16_BYTES);
-    expect(blob.type).toBe(AUDIO_UPLOAD_MIME_TYPE);
-    const header = new DataView(await blob.slice(0, WAV_HEADER_BYTES).arrayBuffer());
-    expect(header.getUint32(SAMPLE_RATE_OFFSET, true)).toBe(AUDIO_CONSTANTS.TARGET_SAMPLE_RATE);
-    expect(header.getUint32(BYTE_RATE_OFFSET, true)).toBe(AUDIO_CONSTANTS.TARGET_SAMPLE_RATE * PCM16_BYTES);
-    expect(() => encodeAudio(new Float32Array(2))).toThrow();
-    expect(() => encodeAudio(new Float32Array(AUDIO_CONSTANTS.WINDOW_SAMPLES).fill(Infinity))).toThrow();
   });
 });
 

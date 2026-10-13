@@ -115,7 +115,12 @@ export function SignInForm({ account }: { readonly account: AccountState }): Rea
           <button type="button" className="bn-account-signin__link" onClick={() => { changeMode('reset'); }}>{texts.forgot}</button>
         )}
 
-        {account.error && <Notice tone="error">{dict.account.errors[account.error]}</Notice>}
+        {account.error && (
+          <Notice tone="error">
+            {dict.account.errors[account.error]}
+            {account.errorDetail && <span className="bn-account-signin__detail">{dict.account.errorDetail(account.errorDetail)}</span>}
+          </Notice>
+        )}
         {confirmationFor && (
           <Notice tone="success" icon="check" title={texts.confirmationTitle} live>{texts.confirmation(confirmationFor)}</Notice>
         )}

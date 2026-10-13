@@ -9,14 +9,16 @@ import { THEME_PREFERENCES, useTheme } from '../../theme';
 import { useModel } from '../offline/useModel';
 import { useOfflineSettings } from '../offline/useOfflineSettings';
 import { ChoiceGroup } from './ChoiceGroup';
+import { DetectionSettings } from './DetectionSettings';
 import { ModelSettings } from './ModelSettings';
 import { PermissionSettings } from './PermissionSettings';
+import { RecordingSettings } from './RecordingSettings';
 import { SelectRow } from './SelectRow';
 import { takeRequestedSection } from './settingsSections';
 import { StorageSettings } from './StorageSettings';
 import './SettingsPage.css';
 
-/** Settings: what may leave the phone, appearance and language first; the model and local space under technical options; credits last. */
+/** Settings: what may leave the phone and the recordings, appearance and language first; the model and local space under technical options; credits last. */
 export default function SettingsPage(): React.JSX.Element {
   const { dict, locale, setLocale } = useI18n();
   const texts = dict.settings;
@@ -44,6 +46,8 @@ export default function SettingsPage(): React.JSX.Element {
 
       <PermissionSettings ref={permissionsRef} offline={offline} />
 
+      <RecordingSettings offline={offline} />
+
       <ChoiceGroup title={texts.appearance.title} value={preference} onChange={setTheme}
         options={THEME_PREFERENCES.map((value) => ({ value, label: texts.appearance.options[value] }))} />
 
@@ -61,6 +65,7 @@ export default function SettingsPage(): React.JSX.Element {
           <span className="bn-settings-advanced__detail">{texts.advanced.detail}</span>
         </summary>
         <div className="bn-settings-advanced__body">
+          <DetectionSettings offline={offline} />
           <ModelSettings />
           <StorageSettings offline={offline} />
         </div>
@@ -68,6 +73,7 @@ export default function SettingsPage(): React.JSX.Element {
 
       <ListGroup title={texts.credits.title}>
         <ListRow label={texts.credits.model} description={texts.credits.modelDetail} />
+        <ListRow label={texts.credits.preview} description={texts.credits.previewDetail} />
         <ListRow label={texts.credits.names} description={texts.credits.namesDetail} />
         <ListRow label={texts.credits.photos} description={texts.credits.photosDetail} />
         <ListRow label={texts.credits.range} description={texts.credits.rangeDetail} />

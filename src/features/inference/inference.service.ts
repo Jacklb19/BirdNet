@@ -13,14 +13,17 @@ import {
   type Detection,
   type DisposeRequest,
   type InferRequest,
-  type LoadModelRequest,
+  type AlternateModel,
   type InferenceWorkerMessage,
 } from './inference.types';
 import { MIN_CANDIDATE_CONFIDENCE, TOP_K } from './inference.constants';
-import { STATIC_MANIFEST_URL, resolveManifestResource, validateManifest } from './modelManifest';
+import { planLoad, type DetectionChoices } from './loadPlan';
+import { STATIC_MANIFEST_URL, validateManifest } from './modelManifest';
+import { AUDIO_CONSTANTS } from '../audio/dsp/audio.constants';
 import { LatestWindowQueue } from '../audio/services/latestWindowQueue';
 import { offlineOperation } from '../offline/offlineClient';
 import { OFFLINE_OPERATIONS } from '../offline/offline.constants';
+import { getSettings } from '../offline/queueStore';
 import type { PersistenceContext } from '../offline/types';
 
 export interface InferenceCallbacks {
@@ -35,6 +38,12 @@ export interface InferenceCallbacks {
   onStorageError?: () => void;
 }
 
+/** The person's choices of model and decision rule; the defaults where there is no storage to read them from. */
+async function storedChoices(): Promise<DetectionChoices> {
+  if (typeof indexedDB === 'undefined') return {};
+  try { return await getSettings(); } catch { return {}; }
+}
+
 /** Asks the worker to release its session; it acknowledges with DISPOSED, and only then is it terminated. */
 const DISPOSE_REQUEST: DisposeRequest = Object.freeze({ type: INFERENCE_WORKER_MESSAGES.dispose });
 
@@ -43,6 +52,8 @@ export class InferenceService {
   private status: ModelStatus = 'idle';
   private callbacks: InferenceCallbacks = {};
   private manifest: ModelManifest | null = null;
+  private modelVersion: string | null = null;
+  private expectedClasses: number | null = null;
   private generation = 0;
   private activeWindowIndex: number | null = null;
   private readonly queue = new LatestWindowQueue<InferRequest>(
@@ -67,6 +78,11 @@ export class InferenceService {
 
   public getManifest(): ModelManifest | null {
     return this.manifest;
+  }
+
+  /** Identifier of the model, or pair of models, loaded for this session; stored with what it detects. */
+  public getModelVersion(): string | null {
+    return this.modelVersion;
   }
 
   private setStatus(newStatus: ModelStatus): void {
@@ -98,7 +114,8 @@ export class InferenceService {
       // Base that the manifest's resource paths resolve against.
       let resourceBase = manifestUrl;
       const serviceWorkerSupported = 'serviceWorker' in navigator;
-      if ((config.offlineEnabled && serviceWorkerSupported) || (serviceWorkerSupported && navigator.serviceWorker.controller)) {
+      const installed = (config.offlineEnabled && serviceWorkerSupported) || (serviceWorkerSupported && Boolean(navigator.serviceWorker.controller));
+      if (installed) {
         const cached = await offlineOperation(OFFLINE_OPERATIONS.modelStatus);
         if (!cached) throw new Error('Download and verify the model before listening.');
         candidate = cached;
@@ -109,18 +126,16 @@ export class InferenceService {
         if (!response.ok) throw new Error(`Error downloading manifest: ${String(response.status)}`);
         candidate = await response.json();
       }
-      if (generation !== this.generation) return;
       const manifest = validateManifest(candidate);
+      // The second model counts only when it is on the device: verified by the service worker, or packaged in development.
+      const alternate: AlternateModel | null = installed
+        ? await offlineOperation(OFFLINE_OPERATIONS.alternateStatus).catch(() => null)
+        : manifest.alternate ?? null;
+      const plan = planLoad(manifest, alternate, await storedChoices(), resourceBase, origin);
+      if (generation !== this.generation) return;
       this.manifest = manifest;
-
-      const loadRequest: LoadModelRequest = {
-        type: INFERENCE_WORKER_MESSAGES.loadModel,
-        modelUrl: resolveManifestResource(manifest.model_file, resourceBase, origin),
-        labelsUrl: resolveManifestResource(manifest.labels_file, resourceBase, origin),
-        windowSamples: manifest.window_samples,
-        modelSizeBytes: manifest.size_bytes,
-        ...(manifest.geo_model_file ? { geoModelUrl: resolveManifestResource(manifest.geo_model_file, resourceBase, origin) } : {}),
-      };
+      this.modelVersion = plan.modelVersion;
+      this.expectedClasses = plan.expectedClasses;
 
       this.worker = new Worker(
         new URL('./inference.worker.ts', import.meta.url),
@@ -141,7 +156,7 @@ export class InferenceService {
         this.callbacks.onError?.(`Inference worker failed: ${event.message}`);
       };
 
-      this.worker.postMessage(loadRequest);
+      this.worker.postMessage(plan.request);
     } catch (err) {
       if (generation !== this.generation) return;
       const message = err instanceof Error ? err.message : String(err);
@@ -168,7 +183,7 @@ export class InferenceService {
       return;
     }
 
-    if (audioBuffer.length !== this.manifest?.window_samples || !Number.isFinite(timestamp)) {
+    if (!this.manifest || audioBuffer.length !== AUDIO_CONSTANTS.WINDOW_SAMPLES || !Number.isFinite(timestamp)) {
       this.callbacks.onError?.('Invalid audio window.');
       return;
     }
@@ -195,12 +210,14 @@ export class InferenceService {
     }
     this.setStatus('idle');
     this.manifest = null;
+    this.modelVersion = null;
+    this.expectedClasses = null;
   }
 
   private handleWorkerMessage(msg: InferenceWorkerOutbound): void {
     switch (msg.type) {
       case INFERENCE_WORKER_MESSAGES.modelLoaded:
-        if (msg.numClasses !== this.manifest?.num_classes) {
+        if (!this.manifest || (this.expectedClasses !== null && msg.numClasses !== this.expectedClasses)) {
           this.setStatus('error');
           this.callbacks.onError?.('Model label count does not match the manifest.');
           return;

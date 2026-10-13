@@ -3,6 +3,7 @@
  * main thread and the inference worker.
  */
 import type { PersistenceContext } from '../offline/types';
+import type { PoolingRule } from './windowPooling';
 
 /** Lifecycle state of the model in the worker. */
 export type ModelStatus = 'idle' | 'loading' | 'ready' | 'error';
@@ -27,6 +28,29 @@ export interface ModelManifest {
   readonly geo_model_file?: string;
   readonly geo_sha256?: string;
   readonly geo_size_bytes?: number;
+  /** A second acoustic model the person may install and choose (ADR-31); absent where none is published. */
+  readonly alternate?: AlternateModel;
+}
+
+/**
+ * A second acoustic model, with its own labels and geographic model. It may take another sample rate than the
+ * capture pipeline (the window is resampled for it) and its file may come in parts, joined in order, where the
+ * host limits file size; the hash and the size are those of the whole file.
+ */
+export interface AlternateModel {
+  readonly model_id: string;
+  readonly variant: string;
+  readonly sample_rate: number;
+  readonly window_samples: number;
+  readonly window_seconds: number;
+  readonly num_classes: number;
+  readonly sha256: string;
+  readonly size_bytes: number;
+  readonly model_files: readonly string[];
+  readonly labels_file: string;
+  readonly geo_model_file: string;
+  readonly geo_sha256: string;
+  readonly geo_size_bytes: number;
 }
 
 /** One ranked species candidate of a window. */
@@ -65,21 +89,34 @@ export type InferenceErrorReason = (typeof INFERENCE_ERROR_REASONS)[keyof typeof
 
 // ─── Messages to the worker ──────────────────────────────────────────────
 
-export interface LoadModelRequest {
-  readonly type: typeof INFERENCE_WORKER_MESSAGES.loadModel;
-  readonly modelUrl: string;
+/** One acoustic model for the worker to load. */
+export interface ModelSource {
+  /** The model file, or its parts in order. */
+  readonly modelUrls: readonly string[];
   readonly labelsUrl: string;
-  /** Model input length in samples (`manifest.window_samples`); every INFER buffer must match it. */
+  /** Rate the model takes; a window captured at another rate is resampled for it. */
+  readonly sampleRate: number;
+  /** Model input length in samples (`window_samples` of its manifest). */
   readonly windowSamples: number;
-  /** Model file size in bytes (`manifest.size_bytes`, verified with its hash when the model is cached). */
-  readonly modelSizeBytes: number;
   /** Geographic model, when the installation has one; without it no species is filtered by place and week. */
   readonly geoModelUrl?: string;
 }
 
+export interface LoadModelRequest {
+  readonly type: typeof INFERENCE_WORKER_MESSAGES.loadModel;
+  /** One model, or several that decide together: the confidence of a species is the mean of theirs. */
+  readonly models: readonly ModelSource[];
+  /** What the capture pipeline delivers; every INFER buffer must be one such window. */
+  readonly capture: { readonly sampleRate: number; readonly windowSamples: number };
+  /** Bytes of the model files in use (verified with their hashes when they were cached). */
+  readonly modelSizeBytes: number;
+  /** How consecutive windows decide together; the person chooses between the careful rule and none. */
+  readonly decisionRule: PoolingRule;
+}
+
 export interface InferRequest {
   readonly type: typeof INFERENCE_WORKER_MESSAGES.infer;
-  /** Normalized audio at the model sample rate, exactly `windowSamples` long. */
+  /** Normalized audio as captured: one window at the capture rate. */
   readonly audioBuffer: Float32Array;
   /** Index of the source window. */
   readonly windowIndex: number;

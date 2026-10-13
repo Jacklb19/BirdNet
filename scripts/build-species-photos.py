@@ -2,8 +2,8 @@
 Builds public/models/species-photos.json: the photo of every bird likely in the deployment region, so the app shows
 it at once instead of asking two services per species (ADR-23).
 
-The region's species come from BirdNET's geographic model (public/models/birdnet_geo_model.onnx, see
-prepare-geo-model.py): every label whose year-round probability passes BirdNET's location threshold at any of
+The region's species come from BirdNET's geographic model (public/models/birdnet_geo_model_v3.onnx, see
+prepare-birdnet-plus.py): every label whose year-round probability passes BirdNET's location threshold at any of
 REGION_POINTS. For each one, the lead image of its Wikipedia article is looked up and its thumbnail, author and
 license are read from Wikimedia Commons, the same sources and rules as src/features/species/speciesPhotos.ts.
 Species without an article image or without a license are left out; the app looks those up itself.
@@ -26,7 +26,7 @@ import requests
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 MODELS_DIR = BASE_DIR / "public" / "models"
-GEO_MODEL_PATH = MODELS_DIR / "birdnet_geo_model.onnx"
+GEO_MODEL_PATH = MODELS_DIR / "birdnet_geo_model_v3.onnx"
 LABELS_PATH = MODELS_DIR / "labels.txt"
 # Mirrors MODEL_FILES.speciesPhotos in build.config.mjs.
 OUTPUT_PATH = MODELS_DIR / "species-photos.json"

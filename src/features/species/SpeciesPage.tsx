@@ -8,6 +8,8 @@ import { Icon } from '../../shared/ui/Icon';
 import { Page } from '../../shared/ui/Page';
 import { Segmented } from '../../shared/ui/Segmented';
 import { useAccountContext } from '../account/accountContext';
+import { AccountRecordingButton } from '../recordings/AccountRecordingButton';
+import { useLocalRecordingUsage } from '../recordings/useRecordings';
 import { formatConfidence, formatDayTime, formatTime } from '../log/logFormat';
 import { useLogRecords } from '../log/useLogRecords';
 import { useOnline } from '../offline/useQueueStatus';
@@ -108,6 +110,8 @@ export default function SpeciesPage({ species }: { readonly species: string }): 
   const { records, readAt } = useLogRecords();
   const { sites } = useSites();
   const cloud = useCloudRecord(species);
+  const clips = useLocalRecordingUsage();
+  const token = useAccountContext().session?.access_token ?? null;
   const summary = useSpeciesSummary(species, locale);
   const taxon = useTaxon(species);
   const factsId = useId();
@@ -132,15 +136,17 @@ export default function SpeciesPage({ species }: { readonly species: string }): 
     ...(facts.lastAt !== null ? [{ label: texts.notes.last, value: formatDayTime(facts.lastAt, readAt, locale) }] : []),
   ] : [];
 
-  // Records on this phone link to their detail (fragment, state); cloud-only ones are listed without a link.
+  // Records on this phone link to their detail (recording, state); cloud-only ones are listed without a
+  // link, with a button to play the recording the account keeps, if any.
   const recent = [
     ...local.map((record) => ({
       id: record.id, at: record.recordedAt, confidence: record.confidence, status: record.status,
-      href: routeHash({ name: 'detection', id: record.id }), extra: record.audioId ? texts.recent.withAudio : null,
+      href: routeHash({ name: 'detection', id: record.id }), playable: false,
+      extra: clips?.ids.has(record.id) ? texts.recent.withRecording : null,
     })),
     ...(cloud?.recent ?? []).filter((item) => !local.some((record) => record.id === item.id)).map((item) => ({
       id: item.id, at: Date.parse(item.recordedAt), confidence: item.confidence, status: item.status,
-      href: undefined, extra: texts.recent.cloudOnly,
+      href: undefined, playable: item.hasRecording, extra: texts.recent.cloudOnly,
     })),
   ].sort((a, b) => b.at - a.at).slice(0, SPECIES_RECENT_RECORDS);
 
@@ -247,9 +253,14 @@ export default function SpeciesPage({ species }: { readonly species: string }): 
                           <span className={`bn-species-page__status bn-species-page__status--${item.status}`}>{dict.common.status[item.status]}</span>
                         </>
                       );
+                      if (item.href) return <li key={item.id}><a className="bn-species-page__record" href={item.href}>{body}</a></li>;
                       return (
-                        <li key={item.id}>
-                          {item.href ? <a className="bn-species-page__record" href={item.href}>{body}</a> : <div className="bn-species-page__record">{body}</div>}
+                        <li key={item.id} className="bn-species-page__playable">
+                          {item.playable && token && (
+                            <AccountRecordingButton detectionId={item.id} token={token}
+                              labels={{ play: texts.recent.playRecording, stop: texts.recent.stopRecording, failed: texts.recent.recordingFailed }} />
+                          )}
+                          <div className="bn-species-page__record">{body}</div>
                         </li>
                       );
                     })}

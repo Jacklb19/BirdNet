@@ -77,7 +77,7 @@ describe('territories', () => {
 describe('own pins', () => {
   const pending = (id: string, recordedAt: string, location: StoredDetection['location']): StoredDetection => ({
     id, species: 'Turdus fuscater', confidence: 0.9, status: 'confirmed', recorded_at: recordedAt, location,
-    model_version: 'v', owner: null, audioId: null, metadataSynced: false, bytes: 0,
+    model_version: 'v', owner: null, bytes: 0,
   });
   const synced = (id: string, recordedAt: string, location?: HistoryEntry['location']): HistoryEntry => ({
     id, species: 'Colibri coruscans', confidence: 0.8, status: 'provisional', recorded_at: recordedAt, siteId: null,

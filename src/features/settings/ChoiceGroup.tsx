@@ -5,6 +5,10 @@ import './ChoiceGroup.css';
 export interface ChoiceOption<T extends string> {
   readonly value: T;
   readonly label: string;
+  /** What choosing it means, in a line under the label. */
+  readonly detail?: string;
+  /** Cannot be chosen now; the screen says why next to the group. */
+  readonly disabled?: boolean;
 }
 
 export interface ChoiceGroupProps<T extends string> {
@@ -27,8 +31,11 @@ export function ChoiceGroup<T extends string>({ title, options, value, onChange 
         {options.map((option) => (
           <label key={option.value} className="bn-settings-choice__option">
             <input type="radio" className="bn-settings-choice__input visually-hidden" name={name} value={option.value}
-              checked={option.value === value} onChange={() => { onChange(option.value); }} />
-            <span className="bn-settings-choice__label">{option.label}</span>
+              checked={option.value === value} disabled={option.disabled} onChange={() => { onChange(option.value); }} />
+            <span className="bn-settings-choice__label">
+              {option.label}
+              {option.detail && <span className="bn-settings-choice__detail">{option.detail}</span>}
+            </span>
             <span className="bn-settings-choice__check"><Icon name="check" size="s" /></span>
           </label>
         ))}
