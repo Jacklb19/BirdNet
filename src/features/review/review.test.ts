@@ -66,6 +66,13 @@ describe('searchSpecies', () => {
     expect(searchSpecies(names, 'mirlo', 'es', 2)).toHaveLength(2);
   });
 
+  it('puts the birds likely at the place before the rest of the catalogue', () => {
+    const likely = new Set(['Turdus ignobilis', 'Cinclus leucocephalus']);
+    // A likely bird that only contains the text still comes before an unlikely one that starts with it.
+    expect(searchSpecies(names, 'mirlo', 'es', 8, likely).map((match) => match.name)).toEqual(['Mirlo Piquinegro', 'Mirlo-acuático Coroniblanco', 'Mirlo Grande']);
+    expect(searchSpecies(names, 'mirlo', 'es', 1, likely)).toEqual([{ scientificName: 'Turdus ignobilis', name: 'Mirlo Piquinegro' }]);
+  });
+
   it('waits for enough characters', () => {
     expect(searchSpecies(names, 'm', 'es', 8)).toEqual([]);
     expect(searchSpecies(names, '  ', 'es', 8)).toEqual([]);
