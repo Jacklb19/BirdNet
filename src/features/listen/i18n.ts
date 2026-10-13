@@ -119,6 +119,16 @@ export const listenMessages = defineMessages({
       start: 'Empezar caminata',
       failed: 'No se pudo activar la ubicación en este teléfono. Actívala en Ajustes e inténtalo de nuevo.',
     },
+    pocket: {
+      title: 'Modo bolsillo',
+      invite: 'La pantalla queda en negro y encendida, y no responde a los toques: así el teléfono sigue escuchando mientras lo llevas guardado.',
+      enter: 'Activar modo bolsillo',
+      listening: (elapsed: string) => `Escuchando · ${elapsed}`,
+      singing: (name: string) => `Canta ahora: ${name}`,
+      exit: 'Mantén pulsado para salir',
+      note: 'La pantalla sigue encendida, en negro, para que el teléfono no deje de escuchar.',
+      refused: 'El teléfono no deja mantener la pantalla encendida (suele ser el ahorro de batería). Si se apaga, la escucha se detiene.',
+    },
     plate: {
       notes: { confidence: 'Confianza', status: 'Estado', windows: 'Ventanas' },
       open: 'Ver la ficha',
@@ -254,6 +264,16 @@ export const listenMessages = defineMessages({
       text: (distance: string) => `In walk mode the map draws your path and leaves each bird where you heard it, within about ${distance}.`,
       start: 'Start a walk',
       failed: 'Location could not be turned on for this phone. Turn it on in Settings and try again.',
+    },
+    pocket: {
+      title: 'Pocket mode',
+      invite: 'The screen goes black, stays on and ignores touches, so the phone keeps listening while you carry it put away.',
+      enter: 'Turn on pocket mode',
+      listening: (elapsed: string) => `Listening · ${elapsed}`,
+      singing: (name: string) => `Singing now: ${name}`,
+      exit: 'Hold to leave',
+      note: 'The screen stays on, in black, so the phone does not stop listening.',
+      refused: 'The phone will not keep the screen on (usually the battery saver). If it turns off, listening stops.',
     },
     plate: {
       notes: { confidence: 'Confidence', status: 'Status', windows: 'Windows' },

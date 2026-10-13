@@ -61,6 +61,9 @@
   --color-book-ring: #9AA8A1;
   --color-sticker-shadow: rgb(22 54 47 / 35%);
   --color-map-photo-ring: #FFFFFF;
+  /* Pocket mode: a black screen with dim text, the same in both themes (the screen is on only to keep listening) */
+  --color-pocket-bg: #000000;
+  --color-pocket-ink: #8A9891;
 
   /* Sky — the band behind the page follows the local hour (src/theme/sky.ts sets data-sky). Text on it is --color-text-primary. */
   --sky-dawn: #F8CDB0;
@@ -246,12 +249,14 @@
   --state-disabled-opacity: 0.55;
   --state-pressed-scale: 0.97;
   --state-hover-lift: -2px;
+  --pocket-fill-opacity: 0.2;
 
   /* Motion — stickers land with a small bounce, plates flood with color, annotations draw themselves */
   --duration-fast: 150ms;
   --duration-medium: 250ms;
   --duration-slow: 600ms;
   --duration-sky: 4s;
+  --duration-pocket-drift: 90s;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
   --stagger: 90ms;
@@ -260,6 +265,7 @@
   --layer-nav: 20;
   --layer-player: 30;
   --layer-sheet: 40;
+  --layer-pocket: 50;
 
   /* Map — MapLibre paints its canvas in CSS pixels and reads these with getComputedStyle, so they stay in px */
   --map-cluster-radius-s: 16px;

@@ -11,6 +11,7 @@ import { useElapsed } from '../../shared/useElapsed';
 import { useNow } from '../../shared/useNow';
 import { useAccountContext } from '../account/accountContext';
 import { useListening } from '../listen/listeningContext';
+import { enterPocketMode } from '../listen/pocketMode';
 import { showsSessionError, startBlocker } from '../listen/listenState';
 import { SessionErrorNotice } from '../listen/SessionErrorNotice';
 import { sharesMap } from '../offline/queuePolicy';
@@ -109,6 +110,7 @@ export function WalkPanel({ ref, result, totals, territoriesShown, loadError, ex
         </dl>
         <WalkNow />
         <Button variant="secondary" block onClick={() => { void walk.stop(); }}>{t.stop}</Button>
+        {walk.keepsScreenOn && <Button variant="quiet" block onClick={enterPocketMode}>{dict.listen.pocket.enter}</Button>}
         <p className="bn-map-sheet__note">{walk.keepsScreenOn ? t.screenOn : t.screenManual}</p>
       </SheetShell>
     );
