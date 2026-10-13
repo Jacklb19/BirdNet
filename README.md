@@ -12,7 +12,8 @@ Aplicación web progresiva para el monitoreo continuo de aves por sonido. Identi
 - Grabaciones: cada canto conserva en el teléfono un clip de 3 s comprimido (Opus) para oírlo después; solo sale del teléfono si la persona elige guardar sus grabaciones en su cuenta, donde son privadas, tienen tope y se pueden borrar.
 - Revisión: tras oír la grabación, la persona confirma, corrige o descarta la detección; lo que dijo el modelo se conserva aparte.
 - Política de confianza: ≥ 0,80 confirmada por el modelo local; 0,45–0,80 provisional; < 0,45 descartada. Toda detección muestra su confianza y estado.
-- Funcionamiento sin conexión: modelo en caché con verificación SHA-256 y cola local de detecciones que se sincroniza sola, sin duplicados.
+- Funcionamiento sin conexión: modelo en caché con verificación SHA-256 y cola local de detecciones que se sincroniza sola, sin duplicados. La descarga del modelo se reanuda si se interrumpe, y la del modelo de vista previa sigue en segundo plano donde el navegador lo permite.
+- Modo bolsillo: mientras escucha, la pantalla queda en negro y encendida y no responde a los toques, para llevar el teléfono guardado sin que deje de oír.
 - Cuenta con Supabase Auth y mapa colectivo (MapLibre + OpenFreeMap) con agrupamiento y filtros por especie y periodo.
 - Ubicación siempre aproximada (celdas de unos 10 m); cada persona decide si sus cantos se comparten en el mapa de todos.
 
