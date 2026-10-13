@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { screenAwakeSupported, useScreenAwake } from '../../shared/useScreenAwake';
 import { watchApproximateLocation } from '../audio/location';
 import { useListening } from '../listen/listeningContext';
 import { updateSettings } from '../offline/queueStore';
@@ -15,8 +16,6 @@ interface LiveWalk {
   readonly position: ApproximateLocation | null;
   readonly fix: WalkFix;
 }
-
-const keepsScreenOn = typeof navigator !== 'undefined' && 'wakeLock' in navigator;
 
 /**
  * Walk mode (ADR-25): while a session runs as a walk, the screen is kept on (a web page stops listening once the
@@ -57,29 +56,7 @@ export function WalkProvider({ children }: { readonly children: ReactNode }): Re
     };
   }, [walking, startedAt]);
 
-  // Keeps the screen on. The browser releases the lock whenever the page is hidden, so it is taken again on return.
-  useEffect(() => {
-    if (!walking || !keepsScreenOn) return;
-    let sentinel: WakeLockSentinel | null = null;
-    let ended = false;
-    const acquire = (): void => {
-      navigator.wakeLock.request('screen')
-        .then((lock) => {
-          if (ended) void lock.release();
-          else sentinel = lock;
-        })
-        // Refused while the page is hidden or the battery saver is on; the next return to the page tries again.
-        .catch(() => undefined);
-    };
-    const onVisibility = (): void => { if (document.visibilityState === 'visible') acquire(); };
-    acquire();
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => {
-      ended = true;
-      document.removeEventListener('visibilitychange', onVisibility);
-      void sentinel?.release();
-    };
-  }, [walking]);
+  useScreenAwake(walking);
 
   const { start: startSession, stop: stopSession } = session;
   const start = useCallback(async (): Promise<boolean> => {
@@ -101,7 +78,7 @@ export function WalkProvider({ children }: { readonly children: ReactNode }): Re
       track: current?.track ?? [],
       position: current?.position ?? null,
       fix: current?.fix ?? 'searching',
-      keepsScreenOn,
+      keepsScreenOn: screenAwakeSupported,
       start,
       stop: stopSession,
     };
