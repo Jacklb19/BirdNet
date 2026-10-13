@@ -2,11 +2,14 @@ import { useId, useMemo, useState } from 'react';
 import { useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
 import { Notice } from '../../shared/ui/Notice';
-import { SPECIES_SEARCH_LIMIT } from '../review/review.config';
+import { birdnetWeek } from '../inference/geoFilter';
+import { useRegionSpecies } from '../inference/regionSpecies';
+import { SPECIES_SEARCH_LIKELY_LIMIT, SPECIES_SEARCH_LIMIT } from '../review/review.config';
 import { correctionVerdict, type Verdict } from '../review/reviewPolicy';
 import { saveReview } from '../review/reviewStore';
 import { searchSpecies } from '../review/speciesSearch';
 import { useSpeciesNames } from '../species/speciesNames';
+import { useRegionPlace } from '../species/useRegionPlace';
 import type { LogRecord } from './logRecords';
 import './ReviewCard.css';
 
@@ -30,7 +33,11 @@ export function ReviewCard({ record }: ReviewCardProps): React.JSX.Element {
   const [working, setWorking] = useState(false);
   const [failed, setFailed] = useState(false);
   const modelSpecies = record.modelSpecies ?? record.species;
-  const matches = useMemo(() => (names && choosing ? searchSpecies(names, query, locale, SPECIES_SEARCH_LIMIT) : []), [names, choosing, query, locale]);
+  const place = useRegionPlace();
+  // Asked for only once the person looks for another bird; until it answers, the search is simply alphabetical.
+  const region = useRegionSpecies(choosing ? place : null, birdnetWeek(new Date()), SPECIES_SEARCH_LIKELY_LIMIT);
+  const likely = useMemo(() => new Set(region.status === 'ready' ? region.species.map((bird) => bird.scientificName) : []), [region]);
+  const matches = useMemo(() => (names && choosing ? searchSpecies(names, query, locale, SPECIES_SEARCH_LIMIT, likely) : []), [names, choosing, query, locale, likely]);
 
   const save = async (verdict: Verdict): Promise<void> => {
     setWorking(true);

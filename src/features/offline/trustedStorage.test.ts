@@ -14,7 +14,7 @@ afterEach(() => { vi.unstubAllGlobals(); });
 describe('storage origin trust', () => {
   it('accepts only the page origin and the configured Supabase project', () => {
     expect(isTrustedStorageUrl(new URL('/models/model.onnx', pageOrigin))).toBe(true);
-    expect(isTrustedStorageUrl(new URL('/storage/v1/object/upload/sign/audio/a.wav', projectOrigin))).toBe(true);
+    expect(isTrustedStorageUrl(new URL('/storage/v1/object/upload/sign/recordings/a.webm', projectOrigin))).toBe(true);
   });
   it.each(['https://other.supabase.co/upload', 'http://project.supabase.co/upload', 'https://project.supabase.co.evil.example/upload', 'https://foreign.example/upload'])('rejects %s', (url) => {
     expect(isTrustedStorageUrl(new URL(url))).toBe(false);

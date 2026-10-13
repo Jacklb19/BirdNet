@@ -4,7 +4,8 @@ import { DEFAULT_QUEUE_BYTES } from '../offline/offline.constants';
 import { getSettings, listHistory } from '../offline/queueStore';
 import type { HistoryEntry, OfflineSettings } from '../offline/types';
 import { listRecordings, markRecording } from './recordingStore';
-import { uploadRecordings } from './recordingSync';
+import { isSettled, uploadRecordings } from './recordingSync';
+import { SONG_MAX_MS } from './recordings.config';
 import type { StoredRecording } from './types';
 
 /** Hoisted: the configuration mock below is created before the module's own constants. */
@@ -67,6 +68,17 @@ describe('uploadRecordings', () => {
     vi.mocked(listRecordings).mockResolvedValue([clip(first), clip(second, { upload: 'uploaded' })]);
     await uploadRecordings(userId);
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('waits until the song is over, so a clip a clearer one replaces never reaches the account', async () => {
+    // Regression: a clip uploaded while its song still lasted stayed in the account next to its replacement.
+    const heardJustNow = new Date(Date.now() - 10_000).toISOString();
+    vi.mocked(listRecordings).mockResolvedValue([clip(first, { recordedAt: heardJustNow })]);
+    await uploadRecordings(userId);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(markRecording).not.toHaveBeenCalled();
+    expect(isSettled({ recordedAt: heardJustNow }, Date.now())).toBe(false);
+    expect(isSettled({ recordedAt: heardJustNow }, Date.now() + SONG_MAX_MS)).toBe(true);
   });
 
   it('stops as soon as the permission is withdrawn', async () => {

@@ -5,7 +5,7 @@ import { getSettings, listHistory } from '../offline/queueStore';
 import { isTrustedStorageUrl } from '../offline/trustedStorage';
 import type { OfflineSettings, SyncSession } from '../offline/types';
 import { listRecordings, markRecording } from './recordingStore';
-import { RECORDING_MAX_UPLOAD_BYTES, RECORDING_MIME_TYPE, recordingObjectPath } from './recordings.config';
+import { RECORDING_MAX_UPLOAD_BYTES, RECORDING_MIME_TYPE, recordingObjectPath, SONG_MAX_MS } from './recordings.config';
 import type { StoredRecording } from './types';
 
 const HTTP_NOT_FOUND = 404;
@@ -60,6 +60,14 @@ async function upload(clip: StoredRecording, session: SyncSession): Promise<'upl
 }
 
 /**
+ * Whether the clip is the one its song keeps for good. While the song lasts a clearer window may still replace
+ * it, and a clip uploaded before that would stay in the account next to its replacement, taking quota twice.
+ */
+export function isSettled(clip: Pick<StoredRecording, 'recordedAt'>, now: number): boolean {
+  return now - Date.parse(clip.recordedAt) > SONG_MAX_MS;
+}
+
+/**
  * Uploads the clips still on the phone whose detection the server already has. Runs inside the synchronization
  * lock, after the detections themselves. The permission is read again before every clip, so turning it off
  * stops the uploads at once.
@@ -67,7 +75,8 @@ async function upload(clip: StoredRecording, session: SyncSession): Promise<'upl
 export async function uploadRecordings(userId: string): Promise<void> {
   if (!uploadSession(await getSettings(), userId)) return;
   const acknowledged = new Set((await listHistory()).map((entry) => entry.id));
-  const clips = (await listRecordings()).filter((clip) => clip.upload === 'pending' && acknowledged.has(clip.id));
+  const now = Date.now();
+  const clips = (await listRecordings()).filter((clip) => clip.upload === 'pending' && acknowledged.has(clip.id) && isSettled(clip, now));
   for (const clip of clips) {
     const session = uploadSession(await getSettings(), userId);
     if (!session) return;
