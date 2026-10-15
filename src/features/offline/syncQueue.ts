@@ -5,6 +5,7 @@ import { acknowledge, getSettings, listDetections } from './queueStore';
 import { JSON_HEADERS, SYNC_LOCK_NAME } from './offline.constants';
 import { uploadRecordings } from '../recordings/recordingSync';
 import { syncReviews } from '../review/reviewSync';
+import { uploadWalks } from '../walk/walkSync';
 import type { StoredDetection, SyncSession } from './types';
 
 const MILLISECONDS_PER_SECOND = 1000;
@@ -45,6 +46,8 @@ export async function synchronizeQueue(): Promise<void> {
     // After the detections, so a verdict or a clip is sent only once the server has its detection.
     await syncReviews(session.userId);
     await uploadRecordings(session.userId);
+    // A walk only needs its own path; its songs are counted from the detections whenever it is read.
+    await uploadWalks(session.userId);
   };
   if ('locks' in navigator) await navigator.locks.request(SYNC_LOCK_NAME, run);
   else await run();

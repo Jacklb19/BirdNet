@@ -28,7 +28,7 @@ export function LogSummary({ records, walks, now }: LogSummaryProps): React.JSX.
   const t = dict.log.summary;
   const names = useSpeciesNames();
   const insights = useMemo(() => logInsights(records, now.getTime()), [records, now]);
-  const latestWalks = useMemo(() => walkSummaries(walks, records).slice(0, LOG_WALKS_SHOWN), [walks, records]);
+  const latestWalks = useMemo(() => walkSummaries(walks, records, now.getTime()).slice(0, LOG_WALKS_SHOWN), [walks, records, now]);
   const fresh = insights.newSpecies.slice(0, LOG_NEW_SPECIES_SHOWN);
   const busiest = insights.busiestHour === null ? null
     : formatTime(new Date(now.getFullYear(), now.getMonth(), now.getDate(), insights.busiestHour).getTime(), locale);

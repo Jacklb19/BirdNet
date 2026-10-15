@@ -24,14 +24,17 @@ export function distanceMeters(from: TrackPoint, to: TrackPoint): number {
 }
 
 /**
- * Adds the cell the person is in to the path. Standing still keeps reporting the same cell, which adds nothing;
- * the same array is then returned, so callers can tell by identity. A full path stops growing.
+ * Adds the cell the person is in to the path, stamped with the whole seconds since the walk started. Standing
+ * still keeps reporting the same cell, which adds nothing; the same array is then returned, so callers can tell by
+ * identity. A full path stops growing.
  */
-export function appendTrackPoint(track: readonly TrackPoint[], cell: ApproximateLocation, limit: number): readonly TrackPoint[] {
+export function appendTrackPoint(track: readonly TrackPoint[], cell: ApproximateLocation, limit: number, seconds: number): readonly TrackPoint[] {
   const last = track.at(-1);
   if (last?.[0] === cell.latitude && last[1] === cell.longitude) return track;
   if (track.length >= limit) return track;
-  return [...track, [cell.latitude, cell.longitude]];
+  // A clock set back during the walk must not make the path go back in time (the API refuses that).
+  const previous = last?.[2] ?? 0;
+  return [...track, [cell.latitude, cell.longitude, Math.max(previous, Math.round(seconds))]];
 }
 
 /** Length of a path, in metres. */

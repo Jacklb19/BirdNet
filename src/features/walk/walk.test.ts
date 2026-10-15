@@ -11,16 +11,26 @@ describe('walk path', () => {
     expect(distanceMeters([4.65, -74.09], [4.66, -74.09])).toBeCloseTo(1111.95, 0);
   });
 
-  it('adds a cell only when the person has moved to another one', () => {
-    const start = appendTrackPoint([], BOGOTA, 10);
-    expect(start).toEqual([[4.6584, -74.0935]]);
-    expect(appendTrackPoint(start, BOGOTA, 10)).toBe(start);
-    expect(appendTrackPoint(start, { latitude: 4.6585, longitude: -74.0935 }, 10)).toHaveLength(2);
+  it('adds a cell only when the person has moved to another one, with its time', () => {
+    const start = appendTrackPoint([], BOGOTA, 10, 0.4);
+    expect(start).toEqual([[4.6584, -74.0935, 0]]);
+    expect(appendTrackPoint(start, BOGOTA, 10, 30)).toBe(start);
+    expect(appendTrackPoint(start, { latitude: 4.6585, longitude: -74.0935 }, 10, 61.6)).toEqual([[4.6584, -74.0935, 0], [4.6585, -74.0935, 62]]);
+  });
+
+  it('never lets a clock set back make the path go back in time', () => {
+    const track: TrackPoint[] = [[4.1, -74, 120]];
+    expect(appendTrackPoint(track, BOGOTA, 10, 90).at(-1)).toEqual([4.6584, -74.0935, 120]);
   });
 
   it('stops growing at its limit instead of dropping the start of the walk', () => {
     const full: TrackPoint[] = [[4.1, -74], [4.2, -74]];
-    expect(appendTrackPoint(full, BOGOTA, 2)).toBe(full);
+    expect(appendTrackPoint(full, BOGOTA, 2, 5)).toBe(full);
+  });
+
+  it('measures a path with the same formula as the API', () => {
+    // Same cells and value as backend/tests/test_walks.py.
+    expect(trackMeters([[4.6789, -74.1234], [4.6799, -74.1234]])).toBeCloseTo(111.195, 3);
   });
 
   it('adds up the legs of a path', () => {
