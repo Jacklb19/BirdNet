@@ -152,8 +152,9 @@ function MapScreen({ initialSpecies }: { readonly initialSpecies: string | null 
   else if (status === 'error') mode = 'error';
   else if (!shown) mode = 'loading';
 
-  // Without a list (empty area, error, offline) the grabber is gone, so the sheet must not stay enlarged.
-  const listed = mine ? !walk.walking && view.result.detections.length > 0 : mode === 'ready' && shown !== null && shown.detections.length > 0;
+  // Without a list (empty area, error, offline) the grabber is gone, so the sheet must not stay enlarged; a walk
+  // that just ended keeps its card open.
+  const listed = mine ? !walk.walking && (view.result.detections.length > 0 || walk.finished !== null) : mode === 'ready' && shown !== null && shown.detections.length > 0;
   if (listExpanded && !listed) setListExpanded(false);
 
   const overlay = (

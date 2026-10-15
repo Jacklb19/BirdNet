@@ -1,0 +1,33 @@
+.bn-settings-walks {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+.bn-settings-walks p {
+  margin: 0;
+}
+
+.bn-settings-walks__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+}
+
+.bn-settings-walks__value {
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.bn-settings-walks__confirm {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.bn-settings-walks__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

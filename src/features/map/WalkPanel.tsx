@@ -1,4 +1,4 @@
-import { useMemo, useState, type Ref } from 'react';
+import { useEffect, useMemo, useState, type Ref } from 'react';
 import { routeHash } from '../../app/routes';
 import { APPROX_CELL_METERS } from '../../config/contract';
 import { formatCount, formatDistance, formatMeters, formatNumber, useI18n } from '../../i18n';
@@ -21,6 +21,7 @@ import { requestSettingsSection } from '../settings/settingsSections';
 import { plateStyle, usePlumage } from '../species/plumage';
 import { commonName, useSpeciesNames } from '../species/speciesNames';
 import { useWalk } from '../walk/walkContext';
+import { WalkDoneCard } from '../walk/WalkDoneCard';
 import { trackMeters } from '../walk/walkGeometry';
 import type { WalkTotals } from '../walk/walkPins';
 import type { MapResult } from './mapData';
@@ -93,6 +94,12 @@ export function WalkPanel({ ref, result, totals, territoriesShown, loadError, ex
   const distance = formatMeters(APPROX_CELL_METERS, locale);
   const blocker = startBlocker(model.state);
   const listed = !walk.walking && summary !== null && summary.detections > 0;
+  const { finished } = walk;
+
+  // A walk that just ended opens the panel on its card: what was walked and heard, and what to do with it.
+  useEffect(() => {
+    if (finished) onExpandedChange(true);
+  }, [finished, onExpandedChange]);
 
   const begin = (): void => {
     setStartFailed(false);
@@ -125,8 +132,9 @@ export function WalkPanel({ ref, result, totals, territoriesShown, loadError, ex
 
   return (
     <SheetShell ref={ref} title={t.title} summary={result === null && !loadError ? dict.common.loading : totalsLine}
-      expandable={listed} expanded={expanded} onExpandedChange={onExpandedChange}>
+      expandable={listed || finished !== null} expanded={expanded} onExpandedChange={onExpandedChange}>
       {loadError && <Notice tone="error">{t.loadError}</Notice>}
+      {finished && <WalkDoneCard id={finished} onDismiss={walk.dismissFinished} />}
       {/* A session already running in place keeps its own control (the live player); a walk starts from idle. */}
       {!session.active && (
         <div className="bn-walk-start">
