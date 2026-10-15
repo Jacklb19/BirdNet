@@ -24,12 +24,6 @@ export function exportFileName(siteSlug: string, fromIsoDate: string | null, toI
 }
 
 /**
- * Browsers may read a download's object URL after the click returns, so it is released a little later
- * instead of immediately.
- */
-export const DOWNLOAD_URL_RELEASE_MS = 1_000;
-
-/**
  * A card asks for its statistics once it comes within this margin of the viewport (IntersectionObserver
  * `rootMargin`): numbers are ready when the person scrolls to it, and a long list does not query every site at once.
  */
