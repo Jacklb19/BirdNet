@@ -13,7 +13,7 @@ const emptyDay = (): number[] => Array.from({ length: HOURS_PER_DAY }, () => 0);
 describe('routes', () => {
   it('round-trips every route and falls back to listening', () => {
     const routes: Route[] = [{ name: 'listen' }, { name: 'log' }, { name: 'detection', id }, { name: 'map' }, { name: 'sites' }, { name: 'site', id }, { name: 'account' }, { name: 'settings' }, { name: 'home' },
-      { name: 'album' }, { name: 'species', species: 'Turdus fuscater' }, { name: 'map', species: 'Colibri coruscans' }];
+      { name: 'album' }, { name: 'species', species: 'Turdus fuscater' }, { name: 'map', species: 'Colibri coruscans' }, { name: 'walks' }, { name: 'walk', id }];
     for (const route of routes) expect(parseRoute(routeHash(route))).toEqual(route);
     expect(parseRoute('#/log/not-a-uuid')).toEqual({ name: 'log' });
     // 36 characters is not enough: the identifier must have the UUID layout the API issues.
@@ -24,6 +24,8 @@ describe('routes', () => {
     expect(parseRoute('#/nowhere')).toEqual({ name: 'listen' });
     expect([isSiteRoot(''), isSiteRoot('#'), isSiteRoot('#/'), isSiteRoot('#/home')]).toEqual([true, true, true, false]);
     expect(sectionOf({ name: 'site', id })).toBe('map');
+    expect(sectionOf({ name: 'walk', id })).toBe('log');
+    expect(parseRoute('#/walks/not-a-uuid')).toEqual({ name: 'walks' });
     expect(sectionOf({ name: 'species', species: 'Turdus fuscater' })).toBe('guide');
     expect(parseRoute('#/log/album')).toEqual({ name: 'album' });
     // Links from before S7 and malformed species names still land somewhere sensible.

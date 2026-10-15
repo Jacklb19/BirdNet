@@ -1,0 +1,37 @@
+.bn-walk-done {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-xl);
+  background: var(--color-brand-soft);
+}
+
+.bn-walk-done__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.bn-walk-done__kicker {
+  color: var(--color-brand);
+}
+
+.bn-walk-done__name {
+  overflow-wrap: anywhere;
+  font-size: var(--text-title);
+  line-height: var(--leading-title);
+}
+
+.bn-walk-done__line {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+/* The birds of the walk land one after another, like stickers pressed on the page. */
+.bn-walk-done__birds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
