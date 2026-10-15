@@ -58,6 +58,8 @@ export interface StoredWalk {
   /** Account signed in when it started: null without one, absent on walks from before S10. */
   owner?: string | null;
   account?: WalkAccountState;
+  /** The account holds a copy, perhaps an older one (renamed since): deleting the walk must delete it there too. */
+  inAccount?: boolean;
 }
 export interface CachedSite { id: string; name: string; latitude: number; longitude: number }
 export interface SyncSession { userId: string; accessToken: string; expiresAt: number }

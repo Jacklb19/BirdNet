@@ -73,6 +73,6 @@ export async function uploadWalks(userId: string): Promise<void> {
     const outcome = await upload(walk, endedAt, session);
     if (outcome === 'full') return;
     // A walk renamed while it was being sent stays pending, so its new name goes next time.
-    await updateWalk(walk.id, { account: outcome, owner: userId }, walk);
+    await updateWalk(walk.id, outcome === 'saved' ? { account: outcome, owner: userId, inAccount: true } : { account: outcome, owner: userId }, walk);
   }
 }

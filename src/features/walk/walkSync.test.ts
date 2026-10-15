@@ -40,7 +40,7 @@ describe('uploadWalks', () => {
     expect(request?.[0]).toContain(`/v1/walks/${first}`);
     expect(request?.[1]?.method).toBe('PUT');
     expect(updateWalk).toHaveBeenCalledTimes(1);
-    expect(updateWalk).toHaveBeenCalledWith(first, { account: 'saved', owner: userId }, walk(first));
+    expect(updateWalk).toHaveBeenCalledWith(first, { account: 'saved', owner: userId, inAccount: true }, walk(first));
   });
 
   it.each(['unanswered', 'refused', 'signed-out', 'expired'])('sends nothing without the permission and a live session: %s', async (reason) => {

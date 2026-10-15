@@ -75,7 +75,7 @@ export async function saveWalk(walk: StoredWalk, keep: number): Promise<void> {
  * Changes a stored walk, unless it has changed since `expected` was read (then nothing is written and it resolves
  * false): the account sync must not mark as saved a version the person renamed meanwhile.
  */
-export async function updateWalk(id: string, changes: Partial<Pick<StoredWalk, 'name' | 'owner' | 'account'>>, expected?: StoredWalk): Promise<boolean> {
+export async function updateWalk(id: string, changes: Partial<Pick<StoredWalk, 'name' | 'owner' | 'account' | 'inAccount'>>, expected?: StoredWalk): Promise<boolean> {
   const written = await transact('readwrite', async (store) => {
     const stored = await request(store.get(id) as IDBRequest<StoredWalk | undefined>);
     if (!stored || (expected && JSON.stringify(stored) !== JSON.stringify(expected))) return false;
@@ -89,5 +89,19 @@ export async function updateWalk(id: string, changes: Partial<Pick<StoredWalk, '
 /** Forgets a walk on this phone; its songs are detections of their own and stay. */
 export async function deleteWalk(id: string): Promise<void> {
   await transact('readwrite', (store) => request(store.delete(id)));
+  announceQueueChange(['walks']);
+}
+
+/**
+ * After the account's walks were deleted: the copies on this phone stay, and are not sent again (the person removed
+ * them from the account on purpose).
+ */
+export async function forgetAccountCopies(): Promise<void> {
+  await transact('readwrite', async (store) => {
+    const all = await request(store.getAll() as IDBRequest<StoredWalk[]>);
+    for (const walk of all) {
+      if (walk.inAccount || walk.account === 'saved') await request(store.put({ ...walk, account: 'phoneOnly', inAccount: false }));
+    }
+  });
   announceQueueChange(['walks']);
 }
