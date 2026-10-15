@@ -24,6 +24,7 @@ const UPDATE_TAKEOVER_TIMEOUT_MS = 75_000;
 const FIXTURE_ROUTES = {
   counts: `${API_PROXY_PREFIX}/test/counts`,
   loseAck: `${API_PROXY_PREFIX}/test/lose-ack`,
+  loseWalkAck: `${API_PROXY_PREFIX}/test/lose-walk-ack`,
 } as const;
 
 const bridge = fs.readFileSync(OFFLINE_CHECK_BUNDLE, 'utf8');
@@ -77,6 +78,27 @@ test('response loss after commit retains queue; retry against PostgreSQL produce
   expect((await page.evaluate(() => window.offlineChecks.queueStats())).count).toBe(0);
   const after = await (await page.request.get(FIXTURE_ROUTES.counts)).json() as { detections: number };
   expect(after.detections - before.detections).toBe(3);
+});
+
+test('a walk goes to the account only with the permission, once, and is marked saved only with the answer', async ({ page }) => {
+  await ready(page);
+  const id = await page.evaluate(async () => { await window.offlineChecks.bind(); return window.offlineChecks.seedWalk(); });
+  const walks = async (): Promise<number> => ((await (await page.request.get(FIXTURE_ROUTES.counts)).json()) as { walks: number }).walks;
+  const before = await walks();
+  const stateOf = (): Promise<string | undefined> => page.evaluate(async (walkId) => (await window.offlineChecks.listWalks()).find((walk) => walk.id === walkId)?.account, id);
+  // Without the person's yes the path never leaves the phone.
+  await page.evaluate(() => window.offlineChecks.synchronizeQueue());
+  expect(await walks()).toBe(before);
+  await page.evaluate(() => window.offlineChecks.updateSettings({ saveWalks: true }));
+  await page.request.post(FIXTURE_ROUTES.loseWalkAck);
+  const failed = await page.evaluate(async () => {
+    try { await window.offlineChecks.synchronizeQueue(); return false; } catch { return true; }
+  });
+  expect(failed).toBe(true);
+  expect(await stateOf()).toBeUndefined();
+  await page.evaluate(() => window.offlineChecks.synchronizeQueue());
+  expect(await stateOf()).toBe('saved');
+  expect(await walks()).toBe(before + 1);
 });
 
 test('service worker finishes a synchronization after the initiating page closes', async ({ page, context }) => {
