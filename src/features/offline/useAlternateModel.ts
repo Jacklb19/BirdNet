@@ -4,8 +4,8 @@ import { alternateSnapshot, alternateUsable, downloadAlternate, removeAlternate,
 export interface AlternateStatus extends AlternateSnapshot {
   /** A choice that needs the second model takes effect now. */
   readonly usable: boolean;
-  /** Starts the download, or joins the one already running. */
-  readonly download: () => Promise<void>;
+  /** Starts the download, or joins the one already running; `title` names it among the downloads of the system. */
+  readonly download: (title: string) => Promise<void>;
   readonly remove: () => Promise<void>;
 }
 

@@ -33,6 +33,8 @@ const TEXT_PAIRS: readonly (readonly [string, string])[] = [
   ...SKY_PAIRS, ...PLUMAGE_PAIRS,
   // Caution notices: the state color and the secondary body text on the soft fill.
   ['color-status-provisional', 'color-status-provisional-soft'], ['color-text-secondary', 'color-status-provisional-soft'],
+  // Pocket mode: dim on purpose, and still readable.
+  ['color-pocket-ink', 'color-pocket-bg'],
 ];
 
 const GRAPHIC_PAIRS: readonly (readonly [string, string])[] = [

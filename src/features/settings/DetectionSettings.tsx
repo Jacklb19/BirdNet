@@ -43,7 +43,8 @@ export function DetectionSettings({ offline }: { readonly offline: OfflineSettin
   // A different content hash is a different model, whatever its name says.
   const outdated = second.state === 'ready' && installed && available && available.sha256 !== installed.sha256;
   const canDownload = second.state === 'absent' || outdated;
-  const message = second.failed ? texts.second.failed : canDownload && !online ? texts.second.needsConnection : !second.usable ? texts.needsSecond : texts.appliesNext;
+  const message = second.state === 'downloading' ? (second.background ? texts.second.inBackground : texts.second.resumes)
+    : second.failed ? texts.second.failed : canDownload && !online ? texts.second.needsConnection : !second.usable ? texts.needsSecond : texts.appliesNext;
 
   return (
     <>
@@ -79,7 +80,7 @@ export function DetectionSettings({ offline }: { readonly offline: OfflineSettin
           </div>
         </div>
         {canDownload && (
-          <button type="button" className="bn-settings-model__action" disabled={!online} onClick={() => { void second.download(); }}>
+          <button type="button" className="bn-settings-model__action" disabled={!online} onClick={() => { void second.download(texts.second.progressLabel); }}>
             {outdated ? texts.second.update : texts.second.download}
           </button>
         )}

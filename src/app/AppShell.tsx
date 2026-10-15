@@ -3,6 +3,8 @@ import { readPreferences, writePreference } from '../config/storage';
 import { useI18n } from '../i18n';
 import { useAccountContext } from '../features/account/accountContext';
 import { useListening } from '../features/listen/listeningContext';
+import { leavePocketMode, usePocketMode } from '../features/listen/pocketMode';
+import { PocketScreen } from '../features/listen/PocketScreen';
 import { enableAutomaticModel } from '../features/offline/modelStore';
 import { useAppUpdate } from '../features/offline/useAppUpdate';
 import { Button } from '../shared/ui/Button';
@@ -36,6 +38,9 @@ export function AppShell(): React.JSX.Element {
   const { session } = useAccountContext();
   const mainRef = useRef<HTMLElement>(null);
   const update = useAppUpdate();
+  // Pocket mode covers the app only while a session listens, and does not outlive it.
+  const pocket = usePocketMode() && active;
+  useEffect(() => { if (!active) leavePocketMode(); }, [active]);
   const inApp = route.name !== 'home';
   useDocumentMetadata(dict.app.documentTitle, dict.app.description);
 
@@ -66,26 +71,29 @@ export function AppShell(): React.JSX.Element {
   // The listening screen and the map of a walk carry the session's own controls; elsewhere the live player does.
   const player = active && route.name !== 'listen' && !(walking && route.name === 'map');
   return (
-    <div className={`bn-shell${player ? ' bn-shell--with-player' : ''}`}>
-      {/* A hash link would be read as a route, so the skip link moves focus itself. */}
-      <a className="bn-shell__skip" href="#main" onClick={(event) => { event.preventDefault(); mainRef.current?.focus(); }}>
-        {dict.app.skipToContent}
-      </a>
-      <TopBar current={section} route={route.name} />
-      <main id="main" ref={mainRef} tabIndex={-1} className="bn-shell__main">
-        {update.ready && (
-          <div className="bn-shell__update">
-            <Notice tone="info" icon="download" live action={<Button variant="secondary" onClick={update.apply}>{dict.app.update.action}</Button>}>
-              {active ? dict.app.update.listening : dict.app.update.text}
-            </Notice>
-          </div>
-        )}
-        <PageErrorBoundary key={route.name} message={dict.app.pageError} actionLabel={dict.app.reload}>
-          <Suspense fallback={loading}><RoutePage route={route} /></Suspense>
-        </PageErrorBoundary>
-      </main>
-      {player && <LivePlayer variant="bar" />}
-      <TabBar current={section} />
-    </div>
+    <>
+      <div className={`bn-shell${player ? ' bn-shell--with-player' : ''}`} inert={pocket}>
+        {/* A hash link would be read as a route, so the skip link moves focus itself. */}
+        <a className="bn-shell__skip" href="#main" onClick={(event) => { event.preventDefault(); mainRef.current?.focus(); }}>
+          {dict.app.skipToContent}
+        </a>
+        <TopBar current={section} route={route.name} />
+        <main id="main" ref={mainRef} tabIndex={-1} className="bn-shell__main">
+          {update.ready && (
+            <div className="bn-shell__update">
+              <Notice tone="info" icon="download" live action={<Button variant="secondary" onClick={update.apply}>{dict.app.update.action}</Button>}>
+                {active ? dict.app.update.listening : dict.app.update.text}
+              </Notice>
+            </div>
+          )}
+          <PageErrorBoundary key={route.name} message={dict.app.pageError} actionLabel={dict.app.reload}>
+            <Suspense fallback={loading}><RoutePage route={route} /></Suspense>
+          </PageErrorBoundary>
+        </main>
+        {player && <LivePlayer variant="bar" />}
+        <TabBar current={section} />
+      </div>
+      {pocket && <PocketScreen />}
+    </>
   );
 }

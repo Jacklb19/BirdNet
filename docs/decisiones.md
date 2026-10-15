@@ -420,3 +420,23 @@ El Service Worker guarda la app para usarla sin señal, y el navegador retiene a
 - El navegador solo cede el control cuando el Service Worker anterior lleva un rato sin actividad (unos 30 segundos, medido en Chrome), así que el aviso puede tardar ese tiempo. Por eso se descartó aplicar la versión sola al abrir la app: la recarga habría llegado medio minuto después, con la persona ya usándola.
 - Mientras la persona no actualiza, su pantalla habla con el Service Worker nuevo; las operaciones entre ambos son las mismas o un superconjunto. Una sección que no hubiera abierto todavía puede no cargar (sus archivos eran de la versión anterior): el aviso y el mensaje de error de la sección piden recargar.
 - Las instalaciones anteriores a este cambio reciben la versión nueva sin cerrar nada: abrir la app, esperar medio minuto y recargar.
+
+---
+
+## ADR-34. Descargas que sobreviven a salir de la app y modo bolsillo (Sprint 9, completa ADR-19, ADR-25 y ADR-31)
+
+### Contexto
+Una app web no puede seguir trabajando cuando la persona sale de ella: el navegador suspende la página y detiene al Service Worker. El dueño preguntó por dos consecuencias. La descarga del modelo empezaba de cero si se interrumpía (52 MB el primero, 80 MB el de vista previa), y la escucha se corta cuando el teléfono se bloquea. Escuchar con la pantalla apagada sigue siendo imposible sin una app nativa, que el dueño descartó (ADR-25).
+
+### Decisión (del dueño, 2026-10-13)
+- **La descarga de un modelo se reanuda.** El Service Worker lo pide por tramos de 4 MB (peticiones HTTP por rangos) y guarda cada tramo terminado en la caché de modelos; el siguiente intento solo pide los que faltan. Nada cambia en la regla de fondo: el modelo se usa solo cuando el archivo completo tiene el tamaño y el SHA-256 publicados, y los tramos se borran al instalarlo o si no suman el archivo publicado. Un servidor que ignore los rangos entrega el archivo entero, como antes.
+- **La app vuelve a pedirla sola.** Si la descarga lleva un minuto sin avanzar, la página la da por detenida y la pide otra vez; se repite mientras cada intento llegue más lejos que el anterior, y si no avanza se informa el fallo. Quien vuelve a la app encuentra la descarga donde iba.
+- **El modelo de vista previa se descarga en segundo plano donde el navegador lo permite** (Background Fetch, hoy en Chrome y Edge). El navegador hace la descarga, la muestra entre las del sistema y la continúa con la app cerrada; al terminar despierta al Service Worker, que verifica los archivos contra lo que se pidió y los instala. Donde no existe, o si el navegador no la acepta, no la empieza en 20 segundos o falla, se descarga dentro de la app con la descarga reanudable. Ajustes dice cuál de las dos está en curso.
+- **El primer modelo no usa la descarga en segundo plano**: se instala solo al abrir la app (ADR-19) y una descarga del sistema que nadie pidió sería una sorpresa. Usa la reanudable.
+- **Modo bolsillo.** Mientras se escucha, un botón deja la pantalla en negro y encendida, con la sesión en letra tenue (tiempo, especies, quién canta). La pantalla no responde a los toques; se sale manteniendo pulsado el único botón un segundo y medio, o con Enter, Espacio o Escape desde un teclado. Solo se ofrece donde el navegador puede mantener la pantalla encendida, y si el teléfono lo niega (ahorro de batería) la pantalla lo dice. Termina con la escucha.
+
+### Consecuencias
+- El almacenamiento de modelos no deja leer la cabecera `Content-Range` desde otro origen, así que el final de un archivo se reconoce por el tramo que llega más corto de lo pedido o por la respuesta 416; el total se comprueba contra el tamaño publicado.
+- Durante una descarga, los tramos ocupan en el teléfono lo mismo que el modelo, además del modelo anterior si lo hay.
+- El modo bolsillo no apaga la pantalla: gasta más batería que un teléfono bloqueado, menos en pantallas OLED. No puede impedir los gestos del sistema (volver, inicio).
+- La descarga en segundo plano depende del navegador: en iPhone y en Firefox se usa siempre la reanudable, que solo avanza con la app abierta.

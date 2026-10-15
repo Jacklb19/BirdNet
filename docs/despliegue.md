@@ -60,6 +60,8 @@ Ajustes opcionales de la API (tiempos de espera, límites de resultados y export
 - `https://birdnet-nu.vercel.app/privacy.html` muestra la política de privacidad.
 - Tras un despliegue, una pestaña que ya estaba abierta muestra en menos de un minuto el aviso «Hay una versión nueva de Trino» con el botón «Actualizar» (ADR-33); una visita nueva abre directamente la versión nueva.
 - Primera visita → página de inicio → «Abrir Trino» (descarga una sola vez el modelo acústico y el geográfico); Escuchar → iniciar la escucha.
+- Ajustes → Opciones técnicas → «Descargar BirdNET+ V3»: en Chrome o Edge la descarga aparece entre las del sistema y sigue al salir de la app; en los demás navegadores avanza con la app abierta y continúa donde iba al volver (ADR-34).
+- Escuchar → iniciar la escucha → «Activar modo bolsillo»: la pantalla queda en negro y encendida, no responde a los toques y se sale manteniendo pulsado el botón (ADR-34).
 - Mapa → «Empezar caminata»: pide micrófono y ubicación, la pantalla se queda encendida, el sendero se dibuja al moverse y cada ave queda en su punto; «Terminar caminata» la guarda y aparece en la Bitácora.
 - Guía → una ficha: clasificación, estado de conservación y mapa «Dónde vive» (GBIF).
 - Cuenta → crear cuenta (contraseña dos veces) o continuar con Google; «¿Olvidaste tu contraseña?» envía el enlace. Con «Guardar dónde escuchas» activado (o un lugar activo), las detecciones se sincronizan; aparecen en «De todos» solo si la persona eligió compartir.

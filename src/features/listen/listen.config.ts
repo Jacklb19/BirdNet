@@ -13,6 +13,12 @@ export const SPECTROGRAM_SPAN_FRACTION_DIGITS = 0;
 /** The clock in the listening context shows minutes, so it refreshes a few times a minute. */
 export const CONTEXT_CLOCK_REFRESH_MS = 20_000;
 
+/**
+ * How long the one button of pocket mode has to be held to leave it: longer than any brush of fabric or of a hand
+ * reaching for the phone, short enough not to feel stuck.
+ */
+export const POCKET_EXIT_HOLD_MS = 1500;
+
 /** Latest album stickers shown beside the plate while no session is running (two rows of three). */
 export const RECENT_ALBUM_COUNT = 6;
 

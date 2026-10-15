@@ -152,7 +152,9 @@ test('real model survives closing, identifies recorded audio offline and detects
 
 test('the preview model installs on request, listens offline when chosen and frees its space when removed', async ({ context, page }) => {
   const detection = texts.settings.detection;
-  const lastVersion = async (target: Page): Promise<string | undefined> => (await target.evaluate(() => window.offlineChecks.listDetections())).at(-1)?.model_version;
+  // The queue is read in the order of its random identifiers, so what a listen stored is told apart by what was there before.
+  const versions = async (target: Page): Promise<Map<string, string>> =>
+    new Map((await target.evaluate(() => window.offlineChecks.listDetections())).map((record) => [record.id, record.model_version]));
   await ready(page, routeHash({ name: 'settings' }));
   await page.locator('details').evaluate((group: HTMLDetailsElement) => { group.open = true; });
   await expect(page.getByRole('button', { name: texts.settings.model.checkUpdate })).toBeVisible({ timeout: MODEL_DOWNLOAD_TIMEOUT_MS });
@@ -169,14 +171,20 @@ test('the preview model installs on request, listens offline when chosen and fre
   await ready(reopened, routeHash({ name: 'settings' }));
   // The preview model takes the window at its own rate and still hears the reference bird, without a connection.
   expect(await reopened.evaluate(() => window.offlineChecks.inferReference())).toContain('Turdus fuscater');
-  expect(await lastVersion(reopened)).toContain(productionManifest.alternate.model_id);
+  const withPreview = await versions(reopened);
+  expect(withPreview.size).toBeGreaterThan(0);
+  for (const version of withPreview.values()) expect(version).toContain(productionManifest.alternate.model_id);
   await reopened.locator('details').evaluate((group: HTMLDetailsElement) => { group.open = true; });
   await reopened.getByRole('button', { name: detection.second.remove }).click();
   await expect.poll(() => reopened.evaluate(() => window.offlineChecks.cachedAlternate())).toBeNull();
   // The choice that needed it falls back to the model every installation has.
   expect(await reopened.evaluate(() => window.offlineChecks.inferReference())).toContain('Turdus fuscater');
-  expect(await lastVersion(reopened)).toContain(productionManifest.model_id);
-  expect(await lastVersion(reopened)).not.toContain(productionManifest.alternate.model_id);
+  const afterRemoval = [...await versions(reopened)].filter(([id]) => !withPreview.has(id)).map(([, version]) => version);
+  expect(afterRemoval.length).toBeGreaterThan(0);
+  for (const version of afterRemoval) {
+    expect(version).toContain(productionManifest.model_id);
+    expect(version).not.toContain(productionManifest.alternate.model_id);
+  }
 });
 
 // Regression: a new version stayed behind the old one for as long as any tab was open, however often it was reloaded.

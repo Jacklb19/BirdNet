@@ -1,0 +1,87 @@
+/* Black and dim in both themes: the screen is on only so the phone keeps listening, and it should not light a pocket. */
+.bn-pocket {
+  position: fixed;
+  z-index: var(--layer-pocket);
+  inset: 0;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  justify-items: center;
+  gap: var(--space-6);
+  padding: calc(var(--space-7) + env(safe-area-inset-top)) var(--space-5) calc(var(--space-7) + env(safe-area-inset-bottom));
+  background: var(--color-pocket-bg);
+  color: var(--color-pocket-ink);
+  text-align: center;
+  /* Nothing here scrolls, zooms or selects under a hand or the fabric of a pocket. */
+  touch-action: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  overscroll-behavior: contain;
+}
+
+.bn-pocket__session {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--space-2);
+  /* The same pixels lit for hours would mark an OLED screen: the text wanders slowly. */
+  animation: bn-pocket-drift var(--duration-pocket-drift) ease-in-out infinite alternate;
+}
+
+.bn-pocket__title {
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.bn-pocket__foot {
+  display: grid;
+  max-width: var(--content-narrow);
+  justify-items: center;
+  gap: var(--space-4);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-pocket__exit {
+  position: relative;
+  min-width: min(100%, 18rem);
+  min-height: var(--control-height);
+  padding: var(--space-3) var(--space-6);
+  overflow: hidden;
+  border: var(--border-width-strong) solid var(--color-pocket-ink);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: inherit;
+  font-weight: var(--font-weight-semibold);
+  touch-action: none;
+}
+
+.bn-pocket__exit:focus-visible {
+  outline-color: var(--color-pocket-ink);
+}
+
+/* Fills from the left while the button is held, and empties at once when it is let go. */
+.bn-pocket__fill {
+  position: absolute;
+  inset: 0;
+  background: var(--color-pocket-ink);
+  opacity: var(--pocket-fill-opacity);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.bn-pocket__exit--holding .bn-pocket__fill {
+  transform: scaleX(1);
+  transition: transform var(--pocket-hold) linear;
+}
+
+.bn-pocket__label {
+  position: relative;
+}
+
+@keyframes bn-pocket-drift {
+  from { transform: translateY(calc(-1 * var(--space-8))); }
+  to { transform: translateY(var(--space-8)); }
+}

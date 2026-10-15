@@ -16,6 +16,7 @@ import { ListenSpectrogram } from './ListenSpectrogram';
 import { useListening } from './listeningContext';
 import { sessionPhase, showsSessionError, startBlocker, type SessionPhase } from './listenState';
 import { ModelNotice } from './ModelNotice';
+import { PocketInvite } from './PocketInvite';
 import { PrivacyNote } from './PrivacyNote';
 import { RecentAlbum } from './RecentAlbum';
 import { RecordButton } from './RecordButton';
@@ -97,6 +98,7 @@ export default function ListenPage(): React.JSX.Element {
         </div>
         <div className="bn-listen__side">
           <SessionAlbum species={species} active={active} />
+          {active && <PocketInvite />}
           {!active && <WalkInvite blockedReason={blocker ? t.record[blocker] : null} />}
           {species.length === 0 && <RecentAlbum />}
           {!active && <LikelyBirds />}
