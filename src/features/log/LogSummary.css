@@ -107,6 +107,15 @@
   color: var(--color-text-secondary);
 }
 
+.bn-log-summary__more {
+  display: inline-flex;
+  min-height: var(--touch-min);
+  align-items: center;
+  justify-self: start;
+  color: var(--color-brand);
+  font-weight: var(--font-weight-semibold);
+}
+
 @media (min-width: 40rem) {
   .bn-log-summary__figures {
     grid-template-columns: repeat(4, minmax(0, 1fr));

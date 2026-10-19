@@ -277,6 +277,17 @@
   --map-track-width: 4px;
   --map-territory-opacity: 0.42;
   --map-you-size: 1.125rem;
+
+  /* Walk sketch — the drawn path of one walk; strokes and radii in SVG user units (1px = 1 unit of its viewBox) */
+  --walk-sketch-height: 12.5rem;
+  --walk-sketch-thumb: 4rem;
+  --walk-sketch-trail: 3.5px;
+  --walk-sketch-trail-s: 2px;
+  --walk-sketch-mark: 5px;
+  --walk-sketch-mark-s: 2.5px;
+  --walk-sketch-end: 6.5px;
+  --walk-sketch-end-s: 3px;
+  --walk-sketch-ring: 1.5px;
 }
 
 :root[data-sky='dawn'] { --sky-top: var(--sky-dawn); }

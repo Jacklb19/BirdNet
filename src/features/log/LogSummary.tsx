@@ -28,7 +28,7 @@ export function LogSummary({ records, walks, now }: LogSummaryProps): React.JSX.
   const t = dict.log.summary;
   const names = useSpeciesNames();
   const insights = useMemo(() => logInsights(records, now.getTime()), [records, now]);
-  const latestWalks = useMemo(() => walkSummaries(walks, records).slice(0, LOG_WALKS_SHOWN), [walks, records]);
+  const latestWalks = useMemo(() => walkSummaries(walks, records, now.getTime()).slice(0, LOG_WALKS_SHOWN), [walks, records, now]);
   const fresh = insights.newSpecies.slice(0, LOG_NEW_SPECIES_SHOWN);
   const busiest = insights.busiestHour === null ? null
     : formatTime(new Date(now.getFullYear(), now.getMonth(), now.getDate(), insights.busiestHour).getTime(), locale);
@@ -62,10 +62,10 @@ export function LogSummary({ records, walks, now }: LogSummaryProps): React.JSX.
           <ul className="bn-log-summary__walks">
             {latestWalks.map((walk) => (
               <li key={walk.id}>
-                <a className="bn-log-summary__walk" href={routeHash({ name: 'map' })}>
+                <a className="bn-log-summary__walk" href={routeHash({ name: 'walk', id: walk.id })}>
                   <span className="bn-log-summary__walk-icon" aria-hidden="true"><Icon name="walk" size="s" /></span>
                   <span className="bn-log-summary__walk-text">
-                    <span className="bn-log-summary__walk-when">{formatDayTime(walk.startedAt, now, locale)}</span>
+                    <span className="bn-log-summary__walk-when">{walk.name ?? formatDayTime(walk.startedAt, now, locale)}</span>
                     <span className="bn-log-summary__walk-detail">
                       {t.walkDetail(
                         formatDistance(walk.meters, locale),
@@ -79,6 +79,7 @@ export function LogSummary({ records, walks, now }: LogSummaryProps): React.JSX.
               </li>
             ))}
           </ul>
+          <a className="bn-log-summary__more" href={routeHash({ name: 'walks' })}>{dict.walk.seeAll}</a>
         </div>
       )}
     </section>

@@ -49,14 +49,59 @@ export async function listWalks(): Promise<StoredWalk[]> {
   return walks.sort(oldestFirst);
 }
 
-/** Stores a walk (new, or a later state of the same one) and drops the oldest beyond `keep`. */
+/** One walk kept on this phone, or null. */
+export async function getWalk(id: string): Promise<StoredWalk | null> {
+  if (!isUuid(id)) return null;
+  return (await transact('readonly', (store) => request(store.get(id) as IDBRequest<StoredWalk | undefined>))) ?? null;
+}
+
+/**
+ * Stores a walk (new, or a later state of the same one) and drops the oldest beyond `keep`. What the person or the
+ * account sync set on a stored walk (its name and where it stands with the account) is kept unless `walk` sets it.
+ */
 export async function saveWalk(walk: StoredWalk, keep: number): Promise<void> {
   if (!isUuid(walk.id) || !Number.isFinite(Date.parse(walk.startedAt)) || !Number.isSafeInteger(keep) || keep < 1) throw new Error('Invalid walk.');
   await transact('readwrite', async (store) => {
-    await request(store.put(walk));
+    const stored = await request(store.get(walk.id) as IDBRequest<StoredWalk | undefined>);
+    await request(store.put({ ...stored, ...walk }));
     const all = await request(store.getAll() as IDBRequest<StoredWalk[]>);
     const surplus = all.sort(oldestFirst).slice(0, Math.max(0, all.length - keep));
     for (const old of surplus) if (old.id !== walk.id) await request(store.delete(old.id));
+  });
+  announceQueueChange(['walks']);
+}
+
+/**
+ * Changes a stored walk, unless it has changed since `expected` was read (then nothing is written and it resolves
+ * false): the account sync must not mark as saved a version the person renamed meanwhile.
+ */
+export async function updateWalk(id: string, changes: Partial<Pick<StoredWalk, 'name' | 'owner' | 'account' | 'inAccount'>>, expected?: StoredWalk): Promise<boolean> {
+  const written = await transact('readwrite', async (store) => {
+    const stored = await request(store.get(id) as IDBRequest<StoredWalk | undefined>);
+    if (!stored || (expected && JSON.stringify(stored) !== JSON.stringify(expected))) return false;
+    await request(store.put({ ...stored, ...changes }));
+    return true;
+  });
+  if (written) announceQueueChange(['walks']);
+  return written;
+}
+
+/** Forgets a walk on this phone; its songs are detections of their own and stay. */
+export async function deleteWalk(id: string): Promise<void> {
+  await transact('readwrite', (store) => request(store.delete(id)));
+  announceQueueChange(['walks']);
+}
+
+/**
+ * After the account's walks were deleted: the copies on this phone stay, and are not sent again (the person removed
+ * them from the account on purpose).
+ */
+export async function forgetAccountCopies(): Promise<void> {
+  await transact('readwrite', async (store) => {
+    const all = await request(store.getAll() as IDBRequest<StoredWalk[]>);
+    for (const walk of all) {
+      if (walk.inAccount || walk.account === 'saved') await request(store.put({ ...walk, account: 'phoneOnly', inAccount: false }));
+    }
   });
   announceQueueChange(['walks']);
 }

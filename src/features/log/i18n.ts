@@ -21,6 +21,15 @@ export const logMessages = defineMessages({
       walkDetail: (distance: string, duration: string, species: string) => `${distance} · ${duration} · ${species}`,
       walkInterrupted: 'interrumpida',
     },
+    exportAll: {
+      action: 'Exportar todos mis registros (CSV)',
+      what: 'Todo lo que subiste a tu cuenta, con los cantos descartados y su estado.',
+      needsConnection: 'Exportar tus registros necesita conexión.',
+      done: (file: string) => `Listo: ${file}`,
+      truncated: 'El archivo llegó al máximo de filas: no incluye todos los registros.',
+      error: 'No se pudo preparar el archivo. Inténtalo otra vez.',
+      fileStem: 'registros',
+    },
     sync: {
       waitingOffline: {
         one: (count: string) => `${count} espera conexión. Se subirá sola.`,
@@ -181,6 +190,15 @@ export const logMessages = defineMessages({
       walksTitle: 'Latest walks',
       walkDetail: (distance: string, duration: string, species: string) => `${distance} · ${duration} · ${species}`,
       walkInterrupted: 'interrupted',
+    },
+    exportAll: {
+      action: 'Export all my records (CSV)',
+      what: 'Everything you uploaded to your account, including discarded songs with their state.',
+      needsConnection: 'Exporting your records needs a connection.',
+      done: (file: string) => `Done: ${file}`,
+      truncated: 'The file reached the row limit: it does not include every record.',
+      error: 'The file could not be prepared. Try again.',
+      fileStem: 'records',
     },
     sync: {
       waitingOffline: {

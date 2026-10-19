@@ -13,6 +13,7 @@ import { matchesSearch } from '../species/album';
 import { commonName, useSpeciesNames } from '../species/speciesNames';
 import { useWalkData } from '../walk/useWalkData';
 import { AssignSiteCard } from './AssignSiteCard';
+import { ExportAllCard } from './ExportAllCard';
 import { LOG_PAGE_SIZE } from './log.config';
 import { LogDay } from './LogDay';
 import { LogFilters } from './LogFilters';
@@ -109,6 +110,7 @@ export default function LogPage(): React.JSX.Element {
           {visible.length > limit && (
             <Button variant="secondary" block onClick={() => { setLimit((current) => current + LOG_PAGE_SIZE); }}>{dict.log.showMore}</Button>
           )}
+          <ExportAllCard />
         </>
       ) : null}
     </Page>

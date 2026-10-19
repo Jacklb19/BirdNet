@@ -270,7 +270,7 @@ Una página web deja de escuchar cuando el teléfono se bloquea o el navegador p
 
 ### Decisión
 - **Modo caminata**: una sesión de escucha que mantiene la pantalla encendida (Screen Wake Lock, retomado al volver a la pestaña), sigue la posición y dibuja el recorrido. Empezarla activa la preferencia de ubicación. Termina con la sesión, sea como sea que acabe.
-- **El recorrido se guarda solo en el teléfono** (base IndexedDB propia `trino-walks-v1`, hasta 60 caminatas de 2000 celdas; aparte de la cola de sincronización para no subirle la versión, que dejaría sin acceso al Service Worker de la versión anterior durante una actualización): nunca se envía. Los cantos oídos durante la caminata son detecciones normales.
+- **El recorrido se guarda solo en el teléfono** (base IndexedDB propia `trino-walks-v1`, hasta 60 caminatas de 2000 celdas; aparte de la cola de sincronización para no subirle la versión, que dejaría sin acceso al Service Worker de la versión anterior durante una actualización): nunca se envía. *Modificado por ADR-35: se guarda también en la cuenta si la persona lo elige.* Los cantos oídos durante la caminata son detecciones normales.
 - **Mi mapa** (vista por defecto): se lee del teléfono, así que funciona sin cuenta y sin conexión. Muestra los cantos propios con su foto, los recorridos como sendero punteado y los **territorios**: hexágonos de ~60 m teñidos con el color del ave más oída en cada uno; un hexágono sin cantos no se dibuja, porque de él no se sabe nada. «De todos» es el mapa compartido de siempre.
 - Para que los cantos sincronizados sigan en «Mi mapa», el historial local conserva su celda (antes se descartaba).
 - **Lugares** (antes Sitios): sin lugar elegido a mano, un canto cuenta para el lugar guardado más cercano a menos de 300 m (`recordingSite`); así los lugares reúnen las caminatas sin que la persona elija nada. Elegir uno a mano sigue mandando.
@@ -440,3 +440,24 @@ Una app web no puede seguir trabajando cuando la persona sale de ella: el navega
 - Durante una descarga, los tramos ocupan en el teléfono lo mismo que el modelo, además del modelo anterior si lo hay.
 - El modo bolsillo no apaga la pantalla: gasta más batería que un teléfono bloqueado, menos en pantallas OLED. No puede impedir los gestos del sistema (volver, inicio).
 - La descarga en segundo plano depende del navegador: en iPhone y en Firefox se usa siempre la reanudable, que solo avanza con la app abierta.
+
+---
+
+## ADR-35. Caminatas guardadas en la cuenta y exportación en GPX y CSV (Sprint 10, modifica ADR-25 y amplía RF-16)
+
+### Contexto
+Hasta S9 una caminata vivía solo en el teléfono (ADR-25): se perdía al cambiar de teléfono o al borrar los datos del navegador, y el teléfono guarda solo las 60 últimas. El dueño autorizó el 2026-10-15 que el recorrido se guarde en la cuenta si la persona lo elige, siempre con la celda de ~10 m y nunca la coordenada cruda. El alcance acordado el 2026-10-11 es guardar las caminatas con nombre, especies, duración y distancia, y exportar los registros en CSV y la ruta en GPX.
+
+### Decisión
+- **Permiso aparte** (`saveWalks`), como el de las grabaciones y no unido a «Guardar dónde escuchas»: un recorrido dice más que un canto suelto (de dónde sale la persona y a qué hora). Apagado hasta que la persona responde; se pregunta una vez al terminar una caminata con sesión iniciada y queda un interruptor en Ajustes. Al activarlo se suben también las caminatas que ya están en el teléfono y el texto lo dice.
+- **Privadas siempre**: tabla `walks` con RLS solo del dueño para leer, crear, cambiar y borrar; ninguna consulta del mapa las lee. Los cantos de una caminata siguen la elección de `shareMap` como cualquier canto.
+- **Qué se guarda**: nombre (opcional; sin él la app muestra uno armado con la fecha en el idioma de quien lo lee), inicio, fin y el recorrido como celdas de la rejilla de ~10 m, cada una con los segundos desde el inicio. La API rechaza cualquier punto fuera de la rejilla, más de 2000 puntos o tiempos que retroceden. La distancia la calcula la API con la misma fórmula que el teléfono (haversine, mismo radio).
+- **Especies y cantos no se copian**: son las detecciones propias entre el inicio y el fin, sin las descartadas y con las correcciones aplicadas, calculadas al leer. Una revisión posterior cambia también la caminata.
+- **Tope y borrado**: 200 caminatas por cuenta (`WALK_QUOTA`); una nueva más allá recibe 507 y se queda en el teléfono. Nada se borra solo en la cuenta. Se borra una caminata (de la cuenta y del teléfono; si la cuenta no responde, no se borra del teléfono) o todas las de la cuenta desde Ajustes, que ya no se vuelven a subir. Borrar una caminata no borra sus cantos.
+- **Subida idempotente** con el UUID que da el teléfono (`PUT /v1/walks/{id}`), dentro de la sincronización y después de las detecciones. La copia local se marca como guardada solo con la respuesta del servidor y solo si no cambió mientras tanto (un cambio de nombre vuelve a enviarla). Una caminata interrumpida se cierra con su último latido (el teléfono la guarda cada minuto mientras dura); una de antes de S10, con el último canto de la racha que siguió a su inicio.
+- **GPX en el teléfono**, con o sin cuenta y sin conexión: el recorrido con la hora de cada punto y un punto de paso por especie y lugar (nombre común, nombre científico, cantos y confianza máxima). Las caminatas que solo están en la cuenta se piden a la API y se arman igual.
+- **CSV**: el de una caminata se arma en el teléfono con las mismas columnas que el de la API (vacío lo que el teléfono no guarda, como la versión del modelo de lo ya sincronizado); el de una caminata que solo está en la cuenta y el de todo el registro (`GET /v1/export` sin sitio, o con `walk_id`) los da la API. Los descartados salen con su estado.
+
+### Consecuencias
+Migración `20261015000000_walks.sql`; se aplica antes de desplegar la API, y la API antes que la web. La política de privacidad, la portada y el mapa dejan de decir que el recorrido nunca sale del teléfono. «Mi mapa» sigue dibujando solo las caminatas del teléfono; las que solo están en la cuenta se ven en su página. Con el tope, una cuenta llena ocupa menos de 20 MB de los 500 MB de la base del plan gratuito.
+

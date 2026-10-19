@@ -1,0 +1,80 @@
+.bn-walk-sketch {
+  display: block;
+  width: 100%;
+  border-radius: var(--radius-l);
+  background: var(--scene-land);
+}
+
+.bn-walk-sketch--large {
+  height: var(--walk-sketch-height);
+}
+
+.bn-walk-sketch--thumb {
+  width: var(--walk-sketch-thumb);
+  height: auto;
+  flex: none;
+  border-radius: var(--radius-s);
+}
+
+/* The trail draws itself from the start, once, when the walk is shown. */
+.bn-walk-sketch__trail {
+  fill: none;
+  stroke: var(--color-brand);
+  stroke-width: var(--walk-sketch-trail);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: bn-walk-sketch-draw var(--duration-sky) var(--ease-standard) both;
+}
+
+.bn-walk-sketch--thumb .bn-walk-sketch__trail {
+  stroke-width: var(--walk-sketch-trail-s);
+  animation: none;
+}
+
+.bn-walk-sketch__mark {
+  r: var(--walk-sketch-mark);
+  fill: var(--color-accent);
+  stroke: var(--color-on-accent);
+  stroke-width: var(--walk-sketch-ring);
+  animation: bn-walk-sketch-pop var(--duration-medium) var(--ease-bounce) both;
+}
+
+.bn-walk-sketch__start,
+.bn-walk-sketch__end {
+  r: var(--walk-sketch-end);
+  stroke: var(--color-brand);
+  stroke-width: var(--walk-sketch-ring);
+}
+
+.bn-walk-sketch__start {
+  fill: var(--color-brand);
+}
+
+.bn-walk-sketch__end {
+  fill: var(--color-bg-surface);
+}
+
+.bn-walk-sketch--thumb .bn-walk-sketch__mark {
+  r: var(--walk-sketch-mark-s);
+  animation: none;
+}
+
+.bn-walk-sketch--thumb .bn-walk-sketch__start,
+.bn-walk-sketch--thumb .bn-walk-sketch__end {
+  r: var(--walk-sketch-end-s);
+}
+
+@keyframes bn-walk-sketch-draw {
+  from { stroke-dashoffset: 1; }
+}
+
+@keyframes bn-walk-sketch-pop {
+  from { opacity: 0; scale: 0.2; }
+}
+
+.bn-walk-sketch__mark {
+  transform-box: fill-box;
+  transform-origin: center;
+}

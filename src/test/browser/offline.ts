@@ -8,6 +8,7 @@ import { bindSyncSession, getSettings, persistDetections, queueStats, listDetect
 import { offlineOperation } from '../../features/offline/offlineClient';
 import { DATABASE_NAME, MODEL_CACHE_NAME, MODEL_RESOURCE_EXTENSIONS, OFFLINE_OPERATIONS, STORES } from '../../features/offline/offline.constants';
 import type { PersistenceContext, SyncSession } from '../../features/offline/types';
+import { listWalks, saveWalk } from '../../features/walk/walkStore';
 import referenceRecordings from '../../../public/test-audio/metadata.json';
 
 /** Public path of the reference recordings and of their metadata.json, both written by scripts/prepare-model.py. */
@@ -27,6 +28,16 @@ function referenceRecording(): { url: string; startSample: number } {
 }
 /** Routes of the backend's local e2e server (tests/local_server.py), behind the same API base as the app. */
 const TEST_ROUTES = Object.freeze({ session: '/test/session', invalidManifest: '/test/invalid-manifest' });
+
+/** A finished walk of an hour with a timed path of three cells, kept on the phone. */
+async function seedWalk(): Promise<string> {
+  const id = crypto.randomUUID();
+  await saveWalk({
+    id, startedAt: '2026-10-06T11:30:00.000Z', endedAt: '2026-10-06T12:30:00.000Z', lastAt: '2026-10-06T12:30:00.000Z', owner: null,
+    track: [[4.679, -74.123, 0], [4.6791, -74.123, 60], [4.6791, -74.1231, 120]],
+  }, 60);
+  return id;
+}
 
 const context: PersistenceContext = { recordedAt: '2026-10-06T12:00:00Z', location: { latitude: 4.679, longitude: -74.123 }, modelVersion: 'birdnet-v2.4:arm' };
 /** Size of the WAV fragment (one PCM16 window and its header) that versions before the upload was removed kept. */
@@ -97,7 +108,7 @@ async function inferReference(): Promise<string[]> {
   });
 }
 const checks = {
-  seed, seedWindow, queueStats, listDetections, updateSettings, getSettings, loadReference, inferReference, leaveLegacyFragment,
+  seed, seedWindow, queueStats, listDetections, updateSettings, getSettings, loadReference, inferReference, leaveLegacyFragment, seedWalk, listWalks,
   legacyFragments: (): Promise<number> => inQueue('readonly', (transaction) => transaction.objectStore(STORES.audio).count()),
   synchronizeQueue: async (): Promise<void> => { await offlineOperation(OFFLINE_OPERATIONS.sync); },
   bind: async (claimUnowned = true): Promise<void> => {

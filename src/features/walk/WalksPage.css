@@ -1,0 +1,87 @@
+.bn-walks__list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.bn-walks__item {
+  display: flex;
+  min-height: var(--touch-min);
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-raised);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  transition: translate var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.bn-walks__item:hover {
+  translate: 0 var(--state-hover-lift);
+  box-shadow: var(--shadow-float);
+}
+
+.bn-walks__item:active {
+  scale: var(--state-pressed-scale);
+}
+
+.bn-walks__icon {
+  display: inline-flex;
+  width: var(--walk-sketch-thumb);
+  aspect-ratio: 4 / 3;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-s);
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+}
+
+.bn-walks__text {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+}
+
+.bn-walks__name {
+  overflow-wrap: anywhere;
+  font-family: var(--font-display);
+  font-size: var(--text-title-s);
+  font-variation-settings: var(--display-softness);
+  font-weight: var(--font-weight-display);
+  line-height: var(--leading-title-s);
+}
+
+.bn-walks__detail,
+.bn-walks__where {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-walks__where {
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+}
+
+/* The birds of the walk overlap like stickers on a notebook page; hidden on narrow phones to keep the name wide. */
+.bn-walks__birds {
+  display: none;
+}
+
+.bn-walks__item > .bn-icon {
+  flex: none;
+  color: var(--color-text-secondary);
+}
+
+@media (min-width: 30rem) {
+  .bn-walks__birds {
+    display: flex;
+    flex: none;
+  }
+
+  .bn-walks__birds > * + * {
+    margin-inline-start: calc(-1 * var(--space-4));
+  }
+}

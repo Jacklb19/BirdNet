@@ -1,0 +1,97 @@
+.bn-walk-page__card,
+.bn-walk-page__section {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.bn-walk-page__card {
+  padding: var(--space-4);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-raised);
+}
+
+.bn-walk-page__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4) var(--space-3);
+}
+
+.bn-walk-page__stats > div {
+  display: grid;
+  min-width: 0;
+}
+
+/* The markup keeps each term before its value, as a description list requires. */
+.bn-walk-page__stats dt {
+  order: 1;
+  color: var(--color-text-secondary);
+}
+
+.bn-walk-page__stats dd {
+  font-size: var(--text-l);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--leading-l);
+}
+
+.bn-walk-page__heading {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  font-variation-settings: var(--display-softness);
+  font-weight: var(--font-weight-display);
+  line-height: var(--leading-title);
+}
+
+.bn-walk-page__species {
+  display: grid;
+}
+
+.bn-walk-page__hint {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-walk-page__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.bn-walk-page__rename-button {
+  justify-self: start;
+}
+
+.bn-walk-page__rename {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-raised);
+}
+
+.bn-walk-page__input {
+  min-height: var(--control-height);
+  padding-inline: var(--space-3);
+  border: var(--border-width-strong) solid var(--color-border-subtle);
+  border-radius: var(--radius-m);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.bn-walk-page__input:focus-visible {
+  border-color: var(--color-brand);
+}
+
+.bn-walk-page__danger {
+  padding-top: var(--space-4);
+  border-top: var(--border-width) solid var(--color-border-subtle);
+}
+
+@media (min-width: 40rem) {
+  .bn-walk-page__stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

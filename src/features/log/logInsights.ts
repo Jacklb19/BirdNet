@@ -4,6 +4,7 @@
  */
 import type { StoredWalk } from '../offline/types';
 import { trackMeters } from '../walk/walkGeometry';
+import { walkEnd } from '../walk/walkSummary';
 import type { LogRecord } from './logRecords';
 
 const MS_PER_DAY = 86_400_000;
@@ -38,9 +39,11 @@ export function logInsights(records: readonly Heard[], now: number): LogInsights
 
 export interface WalkSummary {
   readonly id: string;
+  /** The person's name for the walk; null shows one built from its date. */
+  readonly name: string | null;
   /** Epoch milliseconds. */
   readonly startedAt: number;
-  /** Null for a walk that was interrupted before it could be closed. */
+  /** Null while the walk may be under way, or when nothing tells when an interrupted one ended. */
   readonly durationMs: number | null;
   readonly meters: number;
   readonly songs: number;
@@ -48,14 +51,14 @@ export interface WalkSummary {
 }
 
 /** The walks kept on this phone with what was heard during each, newest first. */
-export function walkSummaries(walks: readonly StoredWalk[], records: readonly Heard[]): WalkSummary[] {
+export function walkSummaries(walks: readonly StoredWalk[], records: readonly Heard[], now: number): WalkSummary[] {
   return walks.map((walk) => {
     const startedAt = Date.parse(walk.startedAt);
-    const endedAt = walk.endedAt ? Date.parse(walk.endedAt) : null;
-    // An interrupted walk has no end: only its path is known, so no songs are attributed to it.
+    const endedAt = walkEnd(walk, records, now);
+    // Without an end only the path is known, so no songs are attributed to it.
     const heard = endedAt === null ? [] : records.filter((record) => record.recordedAt >= startedAt && record.recordedAt <= endedAt);
     return {
-      id: walk.id, startedAt, durationMs: endedAt === null ? null : endedAt - startedAt, meters: trackMeters(walk.track),
+      id: walk.id, name: walk.name ?? null, startedAt, durationMs: endedAt === null ? null : endedAt - startedAt, meters: trackMeters(walk.track),
       songs: heard.length, species: new Set(heard.map((record) => record.species)).size,
     };
   }).sort((a, b) => b.startedAt - a.startedAt);

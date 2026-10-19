@@ -19,6 +19,9 @@ export interface WalkContextValue {
   /** Turns the location preference on and starts listening as a walk. Resolves false when that could not be stored. */
   readonly start: () => Promise<boolean>;
   readonly stop: () => Promise<void>;
+  /** Id of the walk that just ended in this visit, until the person dismisses it; null otherwise. */
+  readonly finished: string | null;
+  readonly dismissFinished: () => void;
 }
 
 export const WalkContext = createContext<WalkContextValue | null>(null);

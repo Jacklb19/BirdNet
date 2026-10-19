@@ -7,6 +7,7 @@ import { mapMessages } from '../features/map/i18n';
 import { settingsMessages } from '../features/settings/i18n';
 import { sitesMessages } from '../features/sites/i18n';
 import { speciesMessages } from '../features/species/i18n';
+import { walkMessages } from '../features/walk/i18n';
 import { commonMessages } from '../shared/i18n';
 import type { MessageModule } from './defineMessages';
 import { LOCALES, type Locale } from './locales';
@@ -23,6 +24,7 @@ const MODULES = {
   settings: settingsMessages,
   home: homeMessages,
   species: speciesMessages,
+  walk: walkMessages,
 } as const;
 
 type Modules = typeof MODULES;

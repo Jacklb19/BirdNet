@@ -21,6 +21,10 @@ export const API_ROUTES = {
   meSpecies: `${VERSION}/me/species`,
   meSharing: `${VERSION}/me/sharing`,
   meRecordings: `${VERSION}/me/recordings`,
+  /** Walks saved in the account (ADR-35): the list, and one walk by the id the phone gave it. */
+  walks: `${VERSION}/walks`,
+  walk: (walkId: string): string => `${VERSION}/walks/${encodeURIComponent(walkId)}`,
+  meWalks: `${VERSION}/me/walks`,
   meSpeciesRecord: (species: string): string => `${VERSION}/me/species/${encodeURIComponent(species)}`,
 } as const;
 

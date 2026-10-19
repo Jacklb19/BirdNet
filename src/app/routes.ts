@@ -4,7 +4,8 @@ import { FIELD_LIMITS, isUuid } from '../config/contract';
 export type Route =
   | { name: 'listen' } | { name: 'log' } | { name: 'album' } | { name: 'detection'; id: string }
   | { name: 'map'; species?: string } | { name: 'sites' } | { name: 'site'; id: string }
-  | { name: 'species'; species: string } | { name: 'account' } | { name: 'settings' } | { name: 'home' };
+  | { name: 'species'; species: string } | { name: 'account' } | { name: 'settings' } | { name: 'home' }
+  | { name: 'walks' } | { name: 'walk'; id: string };
 
 /** Path of the guide: the album of recorded species and the birds still to find (`#/guide`). */
 const GUIDE_PATH = 'guide';
@@ -32,6 +33,7 @@ export function parseRoute(hash: string): Route {
       if (id === LEGACY_ALBUM_SEGMENT) return { name: 'album' };
       return isUuid(id) ? { name: 'detection', id } : { name: 'log' };
     case 'sites': return isUuid(id) ? { name: 'site', id } : { name: 'sites' };
+    case 'walks': return isUuid(id) ? { name: 'walk', id } : { name: 'walks' };
     case 'map': {
       const species = speciesFrom(new URLSearchParams(query).get(MAP_SPECIES_PARAM));
       return species ? { name: 'map', species } : { name: 'map' };
@@ -53,6 +55,7 @@ export function routeHash(route: Route): string {
     case 'detection': return `#/log/${route.id}`;
     case 'album': return `#/${GUIDE_PATH}`;
     case 'site': return `#/sites/${route.id}`;
+    case 'walk': return `#/walks/${route.id}`;
     case 'species': return `#/species/${encodeURIComponent(route.species)}`;
     case 'map': return route.species ? `#/map?${new URLSearchParams({ [MAP_SPECIES_PARAM]: route.species }).toString()}` : '#/map';
     case 'listen': return '#/listen';
@@ -64,7 +67,7 @@ export function routeHash(route: Route): string {
 export function sectionOf(route: Route): 'listen' | 'map' | 'guide' | 'log' | 'account' {
   switch (route.name) {
     case 'album': case 'species': return 'guide';
-    case 'detection': return 'log';
+    case 'detection': case 'walks': case 'walk': return 'log';
     case 'sites': case 'site': return 'map';
     case 'settings': case 'home': return 'account';
     default: return route.name;

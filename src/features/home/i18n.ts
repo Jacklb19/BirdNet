@@ -46,7 +46,7 @@ export const homeMessages = defineMessages({
       points: {
         pins: 'Cada ave queda en el punto donde la oíste.',
         territories: 'Cada zona que recorres toma el color del ave que más oíste en ella.',
-        sharing: 'El recorrido se guarda solo en tu teléfono, y tú decides si tus aves aparecen en el mapa de todos, sin tu nombre.',
+        sharing: 'El recorrido se queda en tu teléfono, o en tu cuenta si lo eliges, y solo tú lo ves. Tú decides si tus aves aparecen en el mapa de todos, sin tu nombre.',
       } satisfies Record<HomeMapPoint, string>,
       sceneCaption: 'Ejemplo de un barrio a medio explorar',
     },
@@ -106,7 +106,7 @@ export const homeMessages = defineMessages({
       points: {
         pins: 'Each bird stays at the spot where you heard it.',
         territories: 'Each area you cover takes the color of the bird you heard most in it.',
-        sharing: 'The path is kept only on your phone, and you decide whether your birds appear on everyone’s map, without your name.',
+        sharing: 'The path stays on your phone, or in your account if you choose, and only you see it. You decide whether your birds appear on everyone’s map, without your name.',
       },
       sceneCaption: 'Example of a half-explored neighbourhood',
     },

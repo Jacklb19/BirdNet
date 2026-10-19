@@ -87,7 +87,7 @@ export async function updateSettings(changes: EditableSettings): Promise<void> {
     const records = await request(tx.objectStore(STORES.detections).getAll()) as StoredDetection[];
     assertQueueCapacity(records.reduce((total, row) => total + row.bytes, 0), 0, next.maxBytes);
     if (typeof next.locationEnabled !== 'boolean' ||
-        [next.shareMap, next.keepRecordings, next.saveRecordings].some((choice) => choice !== undefined && typeof choice !== 'boolean') ||
+        [next.shareMap, next.keepRecordings, next.saveRecordings, next.saveWalks].some((choice) => choice !== undefined && typeof choice !== 'boolean') ||
         (next.detectionModel !== undefined && !isDetectionModel(next.detectionModel)) ||
         (next.detectionStyle !== undefined && !isDetectionStyle(next.detectionStyle))) throw new Error('Invalid preferences.');
     await writeSettings(tx, next);

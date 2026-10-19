@@ -1,25 +1,12 @@
 import { useCallback, useState } from 'react';
 import type { Period } from '../../config/contract';
-import { DOWNLOAD_URL_RELEASE_MS } from './sites.config';
+import { saveFile } from '../../shared/download';
 import { exportCsv } from './sitesApi';
 import { exportFileNameFor, periodStart } from './siteText';
 
 export type CsvExportState =
   | { readonly status: 'idle' | 'working' | 'failed' }
   | { readonly status: 'done'; readonly fileName: string; readonly truncated: boolean };
-
-/** Hands the file to the browser's download manager; the object URL is released once the download has started. */
-function saveFile(blob: Blob, fileName: string): void {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = fileName;
-  link.hidden = true;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => { URL.revokeObjectURL(url); }, DOWNLOAD_URL_RELEASE_MS);
-}
 
 /**
  * CSV export of a site's detections in the chosen period (RF-16), counted back from the moment of the export and

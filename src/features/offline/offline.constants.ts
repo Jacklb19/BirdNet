@@ -54,7 +54,7 @@ export const SETTINGS_RECORD_KEY = 'preferences';
 
 /** Preferences the interface may change; the session and cached sites are written by dedicated functions. */
 export const EDITABLE_SETTINGS_KEYS = Object.freeze(
-  ['maxBytes', 'locationEnabled', 'activeSiteId', 'shareMap', 'keepRecordings', 'saveRecordings', 'detectionModel', 'detectionStyle'] as const satisfies readonly (keyof OfflineSettings)[],
+  ['maxBytes', 'locationEnabled', 'activeSiteId', 'shareMap', 'keepRecordings', 'saveRecordings', 'saveWalks', 'detectionModel', 'detectionStyle'] as const satisfies readonly (keyof OfflineSettings)[],
 );
 
 export type EditableSettingsKey = (typeof EDITABLE_SETTINGS_KEYS)[number];

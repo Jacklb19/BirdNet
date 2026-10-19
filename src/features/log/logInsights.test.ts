@@ -42,6 +42,7 @@ describe('walk summaries', () => {
         { species: 'a', recordedAt: at(8, 6) + 60_000 }, { species: 'a', recordedAt: at(9, 6) + 60_000 },
         { species: 'b', recordedAt: at(9, 7) }, { species: 'c', recordedAt: at(9, 9) },
       ],
+      at(10, 0),
     );
     expect(summaries.map((summary) => summary.id)).toEqual(['new', 'old']);
     expect(summaries[0]).toMatchObject({ songs: 2, species: 2, durationMs: 2 * 3_600_000 });
@@ -49,8 +50,15 @@ describe('walk summaries', () => {
     expect(summaries[1]).toMatchObject({ songs: 1, species: 1 });
   });
 
-  it('attributes no songs to a walk that was never closed', () => {
-    const [summary] = walkSummaries([walk('open', at(9, 6), null)], [{ species: 'a', recordedAt: at(9, 7) }]);
+  it('attributes no songs to a walk that may still be under way', () => {
+    const open = { ...walk('open', at(9, 6), null), lastAt: new Date(at(9, 7)).toISOString() };
+    const [summary] = walkSummaries([open], [{ species: 'a', recordedAt: at(9, 7) }], at(9, 7) + 60_000);
     expect(summary).toMatchObject({ durationMs: null, songs: 0, species: 0 });
+  });
+
+  it('closes an interrupted walk at its last refresh', () => {
+    const interrupted = { ...walk('cut', at(9, 6), null), lastAt: new Date(at(9, 7)).toISOString() };
+    const [summary] = walkSummaries([interrupted], [{ species: 'a', recordedAt: at(9, 7) }, { species: 'b', recordedAt: at(9, 8) }], at(10, 0));
+    expect(summary).toMatchObject({ durationMs: 3_600_000, songs: 1, species: 1 });
   });
 });
