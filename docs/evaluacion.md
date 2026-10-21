@@ -204,6 +204,18 @@ Aquí el v2.4 casi no se equivoca, pero deja sin detectar tres de cada cuatro pr
 
 **Decisión.** Con estos números el dueño decidió poner el filtro geográfico del V3 para todos, ofrecer el V3 como segundo modelo que la persona descarga y elige (solo o promediado con el v2.4), volver elegible la regla del ADR-30 y no construir la verificación en la nube (ADR-31 y ADR-32). El filtro que se despliega no es exactamente el de la tabla de arriba: las aves que el V3 no conoce conservan el área que les daba el modelo anterior. Medido con ese archivo, el v2.4 encuentra 480 / 119 en WABAD, 51 / 52 en las 7 h de cafetales y 129 / 75 en las 13 h.
 
+### 8. Tiempo por ventana en el navegador (2026-10-21)
+
+Antes de cambiar el modelo por defecto (ADR-36) se midió el tiempo por ventana con el Worker de la app (`inference.worker.ts`), ONNX Runtime Web con un hilo de WASM, en Chrome sin interfaz en el PC de desarrollo (AMD Ryzen 7 8845HS). Ruido con un tono como entrada; las tres primeras ventanas, de calentamiento, se descartan. Mide clasificación y filtro, sin guardar.
+
+| Modelo que escucha | Mediana | p90 | Máximo |
+|---|---|---|---|
+| BirdNET v2.4 | 72 ms | 77 ms | 78 ms |
+| BirdNET+ V3 | 322 ms | 375 ms | 385 ms |
+| Los dos juntos | 403 ms | 462 ms | 576 ms |
+
+La simulación de CPU lenta de Chrome (×4, ×6) no frena al Worker: las cifras no cambiaron, así que no sirve para estimar un teléfono. Un teléfono de gama media suele ser de 3 a 5 veces más lento en un hilo, lo que pone los dos juntos entre 1,2 y 2 s por ventana, cerca de las 1,5 s entre ventanas (RNF-01). Por eso, con los dos por defecto la app vuelve sola al v2.4 en un teléfono que no alcanza (`pace.ts`). El tiempo en un teléfono real sigue sin medirse.
+
 ### Lo que estos números no dicen
 
 - Son grabadoras de campo en un cafetal de Antioquia, no un teléfono en Bogotá: sirven para comparar variantes entre sí, no como la precisión que verá una persona.
