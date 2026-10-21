@@ -61,7 +61,7 @@ export const homeMessages = defineMessages({
       link: 'Leer la política de privacidad',
     },
     caveat: 'Las detecciones son indicios con su nivel de confianza, no certezas. Que un ave no se detecte no significa que no esté.',
-    credits: 'Modelo BirdNET (K. Lisa Yang Center, Cornell Lab of Ornithology) · Nombres de eBird · Fotos y textos de Wikimedia y Wikipedia · Distribución de GBIF',
+    credits: 'Modelo BirdNET (K. Lisa Yang Center, Cornell Lab of Ornithology) · Nombres de eBird · Fotos y textos de Wikimedia y Wikipedia · Distribución de GBIF · Fichas e informes redactados por Gemini (Google)',
   },
   en: {
     navLabel: 'Sections of the page',
@@ -121,6 +121,6 @@ export const homeMessages = defineMessages({
       link: 'Read the privacy policy',
     },
     caveat: 'Detections are hints with a confidence level, not certainties. A bird that is not detected may still be there.',
-    credits: 'BirdNET model (K. Lisa Yang Center, Cornell Lab of Ornithology) · Names from eBird · Photos and texts from Wikimedia and Wikipedia · Range from GBIF',
+    credits: 'BirdNET model (K. Lisa Yang Center, Cornell Lab of Ornithology) · Names from eBird · Photos and texts from Wikimedia and Wikipedia · Range from GBIF · Cards and reports written by Gemini (Google)',
   },
 });
