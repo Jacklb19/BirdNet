@@ -14,6 +14,10 @@ export const API_ROUTES = {
   detectionRecording: (detectionId: string): string => `${VERSION}/detections/${encodeURIComponent(detectionId)}/recording`,
   sites: `${VERSION}/sites`,
   siteStats: (siteId: string): string => `${VERSION}/sites/${encodeURIComponent(siteId)}/stats`,
+  /** Report of a site written by the language model, only when the person asks (RF-15). */
+  siteReport: (siteId: string): string => `${VERSION}/sites/${encodeURIComponent(siteId)}/report`,
+  /** Card of a species written by the language model from public sources (RF-14). */
+  speciesCard: (scientificName: string): string => `${VERSION}/species/${encodeURIComponent(scientificName)}/card`,
   export: `${VERSION}/export`,
   me: `${VERSION}/me`,
   meAvatarUrl: `${VERSION}/me/avatar-url`,
@@ -27,6 +31,12 @@ export const API_ROUTES = {
   meWalks: `${VERSION}/me/walks`,
   meSpeciesRecord: (species: string): string => `${VERSION}/me/species/${encodeURIComponent(species)}`,
 } as const;
+
+/**
+ * Wait for a text the language model writes: the API gathers its sources and may ask the model twice, within the 60 s
+ * its function is allowed to run (`maxDuration` in the API's vercel.json).
+ */
+export const WRITING_TIMEOUT_MS = 60_000;
 
 /** Response header set by the export endpoint when the row cap was reached. */
 export const TRUNCATED_HEADER = 'X-Truncated';

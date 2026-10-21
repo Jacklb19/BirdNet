@@ -23,3 +23,6 @@ export const ALBUM_BOOK_RINGS = 5;
 
 /** Latest records listed on a species card. */
 export const SPECIES_RECENT_RECORDS = 8;
+
+/** Cards written by the language model (RF-14), kept on the phone once read so they also show offline. */
+export const WRITTEN_CARD_CACHE_NAME = 'trino-written-cards-v1';

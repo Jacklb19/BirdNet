@@ -22,6 +22,7 @@ import { commonName, useSpeciesNames } from './speciesNames';
 import { SpeciesPlate } from './SpeciesPlate';
 import { bestFacts, busiestHour, cloudFacts, phoneFacts } from './speciesRecord';
 import { SUMMARY_LICENSE, useSpeciesSummary } from './speciesSummary';
+import { WrittenCardSection } from './WrittenCardSection';
 import './SpeciesPage.css';
 
 /** The account's cloud record of the species, when signed in and online; null otherwise or while it loads. */
@@ -185,6 +186,8 @@ export default function SpeciesPage({ species }: { readonly species: string }): 
               </>
             )}
           </section>
+
+          <WrittenCardSection species={species} />
 
           <section className="bn-species-page__card bn-species-page__range" aria-labelledby={rangeId}>
             <h2 id={rangeId} className="bn-species-page__title label">{texts.range.title}</h2>
