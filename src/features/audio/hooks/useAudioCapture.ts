@@ -6,7 +6,8 @@ import { InferenceService } from '../../inference/inference.service';
 import { MIN_CANDIDATE_CONFIDENCE, TOP_K } from '../../inference/inference.constants';
 import type { ModelStatus } from '../../inference/inference.types';
 import { applyDetectionPolicy, type ClassifiedDetection } from '../../inference/detectionPolicy';
-import { getSettings } from '../../offline/queueStore';
+import { watchPace, type PaceWatch } from '../../inference/pace';
+import { getSettings, updateSettings } from '../../offline/queueStore';
 import { scheduleSynchronization } from '../../offline/offlineClient';
 import { dispatchSyncError } from '../../offline/offline.constants';
 import type { ApproximateLocation, PersistenceContext } from '../../offline/types';
@@ -28,6 +29,11 @@ export interface UseAudioCaptureReturn {
   /** Species likely at the place and week of the latest window (geographic filter); null when nothing was filtered. */
   regionSpecies: number | null;
   sessionError: 'model' | 'audio' | 'inference' | 'storage' | null;
+  /**
+   * In this session the phone fell behind with both models listening by default (ADR-36): from the next session the
+   * first model listens alone, and the screen says so.
+   */
+  tooSlowForTwo: boolean;
   startListening: () => Promise<void>;
   stopListening: () => Promise<void>;
 }
@@ -52,6 +58,8 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
   const [droppedWindows, setDroppedWindows] = useState(0);
   const [regionSpecies, setRegionSpecies] = useState<number | null>(null);
   const [sessionError, setSessionError] = useState<UseAudioCaptureReturn['sessionError']>(null);
+  const [tooSlowForTwo, setTooSlowForTwo] = useState(false);
+  const paceRef = useRef<PaceWatch | null>(null);
   const serviceRef = useRef<AudioCaptureService | null>(null);
   const inferenceRef = useRef<InferenceService | null>(null);
   const requestedRef = useRef(false);
@@ -67,6 +75,15 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
     const clearLocation = (): void => { stopLocationWatch?.(); stopLocationWatch = null; location = null; };
     clearLocationRef.current = clearLocation;
     const isActive = (): boolean => mounted && requestedRef.current;
+    // Only the default pair is watched; once too slow, the choice is stored for the next session.
+    const paced = (record: (pace: PaceWatch) => void): void => {
+      const pace = paceRef.current;
+      if (!pace || !inference.listensByDefaultWithTwo() || pace.tooSlow()) return;
+      record(pace);
+      if (!pace.tooSlow()) return;
+      if (mounted) setTooSlowForTwo(true);
+      if (typeof indexedDB !== 'undefined') void updateSettings({ tooSlowForTwo: true }).catch(() => undefined);
+    };
     const capture = new AudioCaptureService({
       onStateChange: (state) => { if (mounted) setState(state); },
       onLevelUpdate: (rms, peak) => { setRmsLevel(rms); setPeakLevel(peak); },
@@ -79,7 +96,7 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
         } : undefined;
         inference.infer(buffer, windowIndex, timestamp, TOP_K, MIN_CANDIDATE_CONFIDENCE, persistence);
       },
-      onWindowsDropped: (count) => { setDroppedWindows((total) => total + count); },
+      onWindowsDropped: (count) => { setDroppedWindows((total) => total + count); paced((pace) => { pace.dropped(count); }); },
       onMelSpectrogramReady: (response) => {
         setLatestSpectrogram(response);
         setSpectrogramLatencyMs(response.durationMs);
@@ -110,6 +127,7 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
           setWindowCount((count) => count + 1);
           onWindowAnalysedRef.current?.(classified, Date.now());
           setInferenceLatencyMs(latencyMs);
+          paced((pace) => { pace.analysed(latencyMs); });
           setEndToEndLatencyMs(totalMs);
           setRegionSpecies(likely);
           void scheduleSynchronization().catch(dispatchSyncError);
@@ -117,7 +135,7 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
           failSession('inference');
         }
       },
-      onWindowDropped: () => { setDroppedWindows((total) => total + 1); },
+      onWindowDropped: () => { setDroppedWindows((total) => total + 1); paced((pace) => { pace.dropped(1); }); },
       onStorageError: () => { failSession('storage'); },
       onError: () => {
         failSession(inference.getStatus() === 'error' ? 'model' : 'inference');
@@ -148,6 +166,8 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
     if (requestedRef.current || !inferenceRef.current) return;
     requestedRef.current = true;
     setSessionError(null);
+    setTooSlowForTwo(false);
+    paceRef.current = watchPace();
     setDetections([]);
     setWindowCount(0);
     setDroppedWindows(0);
@@ -171,6 +191,6 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
     state, rmsLevel, peakLevel, windowCount, latestSpectrogram,
     spectrogramLatencyMs, sampleRate: AUDIO_CONSTANTS.TARGET_SAMPLE_RATE,
     modelStatus, detections, inferenceLatencyMs, endToEndLatencyMs, droppedWindows, regionSpecies,
-    sessionError, startListening, stopListening,
+    sessionError, tooSlowForTwo, startListening, stopListening,
   };
 }

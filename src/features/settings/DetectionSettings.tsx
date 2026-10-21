@@ -2,7 +2,7 @@ import { formatBytes, formatNumber, formatPercent, useI18n } from '../../i18n';
 import { Icon } from '../../shared/ui/Icon';
 import { ListGroup } from '../../shared/ui/ListGroup';
 import {
-  DEFAULT_DETECTION_STYLE, DETECTION_MODELS, DETECTION_STYLES, modelInUse, type DetectionModel,
+  DEFAULT_DETECTION_STYLE, DETECTION_MODELS, DETECTION_STYLES, modelInUse, needsSecondModel,
 } from '../inference/detectionChoices';
 import { alternateBytes } from '../inference/modelManifest';
 import { useAlternateModel } from '../offline/useAlternateModel';
@@ -12,8 +12,6 @@ import { ChoiceGroup } from './ChoiceGroup';
 import { ProgressBar } from './ProgressBar';
 import { DOWNLOAD_PERCENT_DIGITS } from './settings.config';
 import './ModelSettings.css';
-
-const NEEDS_SECOND_MODEL: readonly DetectionModel[] = ['preview', 'combined'];
 
 /**
  * How the app detects (ADR-31): which model listens, the newer model a person may add to compare, and whether a
@@ -44,15 +42,16 @@ export function DetectionSettings({ offline }: { readonly offline: OfflineSettin
   const outdated = second.state === 'ready' && installed && available && available.sha256 !== installed.sha256;
   const canDownload = second.state === 'absent' || outdated;
   const message = second.state === 'downloading' ? (second.background ? texts.second.inBackground : texts.second.resumes)
-    : second.failed ? texts.second.failed : canDownload && !online ? texts.second.needsConnection : !second.usable ? texts.needsSecond : texts.appliesNext;
+    : second.failed ? texts.second.failed : canDownload && !online ? texts.second.needsConnection : !second.usable ? texts.needsSecond
+    : settings?.tooSlowForTwo && settings.detectionModel === undefined ? texts.tooSlow : texts.appliesNext;
 
   return (
     <>
-      <ChoiceGroup title={texts.modelTitle} value={modelInUse(settings?.detectionModel, second.usable)}
+      <ChoiceGroup title={texts.modelTitle} value={modelInUse(settings?.detectionModel, second.usable, settings?.tooSlowForTwo)}
         onChange={(value) => { void update({ detectionModel: value }); }}
         options={DETECTION_MODELS.map((value) => ({
           value, label: texts.models[value].label, detail: texts.models[value].detail,
-          disabled: !settings || (NEEDS_SECOND_MODEL.includes(value) && !second.usable),
+          disabled: !settings || (needsSecondModel(value) && !second.usable),
         }))} />
 
       <ListGroup title={texts.second.title}>
@@ -77,6 +76,7 @@ export function DetectionSettings({ offline }: { readonly offline: OfflineSettin
             <p className="bn-settings-model__detail" aria-hidden="true">{message}</p>
             {/* Always in the tree, so the outcome of a download is announced when it appears. */}
             <p className="visually-hidden" role="status">{message}</p>
+            {second.state === 'ready' && <p className="bn-settings-model__detail">{texts.second.removeHint}</p>}
           </div>
         </div>
         {canDownload && (
@@ -85,7 +85,8 @@ export function DetectionSettings({ offline }: { readonly offline: OfflineSettin
           </button>
         )}
         {second.state === 'ready' && (
-          <button type="button" className="bn-settings-model__action" onClick={() => { void second.remove(); }}>
+          // Removing it is a choice: the first model listens from then on, and the second is not downloaded again by itself.
+          <button type="button" className="bn-settings-model__action" onClick={() => { void update({ detectionModel: 'standard' }).then(() => second.remove()); }}>
             {texts.second.remove}
           </button>
         )}

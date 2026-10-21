@@ -54,6 +54,7 @@ export class InferenceService {
   private manifest: ModelManifest | null = null;
   private modelVersion: string | null = null;
   private expectedClasses: number | null = null;
+  private byDefaultWithTwo = false;
   private generation = 0;
   private activeWindowIndex: number | null = null;
   private readonly queue = new LatestWindowQueue<InferRequest>(
@@ -81,6 +82,11 @@ export class InferenceService {
   }
 
   /** Identifier of the model, or pair of models, loaded for this session; stored with what it detects. */
+  /** Both models listen because nobody chose otherwise (ADR-36): the session then watches whether the phone keeps up. */
+  public listensByDefaultWithTwo(): boolean {
+    return this.byDefaultWithTwo;
+  }
+
   public getModelVersion(): string | null {
     return this.modelVersion;
   }
@@ -131,8 +137,11 @@ export class InferenceService {
       const alternate: AlternateModel | null = installed
         ? await offlineOperation(OFFLINE_OPERATIONS.alternateStatus).catch(() => null)
         : manifest.alternate ?? null;
-      const plan = planLoad(manifest, alternate, await storedChoices(), resourceBase, origin);
+      const choices = await storedChoices();
+      const plan = planLoad(manifest, alternate, choices, resourceBase, origin);
       if (generation !== this.generation) return;
+      // Only the default is given up when the phone is slow: a model the person chose keeps listening.
+      this.byDefaultWithTwo = choices.detectionModel === undefined && plan.request.models.length > 1;
       this.manifest = manifest;
       this.modelVersion = plan.modelVersion;
       this.expectedClasses = plan.expectedClasses;
