@@ -10,6 +10,7 @@ import { useSites } from '../sites/useSites';
 import { useAccountContext } from './accountContext';
 import { AccountSummaryCard } from './AccountSummaryCard';
 import { ClaimCard } from './ClaimCard';
+import { DeleteAccountCard } from './DeleteAccountCard';
 import { LocalStatsCard } from './LocalStatsCard';
 import { localTotals } from './localTotals';
 import { ProfileCard } from './ProfileCard';
@@ -53,6 +54,12 @@ export default function AccountPage(): React.JSX.Element {
         <Notice tone="info" icon="privacy" title={texts.unavailable.title}>{texts.unavailable.text}</Notice>
       )}
 
+      {!session && account.deleted && (
+        <Notice tone={account.deleted === 'done' ? 'success' : 'caution'} icon={account.deleted === 'done' ? 'check' : 'pending'} live>
+          {texts.deletion[account.deleted]}
+        </Notice>
+      )}
+
       {account.configured && !session && <SignInForm account={account} />}
 
       {session && account.recovering && <RecoveryForm account={account} />}
@@ -87,6 +94,7 @@ export default function AccountPage(): React.JSX.Element {
             onClick={() => { void account.signOut(); }} />
         </ListGroup>
       )}
+      {session && <DeleteAccountCard account={account} />}
     </Page>
   );
 }

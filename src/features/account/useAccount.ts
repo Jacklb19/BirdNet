@@ -7,6 +7,7 @@ import { bindSyncSession, keepSitesOf, listDetections } from '../offline/queueSt
 import {
   GENERIC_ACCOUNT_FAILURE, GOOGLE_PROVIDER, PASSWORD_RECOVERY_EVENT, SIGNED_OUT_EVENT, type AccountFailure,
 } from './account.constants';
+import { deleteAccount as deleteAccountEverywhere, type DeletionOutcome } from './accountDeletion';
 import { readAuthCallbackError } from './authCallback';
 import { requestGoogleIdToken, supportsFederatedSignIn, wasDismissed } from './googleSignIn';
 import { encodeAvatar, fetchProfile, normalizeAlias, updateProfile, uploadAvatar, type Profile } from './profileApi';
@@ -38,6 +39,13 @@ export interface AccountState {
   /** Resolves true when the new password was saved. */
   updatePassword(password: string): Promise<boolean>;
   signOut(): Promise<void>;
+  /**
+   * Deletes the account and everything in it, then what this phone keeps of it, and ends the session. Resolves how
+   * far it got, or null when the account could not be deleted (nothing was).
+   */
+  deleteAccount(): Promise<DeletionOutcome | null>;
+  /** How the last deletion of an account ended in this visit to the app; shown once the session is gone. */
+  readonly deleted: DeletionOutcome | null;
   saveAlias(alias: string): Promise<boolean>;
   saveAvatar(file: Blob): Promise<boolean>;
   claimLocal(): Promise<void>;
@@ -79,6 +87,7 @@ export function useAccount(): AccountState {
   const [error, setError] = useState<AccountError>(returnError?.failure ?? null);
   const [errorDetail, setErrorDetail] = useState<string | null>(returnError?.detail ?? null);
   const [working, setWorking] = useState(false);
+  const [deleted, setDeleted] = useState<DeletionOutcome | null>(null);
 
   useEffect(() => {
     if (!returnError) return;
@@ -188,6 +197,26 @@ export function useAccount(): AccountState {
     if (failure) throw failure;
   }, undefined), [run]);
 
+  // Not through `run`: the deletion screen reports its own failure, next to the button that was pressed.
+  const deleteAccount = useCallback(async (): Promise<DeletionOutcome | null> => {
+    if (!supabase || !token || !userId) return null;
+    setWorking(true);
+    try {
+      const outcome = await deleteAccountEverywhere(token, userId);
+      setClaimed(false);
+      setDismissed(false);
+      setRecovering(false);
+      setDeleted(outcome);
+      // The user no longer exists, so only this browser's session is ended; the server has nothing left to revoke.
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
+      return outcome;
+    } catch {
+      return null;
+    } finally {
+      setWorking(false);
+    }
+  }, [token, userId]);
+
   const saveAlias = useCallback((alias: string) => run(async () => {
     if (!token) return false;
     setProfile(await updateProfile(token, { alias: normalizeAlias(alias) }));
@@ -213,6 +242,6 @@ export function useAccount(): AccountState {
 
   return {
     configured: supabase !== null, session, profile, recovering, unownedCount: dismissed ? 0 : unownedCount, claimed, error, errorDetail, working,
-    signIn, signInWithGoogle, signUp, requestPasswordReset, updatePassword, signOut, saveAlias, saveAvatar, claimLocal, declineClaim,
+    signIn, signInWithGoogle, signUp, requestPasswordReset, updatePassword, signOut, deleteAccount, deleted, saveAlias, saveAvatar, claimLocal, declineClaim,
   };
 }

@@ -87,7 +87,7 @@ export async function updateSettings(changes: EditableSettings): Promise<void> {
     const records = await request(tx.objectStore(STORES.detections).getAll()) as StoredDetection[];
     assertQueueCapacity(records.reduce((total, row) => total + row.bytes, 0), 0, next.maxBytes);
     if (typeof next.locationEnabled !== 'boolean' ||
-        [next.shareMap, next.keepRecordings, next.saveRecordings, next.saveWalks].some((choice) => choice !== undefined && typeof choice !== 'boolean') ||
+        [next.shareMap, next.keepRecordings, next.saveRecordings, next.saveWalks, next.tooSlowForTwo].some((choice) => choice !== undefined && typeof choice !== 'boolean') ||
         (next.detectionModel !== undefined && !isDetectionModel(next.detectionModel)) ||
         (next.detectionStyle !== undefined && !isDetectionStyle(next.detectionStyle))) throw new Error('Invalid preferences.');
     await writeSettings(tx, next);
@@ -144,6 +144,27 @@ export async function keepSitesOf(userId: string | null): Promise<void> {
     return true;
   });
   if (forgotten) announceQueueChange(['settings']);
+}
+/**
+ * After the account was deleted (ADR-38): its records waiting to upload and those without an owner (which any account
+ * signing in here would claim) go, the history of uploaded songs goes (it keeps no owner, and on this phone it is the
+ * account's), and so do the session, the account's sites and the choices about what to save in it. Records another
+ * account left waiting stay; device preferences (queue size, location, models) stay too.
+ */
+export async function forgetAccountRecords(userId: string): Promise<void> {
+  if (!isUuid(userId)) throw new Error('Invalid account.');
+  await transact([STORES.settings, STORES.detections, STORES.history], 'readwrite', async (tx) => {
+    const records = await request(tx.objectStore(STORES.detections).getAll()) as StoredDetection[];
+    for (const row of records) if (!row.owner || row.owner === userId) await request(tx.objectStore(STORES.detections).delete(row.id));
+    await request(tx.objectStore(STORES.history).clear());
+    const next: OfflineSettings = { ...await readSettings(tx), session: null, sites: [], sitesOwner: null, activeSiteId: null };
+    // Unanswered again: a later account on this phone is asked anew.
+    delete next.shareMap;
+    delete next.saveRecordings;
+    delete next.saveWalks;
+    await writeSettings(tx, next);
+  });
+  announceQueueChange(['settings', 'records']);
 }
 export async function listHistory(): Promise<HistoryEntry[]> {
   const rows = await transact([STORES.history], 'readonly', async (tx) => request(tx.objectStore(STORES.history).getAll()) as Promise<HistoryEntry[]>);
