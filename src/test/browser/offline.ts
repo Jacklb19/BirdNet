@@ -9,6 +9,7 @@ import { offlineOperation } from '../../features/offline/offlineClient';
 import { DATABASE_NAME, MODEL_CACHE_NAME, MODEL_RESOURCE_EXTENSIONS, OFFLINE_OPERATIONS, STORES } from '../../features/offline/offline.constants';
 import type { PersistenceContext, SyncSession } from '../../features/offline/types';
 import { listWalks, saveWalk } from '../../features/walk/walkStore';
+import { listNotes, saveNote } from '../../features/notes/noteStore';
 import { forgetAccountOnPhone } from '../../features/account/accountDeletion';
 import referenceRecordings from '../../../public/test-audio/metadata.json';
 
@@ -119,7 +120,7 @@ async function inferReference(): Promise<string[]> {
 }
 const checks = {
   seed, seedWindow, queueStats, listDetections, updateSettings, getSettings, loadReference, inferReference, leaveLegacyFragment, seedWalk, listWalks,
-  seedForeign, forgetAccountOnPhone,
+  seedForeign, forgetAccountOnPhone, saveNote, listNotes,
   legacyFragments: (): Promise<number> => inQueue('readonly', (transaction) => transaction.objectStore(STORES.audio).count()),
   synchronizeQueue: async (): Promise<void> => { await offlineOperation(OFFLINE_OPERATIONS.sync); },
   bind: async (claimUnowned = true): Promise<void> => {
