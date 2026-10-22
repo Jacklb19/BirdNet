@@ -117,7 +117,7 @@ export const QUEUE_CHANGED_CHANNEL = 'birdnet-queue-changed';
  * sync session, cached sites), the walks, the recordings or the reviews (each kept in its own database, announced
  * on the same channel). Views re-read only the part they show.
  */
-export const QUEUE_CHANGE_PARTS = Object.freeze(['records', 'settings', 'walks', 'recordings', 'reviews'] as const);
+export const QUEUE_CHANGE_PARTS = Object.freeze(['records', 'settings', 'walks', 'recordings', 'reviews', 'notes'] as const);
 
 export type QueueChangePart = (typeof QUEUE_CHANGE_PARTS)[number];
 
@@ -201,6 +201,13 @@ export const TAXON_CACHE_MAX_ENTRIES = 800;
 
 /** How often an app left open asks whether a new version exists, when the person comes back to it (one hour). */
 export const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000;
+
+/**
+ * Longest wait for the service worker to become active. Installing it caches the app (some 18 MB without the model),
+ * which takes seconds even on a slow connection; past this the page says it failed and offers to try again, instead of
+ * waiting for ever when the registration itself failed (audit F01).
+ */
+export const SERVICE_WORKER_READY_TIMEOUT_MS = 45 * 1000;
 
 /** Longest wait for one operation without progress to report (five minutes). */
 export const OFFLINE_OPERATION_TIMEOUT_MS = 5 * 60 * 1000;

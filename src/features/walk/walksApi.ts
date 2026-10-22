@@ -113,6 +113,33 @@ export async function fetchAccountWalk(token: string, id: string, signal?: Abort
   return { ...parseWalk(body), track: body.track.map(parsePoint), places: body.places.map(parsePlace) };
 }
 
+/** What "Mi mapa" draws of a walk of the account: its path and where its species were heard. */
+export interface AccountWalkPath {
+  readonly id: string;
+  readonly startedAt: number;
+  readonly track: readonly TrackPoint[];
+  readonly places: readonly WalkPlace[];
+}
+
+export interface WalkPathPage {
+  readonly walks: readonly AccountWalkPath[];
+  readonly hasMore: boolean;
+}
+
+function parsePath(value: unknown): AccountWalkPath {
+  if (!isObject(value) || !isUuid(value.id) || !Array.isArray(value.track) || !Array.isArray(value.places)) throw new Error('Invalid walk path.');
+  return { id: value.id, startedAt: time(value.started_at), track: value.track.map(parsePoint), places: value.places.map(parsePlace) };
+}
+
+/** Newest first, in pages: each walk carries its whole path. */
+export async function fetchWalkPaths(token: string, before: number | null, signal?: AbortSignal): Promise<WalkPathPage> {
+  const params = new URLSearchParams();
+  if (before !== null) params.set('before', new Date(before).toISOString());
+  const body: unknown = await (await apiFetch(API_ROUTES.walkPaths, { token, params, signal })).json();
+  if (!isObject(body) || !Array.isArray(body.walks) || typeof body.has_more !== 'boolean') throw new Error('Invalid walk paths.');
+  return { walks: body.walks.map(parsePath), hasMore: body.has_more };
+}
+
 export async function deleteAccountWalk(token: string, id: string): Promise<void> {
   await apiFetch(API_ROUTES.walk(id), { method: 'DELETE', token });
 }

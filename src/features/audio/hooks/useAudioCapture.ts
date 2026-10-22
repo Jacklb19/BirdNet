@@ -7,6 +7,7 @@ import { MIN_CANDIDATE_CONFIDENCE, TOP_K } from '../../inference/inference.const
 import type { ModelStatus } from '../../inference/inference.types';
 import { applyDetectionPolicy, type ClassifiedDetection } from '../../inference/detectionPolicy';
 import { watchPace, type PaceWatch } from '../../inference/pace';
+import { startSessionMonitor, type SessionMonitor } from '../../performance/sessionMonitor';
 import { getSettings, updateSettings } from '../../offline/queueStore';
 import { scheduleSynchronization } from '../../offline/offlineClient';
 import { dispatchSyncError } from '../../offline/offline.constants';
@@ -60,6 +61,8 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
   const [sessionError, setSessionError] = useState<UseAudioCaptureReturn['sessionError']>(null);
   const [tooSlowForTwo, setTooSlowForTwo] = useState(false);
   const paceRef = useRef<PaceWatch | null>(null);
+  // What this session measures for "Rendimiento de este teléfono"; kept on the phone when the session ends.
+  const monitorRef = useRef<SessionMonitor | null>(null);
   const serviceRef = useRef<AudioCaptureService | null>(null);
   const inferenceRef = useRef<InferenceService | null>(null);
   const requestedRef = useRef(false);
@@ -96,7 +99,11 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
         } : undefined;
         inference.infer(buffer, windowIndex, timestamp, TOP_K, MIN_CANDIDATE_CONFIDENCE, persistence);
       },
-      onWindowsDropped: (count) => { setDroppedWindows((total) => total + count); paced((pace) => { pace.dropped(count); }); },
+      onWindowsDropped: (count) => {
+        setDroppedWindows((total) => total + count);
+        monitorRef.current?.dropped(count);
+        paced((pace) => { pace.dropped(count); });
+      },
       onMelSpectrogramReady: (response) => {
         setLatestSpectrogram(response);
         setSpectrogramLatencyMs(response.durationMs);
@@ -127,6 +134,9 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
           setWindowCount((count) => count + 1);
           onWindowAnalysedRef.current?.(classified, Date.now());
           setInferenceLatencyMs(latencyMs);
+          const version = inference.getModelVersion();
+          if (version) monitorRef.current?.model(version);
+          monitorRef.current?.analysed(latencyMs);
           paced((pace) => { pace.analysed(latencyMs); });
           setEndToEndLatencyMs(totalMs);
           setRegionSpecies(likely);
@@ -135,7 +145,11 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
           failSession('inference');
         }
       },
-      onWindowDropped: () => { setDroppedWindows((total) => total + 1); paced((pace) => { pace.dropped(1); }); },
+      onWindowDropped: () => {
+        setDroppedWindows((total) => total + 1);
+        monitorRef.current?.dropped(1);
+        paced((pace) => { pace.dropped(1); });
+      },
       onStorageError: () => { failSession('storage'); },
       onError: () => {
         failSession(inference.getStatus() === 'error' ? 'model' : 'inference');
@@ -145,6 +159,8 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
       if (!isActive()) return;
       setSessionError(reason);
       requestedRef.current = false;
+      monitorRef.current?.finish();
+      monitorRef.current = null;
       clearLocation();
       inference.dispose();
       void capture.stop();
@@ -153,6 +169,8 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
     inferenceRef.current = inference;
     return () => {
       mounted = false;
+      monitorRef.current?.finish();
+      monitorRef.current = null;
       clearLocation();
       requestedRef.current = false;
       inference.dispose();
@@ -168,6 +186,8 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
     setSessionError(null);
     setTooSlowForTwo(false);
     paceRef.current = watchPace();
+    monitorRef.current?.finish();
+    monitorRef.current = startSessionMonitor();
     setDetections([]);
     setWindowCount(0);
     setDroppedWindows(0);
@@ -180,6 +200,8 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
 
   const stopListening = useCallback(async (): Promise<void> => {
     requestedRef.current = false;
+    monitorRef.current?.finish();
+    monitorRef.current = null;
     clearLocationRef.current();
     inferenceRef.current?.dispose();
     await serviceRef.current?.stop();

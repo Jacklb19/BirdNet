@@ -114,6 +114,13 @@ export interface AppConfig {
     readonly apiUrl: string;
     readonly tilesUrl: string;
   };
+  /**
+   * Sentry project that receives errors of the deployed app (ADR-43); public by design, like Google's client ID. Null
+   * sends nothing anywhere.
+   */
+  readonly sentryDsn: string | null;
+  /** Names the deployment in error reports (production, preview); null leaves it unnamed. */
+  readonly sentryEnvironment: string | null;
 }
 
 /** Pure so it can be tested with any environment; throws with the variable name on invalid input. */
@@ -150,6 +157,9 @@ export function readConfig(env: RawEnv): AppConfig {
       apiUrl: url(env, 'VITE_GBIF_API_URL', 'https://api.gbif.org/v1'),
       tilesUrl: url(env, 'VITE_GBIF_TILES_URL', 'https://api.gbif.org/v2/map/occurrence/density'),
     },
+    sentryDsn: text(env, 'VITE_SENTRY_DSN') ? url(env, 'VITE_SENTRY_DSN', '/') : null,
+    // Vercel gives Vite builds the environment of each deployment under this name.
+    sentryEnvironment: text(env, 'VITE_VERCEL_ENV'),
   });
 }
 

@@ -15,6 +15,8 @@ import { LocalStatsCard } from './LocalStatsCard';
 import { localTotals } from './localTotals';
 import { ProfileCard } from './ProfileCard';
 import { RecoveryForm } from './RecoveryForm';
+import { SecondStepCard } from './SecondStepCard';
+import { SecondStepForm } from './SecondStepForm';
 import { ShareChoiceCard } from './ShareChoiceCard';
 import { SignInForm } from './SignInForm';
 import { SyncRow } from './SyncRow';
@@ -60,7 +62,8 @@ export default function AccountPage(): React.JSX.Element {
         </Notice>
       )}
 
-      {account.configured && !session && <SignInForm account={account} />}
+      {account.awaitingCode && <SecondStepForm account={account} />}
+      {account.configured && !session && !account.awaitingCode && <SignInForm account={account} />}
 
       {session && account.recovering && <RecoveryForm account={account} />}
       <ShareChoiceCard />
@@ -94,6 +97,7 @@ export default function AccountPage(): React.JSX.Element {
             onClick={() => { void account.signOut(); }} />
         </ListGroup>
       )}
+      {session && <SecondStepCard account={account} />}
       {session && <DeleteAccountCard account={account} />}
     </Page>
   );

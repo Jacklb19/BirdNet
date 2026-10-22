@@ -1,6 +1,7 @@
 import { Component, type ReactNode } from 'react';
 import { Button } from '../shared/ui/Button';
 import { Notice } from '../shared/ui/Notice';
+import { reportError } from '../features/monitoring/errorReports';
 
 interface PageErrorBoundaryProps {
   readonly children: ReactNode;
@@ -17,6 +18,10 @@ export class PageErrorBoundary extends Component<PageErrorBoundaryProps, { faile
 
   static getDerivedStateFromError(): { failed: boolean } {
     return { failed: true };
+  }
+
+  override componentDidCatch(error: unknown): void {
+    reportError(error);
   }
 
   override render(): ReactNode {

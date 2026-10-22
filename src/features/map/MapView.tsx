@@ -9,7 +9,7 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import { routeHash } from '../../app/routes';
 import { config } from '../../config/env';
 import { APPROX_CELL_METERS } from '../../config/contract';
-import { formatDate, formatMeters, formatPercent, useI18n, type Locale, type Messages } from '../../i18n';
+import { formatDate, formatDistance, formatMeters, formatPercent, useI18n, type Locale, type Messages } from '../../i18n';
 import { useTheme } from '../../theme';
 import type { ApproximateLocation } from '../offline/types';
 import { commonName, useSpeciesNames } from '../species/speciesNames';
@@ -61,7 +61,9 @@ function openPopup(map: MapLibreMap, row: MapDetection, text: PopupText): void {
     recordedAt: formatDate(new Date(row.recorded_at), locale),
     recordedAtIso: row.recorded_at,
     own: row.own ? (row.site_name ? dict.map.popup.ownAt(row.site_name) : dict.map.popup.own) : null,
-    note: dict.map.popup.approximate(formatMeters(APPROX_CELL_METERS, locale)),
+    note: row.generalized_m === null
+      ? dict.map.popup.approximate(formatMeters(APPROX_CELL_METERS, locale))
+      : dict.map.popup.threatened(formatDistance(row.generalized_m, locale)),
     card: { href: routeHash({ name: 'species', species: row.species }), label: dict.map.popup.card },
   });
   new Popup(MAP_POPUP).setLngLat([row.longitude, row.latitude]).setDOMContent(content).addTo(map);

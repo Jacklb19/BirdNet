@@ -6,7 +6,7 @@ import { MIN_QUEUE_BYTES, OFFLINE_OPERATIONS, SERVICE_WORKER_URL, type OfflineRe
 import { STORAGE_KEYS } from '../src/config/storage';
 import { routeHash } from '../src/app/routes';
 import { DEFAULT_LOCALE } from '../src/i18n/locales';
-import { dictionaries } from '../src/i18n/messages';
+import { dictionaries } from '../src/i18n/allMessages';
 import productionManifest from '../public/models/manifest.json' with { type: 'json' };
 
 /** Labels come from the interface dictionaries, so copy changes do not break the suite. */
@@ -25,6 +25,7 @@ const FIXTURE_ROUTES = {
   counts: `${API_PROXY_PREFIX}/test/counts`,
   loseAck: `${API_PROXY_PREFIX}/test/lose-ack`,
   loseWalkAck: `${API_PROXY_PREFIX}/test/lose-walk-ack`,
+  loseNoteAck: `${API_PROXY_PREFIX}/test/lose-note-ack`,
 } as const;
 
 const bridge = fs.readFileSync(OFFLINE_CHECK_BUNDLE, 'utf8');
@@ -99,6 +100,27 @@ test('a walk goes to the account only with the permission, once, and is marked s
   await page.evaluate(() => window.offlineChecks.synchronizeQueue());
   expect(await stateOf()).toBe('saved');
   expect(await walks()).toBe(before + 1);
+});
+
+test('a note goes to the account after its detection, once, and is marked sent only with the answer', async ({ page }) => {
+  await ready(page);
+  await page.evaluate(async () => { await window.offlineChecks.bind(); await window.offlineChecks.seed(1); });
+  const notes = async (): Promise<number> => ((await (await page.request.get(FIXTURE_ROUTES.counts)).json()) as { notes: number }).notes;
+  const before = await notes();
+  const [record] = await page.evaluate(() => window.offlineChecks.listDetections());
+  if (!record) throw new Error('No seeded record.');
+  await page.evaluate(async (id) => { await window.offlineChecks.saveNote(id, { note: 'Dos cantando', individuals: 2 }); }, record.id);
+  const stateOf = (): Promise<string | undefined> => page.evaluate(async (id) => (await window.offlineChecks.listNotes()).find((note) => note.id === id)?.sync, record.id);
+  await page.request.post(FIXTURE_ROUTES.loseNoteAck);
+  // The detection goes first; the note's answer is lost after the database kept it.
+  const failed = await page.evaluate(async () => {
+    try { await window.offlineChecks.synchronizeQueue(); return false; } catch { return true; }
+  });
+  expect(failed).toBe(true);
+  expect(await stateOf()).toBe('pending');
+  await page.evaluate(() => window.offlineChecks.synchronizeQueue());
+  expect(await stateOf()).toBe('done');
+  expect(await notes()).toBe(before + 1);
 });
 
 test('service worker finishes a synchronization after the initiating page closes', async ({ page, context }) => {

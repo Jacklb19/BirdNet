@@ -26,6 +26,7 @@ import { coveredEdges, NOTHING_COVERED, visibleCentreOffset, type CoveredEdges }
 import { NO_WALK_OVERLAY, type WalkOverlay } from './mapWalkLayers';
 import { MAP_OWN_FIT, MAP_SCOPES, MAP_WEBGL_CONTEXT, type MapScope } from './map.config';
 import { ownExtent, ownMap } from './ownMap';
+import { useAccountWalkPaths } from './useAccountWalkPaths';
 import { useLocate } from './useLocate';
 import { useMapResult } from './useMapResult';
 import { WalkPanel } from './WalkPanel';
@@ -49,7 +50,8 @@ function supportsWebGL(): boolean {
 
 /**
  * Full-bleed map with two scopes (ADR-25). "My map" is read from the phone: the songs pinned where they were heard,
- * the paths of the walks and the territories they uncover, live during a walk. "Everyone's" asks the server for the
+ * the paths of the walks and the territories they uncover, live during a walk; with a session, also the walks that
+ * are only in the account. "Everyone's" asks the server for the
  * community's shared songs in the visible area.
  */
 function MapScreen({ initialSpecies }: { readonly initialSpecies: string | null }): React.JSX.Element {
@@ -61,6 +63,7 @@ function MapScreen({ initialSpecies }: { readonly initialSpecies: string | null 
   const { active: listening, walking } = useListening();
   const walk = useWalk();
   const own = useWalkData();
+  const accountWalks = useAccountWalkPaths(token, session?.user.id ?? null, online);
   const isDesktop = useIsDesktop();
   const [map, setMap] = useState<MapLibreMap | null>(null);
   // A species card opens the map already filtered to its species (`#/map?species=…`).
@@ -95,10 +98,14 @@ function MapScreen({ initialSpecies }: { readonly initialSpecies: string | null 
   const shown = enabled ? result : null;
 
   const view = useMemo(
-    () => ownMap(own.pins ?? [], own.walks, { species, walking: walk.walking }),
-    [own.pins, own.walks, species, walk.walking],
+    () => ownMap(own.pins ?? [], own.walks, { species, walking: walk.walking }, accountWalks),
+    [own.pins, own.walks, species, walk.walking, accountWalks],
   );
-  const totals = useMemo(() => walkTotals(own.walks, own.pins ?? []), [own.walks, own.pins]);
+  // Walks and distance count every path drawn, those of the account too; songs are the ones this phone holds.
+  const totals = useMemo(() => {
+    const onPhone = new Set(own.walks.map((stored) => stored.id));
+    return walkTotals([...own.walks, ...accountWalks.filter((path) => !onPhone.has(path.id))], own.pins ?? []);
+  }, [own.walks, own.pins, accountWalks]);
   const overlayData = useMemo<WalkOverlay>(() => (mine ? {
     tracks: walk.walking ? [...view.tracks, walk.track] : view.tracks,
     territories: territoriesOn ? territories(view.result.detections, TERRITORY_HEX_METERS) : [],

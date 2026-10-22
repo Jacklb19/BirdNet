@@ -58,6 +58,17 @@ function BarLink({ link, className, withIcon = false, onChosen }: BarLinkProps):
     : <button type="button" className={className} aria-current={link.current ? 'true' : undefined} onClick={choose}>{content}</button>;
 }
 
+/** Every element of the page beside `inside` and its ancestors that is not inert already: what an open menu covers. */
+function pageOutside(inside: HTMLElement): HTMLElement[] {
+  const outside: HTMLElement[] = [];
+  for (let node: HTMLElement | null = inside; node && node !== document.body; node = node.parentElement) {
+    for (const sibling of Array.from(node.parentElement?.children ?? [])) {
+      if (sibling !== node && sibling instanceof HTMLElement && !sibling.inert) outside.push(sibling);
+    }
+  }
+  return outside;
+}
+
 /**
  * The one bar of Trino (ADR-24, ADR-27): the home page and the app share it at every width, so the site reads as
  * one place. Wide screens write the links out; phones open a menu that drops over the page with the whole site
@@ -68,6 +79,7 @@ export function SiteBar({ links, menu, navLabel, brandHref, onBrand, end }: Site
   const isDesktop = useIsDesktop();
   const [requested, setRequested] = useState(false);
   const toggle = useRef<HTMLButtonElement>(null);
+  const header = useRef<HTMLElement>(null);
   const menuId = useId();
   // Wide screens have no menu: one left open while the window grew is closed, not stranded.
   const open = requested && !isDesktop;
@@ -86,19 +98,23 @@ export function SiteBar({ links, menu, navLabel, brandHref, onBrand, end }: Site
       setRequested(false);
       toggle.current?.focus();
     };
-    // The page behind the menu must not scroll under it.
+    // The page behind the menu must not scroll under it, nor be reached with the keyboard or a screen reader: the menu
+    // covers it (audit F02). Everything outside the bar becomes inert until the menu closes.
     const previous = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    const covered = header.current ? pageOutside(header.current) : [];
+    for (const element of covered) element.inert = true;
     document.addEventListener('keydown', onKey);
     return () => {
       document.body.style.overflow = previous;
+      for (const element of covered) element.inert = false;
       document.removeEventListener('keydown', onKey);
     };
   }, [open]);
 
   const close = (): void => { setRequested(false); };
   return (
-    <header className={`bn-sitebar${scrolled ? ' bn-sitebar--scrolled' : ''}${open ? ' bn-sitebar--open' : ''}`}>
+    <header ref={header} className={`bn-sitebar${scrolled ? ' bn-sitebar--scrolled' : ''}${open ? ' bn-sitebar--open' : ''}`}>
       <div className="bn-sitebar__inner">
         <a className="bn-sitebar__brand" href={brandHref} onClick={() => { close(); onBrand?.(); }}><BrandMark name={dict.app.name} /></a>
         <nav className="bn-sitebar__nav" aria-label={navLabel}>

@@ -1,7 +1,7 @@
 import { useMemo, type Ref } from 'react';
 import { routeHash } from '../../app/routes';
-import { APPROX_CELL_METERS } from '../../config/contract';
-import { formatCount, formatMeters, formatNumber, useI18n } from '../../i18n';
+import { APPROX_CELL_METERS, THREATENED_CELL_METERS } from '../../config/contract';
+import { formatCount, formatDistance, formatMeters, formatNumber, useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
 import { Notice } from '../../shared/ui/Notice';
 import { useNow } from '../../shared/useNow';
@@ -78,6 +78,9 @@ export function MapSheet({ ref, mode, result, updating, failure, expanded, onExp
             </ul>
           )}
           <p className="bn-map-sheet__note">{m.approximate(formatMeters(APPROX_CELL_METERS, locale))}</p>
+          {result?.detections.some((row) => row.generalized_m !== null) && (
+            <p className="bn-map-sheet__note">{m.threatened(formatDistance(THREATENED_CELL_METERS, locale))}</p>
+          )}
           <p className="bn-map-sheet__note">{dict.common.absenceCaveat}</p>
         </>
       )}

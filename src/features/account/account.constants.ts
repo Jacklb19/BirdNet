@@ -1,6 +1,6 @@
 /** Account rules shared by the Supabase client, the account hook and the sign-in form. */
 
-import type { AuthChangeEvent } from '@supabase/supabase-js';
+import type { AuthChangeEvent } from '@supabase/auth-js';
 
 /**
  * Shortest password the form accepts. Keep it at or above "Minimum password length" in the Supabase Auth
@@ -31,7 +31,16 @@ export const AUTH_ERROR_CODES = Object.freeze({
   same_password: 'samePassword',
   over_email_send_rate_limit: 'rateLimited',
   over_request_rate_limit: 'rateLimited',
+  // A code of the authenticator app that is wrong, already used or too old (ADR-39).
+  mfa_verification_failed: 'wrongCode',
+  mfa_challenge_expired: 'wrongCode',
 } as const);
+
+/** Name of the authenticator-app factor in Supabase Auth; the person never sees it. */
+export const AUTHENTICATOR_FACTOR_NAME = 'Trino';
+
+/** Digits of a code of an authenticator app (TOTP, RFC 6238). */
+export const AUTHENTICATOR_CODE_LENGTH = 6;
 
 /** Identity provider of the "Continue with Google" button (Supabase Auth, ADR-21). */
 export const GOOGLE_PROVIDER = 'google';
@@ -45,6 +54,9 @@ export function passwordsMatch(password: string, confirmation: string): boolean 
 }
 
 export type AuthErrorCode = keyof typeof AUTH_ERROR_CODES;
+
+/** Supabase Auth event of a new sign-in (password, Google or a confirmation link). */
+export const SIGNED_IN_EVENT = 'SIGNED_IN' satisfies AuthChangeEvent;
 
 /**
  * Supabase Auth event of an explicit sign-out (or of a session the server revoked). Other events may also carry no

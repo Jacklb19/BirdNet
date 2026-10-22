@@ -14,8 +14,13 @@ export const LOCATION_GRID_DECIMALS = 4;
 
 /** Approximate size of the resulting cell (10^-4 degrees of latitude ≈ 11 m), as explained to people. */
 export const APPROX_CELL_METERS = 10;
+/** Cell in which other people see a threatened species on the shared map (ADR-41); `THREATENED_CELL_METERS` in the API. */
+export const THREATENED_CELL_METERS = 11_000;
 
 export const FIELD_LIMITS = Object.freeze({ speciesName: 200, modelVersion: 200, siteName: 80, alias: 40 });
+
+/** Note and count of individuals per record (ADR-40); `MAX_NOTE_LENGTH` and `MAX_INDIVIDUALS` in the API. */
+export const NOTE_LIMITS = Object.freeze({ noteLength: 500, minIndividuals: 1, maxIndividuals: 999 });
 
 /** Maximum detections per synchronization request. */
 export const SYNC_BATCH_SIZE = 50;

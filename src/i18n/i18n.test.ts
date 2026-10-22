@@ -19,7 +19,7 @@ import {
 } from './formatters';
 import { I18nProvider } from './I18nProvider';
 import { DEFAULT_LOCALE, LOCALES, intlTag } from './locales';
-import { dictionaries } from './messages';
+import { dictionaries } from './allMessages';
 import { useI18n } from './useI18n';
 
 /** Every leaf is a non-empty string, or a function that returns one for sample arguments. */

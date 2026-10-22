@@ -8,6 +8,7 @@ import type { OfflineSettings, StoredDetection } from './types';
 vi.mock('./queueStore');
 // Verdicts and clips are sent after the detections; each has its own tests.
 vi.mock('../review/reviewSync', () => ({ syncReviews: vi.fn(() => Promise.resolve()) }));
+vi.mock('../notes/noteSync', () => ({ syncNotes: vi.fn(() => Promise.resolve()) }));
 vi.mock('../recordings/recordingSync', () => ({ uploadRecordings: vi.fn(() => Promise.resolve()) }));
 const userId = '00000000-0000-4000-8000-000000000001';
 const row: StoredDetection = { id: '00000000-0000-4000-8000-000000000002', species: 'Turdus fuscater', confidence: 0.6, status: 'provisional', recorded_at: '2026-10-06T12:00:00Z', location: { latitude: 4.679, longitude: -74.123 }, model_version: 'birdnet-v2.4:arm', owner: userId, bytes: 300 };

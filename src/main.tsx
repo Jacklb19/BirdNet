@@ -11,11 +11,13 @@ import './styles/fonts.css';
 import './styles/tokens.css';
 import './styles/base.css';
 import { applyInitialTheme } from './theme';
+import { startErrorReports } from './features/monitoring/errorReports';
 import { registerOffline } from './features/offline/offlineClient';
 import App from './App';
 
 // Before the first render, so a dark preference never flashes the light palette.
 applyInitialTheme();
+startErrorReports();
 void registerOffline().catch(() => { document.documentElement.dataset.offlineError = 'true'; });
 
 const rootElement = document.getElementById('root');

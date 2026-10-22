@@ -12,6 +12,11 @@ export interface MapDetection {
   /** The viewer's own detection; only then is its site named (the shared map never reveals other people's sites). */
   own: boolean;
   site_name: string | null;
+  /**
+   * Someone else's detection of a threatened species (ADR-41): the point is the centre of a cell this many metres wide,
+   * not where it was heard. Null on every other row.
+   */
+  generalized_m: number | null;
 }
 export interface MapResult { detections: MapDetection[]; truncated: boolean }
 export interface MapBounds { west: number; south: number; east: number; north: number }
@@ -56,9 +61,10 @@ function isDetection(value: unknown): boolean {
 
 /** An API from before S7 sends neither field: such rows are read as someone else's, which reveals nothing. */
 function toDetection(value: unknown): MapDetection {
-  const row = value as Omit<MapDetection, 'own' | 'site_name'> & { own?: unknown; site_name?: unknown };
+  const row = value as Omit<MapDetection, 'own' | 'site_name' | 'generalized_m'> & { own?: unknown; site_name?: unknown; generalized_m?: unknown };
   const own = row.own === true;
-  return { ...row, own, site_name: own && typeof row.site_name === 'string' ? row.site_name : null };
+  const generalized = typeof row.generalized_m === 'number' && Number.isFinite(row.generalized_m) && row.generalized_m > 0 ? row.generalized_m : null;
+  return { ...row, own, site_name: own && typeof row.site_name === 'string' ? row.site_name : null, generalized_m: own ? null : generalized };
 }
 
 /** The server answered with a body that does not follow the map contract. */

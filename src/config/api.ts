@@ -10,6 +10,8 @@ export const API_ROUTES = {
   detectionsBatch: `${VERSION}/detections/batch`,
   /** Review of one detection (confirm, correct, discard). */
   detection: (detectionId: string): string => `${VERSION}/detections/${encodeURIComponent(detectionId)}`,
+  /** Note and count of individuals of one detection (ADR-40). */
+  detectionNote: (detectionId: string): string => `${VERSION}/detections/${encodeURIComponent(detectionId)}/note`,
   detectionRecordingUrl: (detectionId: string): string => `${VERSION}/detections/${encodeURIComponent(detectionId)}/recording-url`,
   detectionRecording: (detectionId: string): string => `${VERSION}/detections/${encodeURIComponent(detectionId)}/recording`,
   sites: `${VERSION}/sites`,
@@ -18,6 +20,8 @@ export const API_ROUTES = {
   siteReport: (siteId: string): string => `${VERSION}/sites/${encodeURIComponent(siteId)}/report`,
   /** Card of a species written by the language model from public sources (RF-14). */
   speciesCard: (scientificName: string): string => `${VERSION}/species/${encodeURIComponent(scientificName)}/card`,
+  /** Reference recordings of a species from xeno-canto (ADR-42). */
+  speciesSounds: (scientificName: string): string => `${VERSION}/species/${encodeURIComponent(scientificName)}/sounds`,
   export: `${VERSION}/export`,
   me: `${VERSION}/me`,
   meAvatarUrl: `${VERSION}/me/avatar-url`,
@@ -28,6 +32,8 @@ export const API_ROUTES = {
   /** Walks saved in the account (ADR-35): the list, and one walk by the id the phone gave it. */
   walks: `${VERSION}/walks`,
   walk: (walkId: string): string => `${VERSION}/walks/${encodeURIComponent(walkId)}`,
+  /** Paths and song places of the walks, for "Mi mapa" (S11). */
+  walkPaths: `${VERSION}/walks/paths`,
   meWalks: `${VERSION}/me/walks`,
   meSpeciesRecord: (species: string): string => `${VERSION}/me/species/${encodeURIComponent(species)}`,
 } as const;

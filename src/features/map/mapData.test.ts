@@ -4,7 +4,7 @@ import {
   clampBounds, fetchMapDetections, mapFailure, periodStart, speciesOptions, toFeatureCollection, type MapDetection, type MapFailure,
 } from './mapData';
 
-const row: MapDetection = { id: 'a', species: 'Turdus fuscater', confidence: 0.91, status: 'confirmed', recorded_at: '2026-10-06T12:00:00Z', latitude: 4.679, longitude: -74.123, own: false, site_name: null };
+const row: MapDetection = { id: 'a', species: 'Turdus fuscater', confidence: 0.91, status: 'confirmed', recorded_at: '2026-10-06T12:00:00Z', latitude: 4.679, longitude: -74.123, own: false, site_name: null, generalized_m: null };
 
 describe('mapData', () => {
   afterEach(() => { vi.unstubAllGlobals(); });
@@ -46,6 +46,15 @@ describe('mapData', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ detections: [mine, theirs, legacy], truncated: false })));
     const result = await fetchMapDetections({ west: -75, south: 4, east: -74, north: 5 }, { species: null, since: null }, 'token', new AbortController().signal);
     expect(result.detections.map((item) => [item.id, item.own, item.site_name])).toEqual([['mine', true, 'Humedal'], ['theirs', false, null], ['legacy', false, null]]);
+  });
+
+  it('marks threatened species shown in a coarse cell, never the viewer own', async () => {
+    const coarse = { ...row, id: 'coarse', generalized_m: 11000 };
+    const forged = { ...row, id: 'mine', own: true, generalized_m: 11000 };
+    const broken = { ...row, id: 'broken', generalized_m: -1 };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ detections: [coarse, forged, broken], truncated: false })));
+    const result = await fetchMapDetections({ west: -75, south: 4, east: -74, north: 5 }, { species: null, since: null }, 'token', new AbortController().signal);
+    expect(result.detections.map((item) => [item.id, item.generalized_m])).toEqual([['coarse', 11000], ['mine', null], ['broken', null]]);
   });
 
   it('rejects failed or malformed responses', async () => {

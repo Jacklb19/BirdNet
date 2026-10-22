@@ -29,6 +29,10 @@ export const logMessages = defineMessages({
       truncated: 'El archivo llegó al máximo de filas: no incluye todos los registros.',
       error: 'No se pudo preparar el archivo. Inténtalo otra vez.',
       fileStem: 'registros',
+      phoneAction: 'Exportar lo de este teléfono (CSV)',
+      phoneWhat: 'Se arma aquí, sin conexión ni cuenta: todo lo que guarda este teléfono, con tus notas y los descartados con su estado.',
+      phoneDone: (file: string, count: string) => `Listo: ${file} (${count} registros).`,
+      phoneStem: 'telefono',
     },
     sync: {
       waitingOffline: {
@@ -108,8 +112,8 @@ export const logMessages = defineMessages({
       back: 'Volver a la Bitácora',
       explanation: {
         confirmed: {
-          range: (threshold: string) => `El modelo del teléfono está muy seguro (confianza de ${threshold} o más). No hace falta verificarla.`,
-          plain: 'El modelo del teléfono estaba muy seguro al registrarla. No hace falta verificarla.',
+          range: (threshold: string) => `El modelo del teléfono está muy seguro (confianza de ${threshold} o más), pero nadie la ha revisado. Si puedes, escucha la grabación y confírmala.`,
+          plain: 'El modelo del teléfono estaba muy seguro al registrarla, pero nadie la ha revisado. Si puedes, escucha la grabación y confírmala.',
         },
         provisional: {
           range: (low: string, high: string) => `El modelo del teléfono no está del todo seguro (confianza entre ${low} y ${high}). Tómala como probable hasta que la verifiques tú.`,
@@ -132,6 +136,22 @@ export const logMessages = defineMessages({
           discarded: 'La descartaste: ya no cuenta en tu álbum, tus totales ni tu mapa. Sigue aquí por si cambias de opinión.',
         },
       },
+      note: {
+        title: 'Tus notas',
+        privacy: 'Solo tú las ves. Se guardan en este teléfono y, con sesión, en tu cuenta; salen en tu CSV, nunca en el mapa de todos.',
+        individuals: 'Individuos que oíste',
+        notCounted: 'Sin contar',
+        fewer: 'Uno menos',
+        more: 'Uno más',
+        text: 'Nota',
+        placeholder: 'Qué hacía, cómo sonaba, el tiempo que hacía…',
+        remaining: (count: string) => `Quedan ${count} caracteres`,
+        save: 'Guardar la nota',
+        saved: 'Guardada en este teléfono.',
+        savedEverywhere: 'Guardada en este teléfono y en tu cuenta.',
+        rejected: 'Guardada en este teléfono. Tu cuenta no la aceptó porque este registro es de otra cuenta.',
+        saveError: 'No se pudo guardar la nota en el teléfono. Inténtalo de nuevo.',
+      },
       recording: {
         play: (duration: string) => `Escuchar la grabación (${duration})`,
         pause: 'Pausar la grabación',
@@ -145,6 +165,7 @@ export const logMessages = defineMessages({
         when: 'Cuándo',
         where: 'Dónde',
         upload: 'Estado',
+        modelConfidence: (name: string) => `Confianza del modelo en ${name}`,
       },
       when: {
         today: (time: string) => `Hoy, ${time}`,
@@ -164,7 +185,7 @@ export const logMessages = defineMessages({
       uploadReason: {
         needsAccount: 'Se subirá cuando asocies los registros del teléfono a tu cuenta.',
         needsSignIn: 'Se subirá cuando inicies sesión con la cuenta con que se guardó.',
-        noLocation: 'Se registró sin ubicación, por eso no se sube al mapa compartido.',
+        noLocation: 'Se registró sin ubicación: se queda en este teléfono y no sale en ningún mapa.',
       },
       notFound: {
         title: 'Registro no encontrado',
@@ -199,6 +220,10 @@ export const logMessages = defineMessages({
       truncated: 'The file reached the row limit: it does not include every record.',
       error: 'The file could not be prepared. Try again.',
       fileStem: 'records',
+      phoneAction: 'Export what is on this phone (CSV)',
+      phoneWhat: 'Built here, without a connection or an account: everything this phone keeps, with your notes and discarded songs with their state.',
+      phoneDone: (file: string, count: string) => `Done: ${file} (${count} records).`,
+      phoneStem: 'phone',
     },
     sync: {
       waitingOffline: {
@@ -278,8 +303,8 @@ export const logMessages = defineMessages({
       back: 'Back to the log',
       explanation: {
         confirmed: {
-          range: (threshold: string) => `The phone's model is very sure (confidence of ${threshold} or more). It does not need checking.`,
-          plain: "The phone's model was very sure when it was recorded. It does not need checking.",
+          range: (threshold: string) => `The phone's model is very sure (confidence of ${threshold} or more). Nobody has reviewed it yet: if you can, listen to the recording and confirm it.`,
+          plain: "The phone's model was very sure when it was recorded. Nobody has reviewed it yet: if you can, listen to the recording and confirm it.",
         },
         provisional: {
           range: (low: string, high: string) => `The phone's model is not entirely sure (confidence between ${low} and ${high}). Treat it as likely until you verify it yourself.`,
@@ -302,6 +327,22 @@ export const logMessages = defineMessages({
           discarded: 'You discarded it: it no longer counts in your album, your totals or your map. It stays here in case you change your mind.',
         },
       },
+      note: {
+        title: 'Your notes',
+        privacy: 'Only you see them. They are kept on this phone and, when signed in, in your account; they go in your CSV, never on the map of everyone.',
+        individuals: 'Individuals you heard',
+        notCounted: 'Not counted',
+        fewer: 'One fewer',
+        more: 'One more',
+        text: 'Note',
+        placeholder: 'What it was doing, how it sounded, the weather…',
+        remaining: (count: string) => `${count} characters left`,
+        save: 'Save the note',
+        saved: 'Saved on this phone.',
+        savedEverywhere: 'Saved on this phone and in your account.',
+        rejected: 'Saved on this phone. Your account did not take it because this record belongs to another account.',
+        saveError: 'The note could not be saved on the phone. Try again.',
+      },
       recording: {
         play: (duration: string) => `Play the recording (${duration})`,
         pause: 'Pause the recording',
@@ -315,6 +356,7 @@ export const logMessages = defineMessages({
         when: 'When',
         where: 'Where',
         upload: 'Status',
+        modelConfidence: (name: string) => `Model's confidence in ${name}`,
       },
       when: {
         today: (time: string) => `Today, ${time}`,
@@ -334,7 +376,7 @@ export const logMessages = defineMessages({
       uploadReason: {
         needsAccount: 'It will upload once you link this phone’s records to your account.',
         needsSignIn: 'It will upload when you sign in to the account it was saved with.',
-        noLocation: 'It was recorded without a location, so it is not uploaded to the shared map.',
+        noLocation: 'It was recorded without a location: it stays on this phone and appears on no map.',
       },
       notFound: {
         title: 'Record not found',

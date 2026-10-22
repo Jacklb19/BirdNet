@@ -1,6 +1,7 @@
 import { API_ROUTES, apiFetch } from '../../config/api';
 import { JSON_HEADERS } from '../offline/offline.constants';
 import { forgetAccountRecords } from '../offline/queueStore';
+import { deleteAllNotes } from '../notes/noteStore';
 import { deleteAllRecordings } from '../recordings/recordingStore';
 import { deleteAllReviews } from '../review/reviewStore';
 import { deleteWalksOf } from '../walk/walkStore';
@@ -33,4 +34,5 @@ export async function forgetAccountOnPhone(userId: string): Promise<void> {
   await deleteWalksOf(userId);
   await deleteAllRecordings();
   await deleteAllReviews();
+  await deleteAllNotes();
 }

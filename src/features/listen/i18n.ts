@@ -68,7 +68,7 @@ export const listenMessages = defineMessages({
       progress: (received: string, total: string) => `${received} de ${total}`,
       ready: 'Modelo descargado. Ya puedes escuchar, también sin conexión.',
       errorTitle: 'No se pudo preparar el modelo',
-      errorText: 'Comprueba la conexión e inténtalo de nuevo.',
+      errorText: 'La app no terminó de prepararse en este navegador. Comprueba la conexión e inténtalo de nuevo; si sigue igual, recarga la página.',
     },
     errors: {
       audio: {
@@ -215,7 +215,7 @@ export const listenMessages = defineMessages({
       progress: (received: string, total: string) => `${received} of ${total}`,
       ready: 'Model downloaded. You can listen now, offline too.',
       errorTitle: 'The model could not be prepared',
-      errorText: 'Check the connection and try again.',
+      errorText: 'The app did not finish getting ready in this browser. Check the connection and try again; if nothing changes, reload the page.',
     },
     errors: {
       audio: {
