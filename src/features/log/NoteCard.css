@@ -1,0 +1,107 @@
+.bn-log-note {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-l);
+  background: var(--color-bg-surface);
+}
+
+.bn-log-note__title {
+  font-size: var(--text-title);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--leading-title);
+}
+
+.bn-log-note__privacy,
+.bn-log-note__status {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-log-note__privacy .bn-icon,
+.bn-log-note__status .bn-icon {
+  flex: none;
+  margin-block-start: 0.15em;
+}
+
+.bn-log-note__form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.bn-log-note__count {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bn-log-note__label {
+  font-weight: var(--font-weight-semibold);
+}
+
+.bn-log-note__stepper {
+  display: inline-flex;
+  align-items: center;
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.bn-log-note__step {
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+  border: 0;
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--text-title);
+  cursor: pointer;
+}
+
+.bn-log-note__step:hover:not(:disabled) {
+  background: var(--color-brand-soft);
+}
+
+.bn-log-note__step:disabled {
+  color: var(--color-text-secondary);
+  cursor: default;
+}
+
+.bn-log-note__step:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: -2px;
+}
+
+.bn-log-note__value {
+  min-width: 6.5rem;
+  padding-inline: var(--space-2);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-semibold);
+  text-align: center;
+}
+
+.bn-log-note__text {
+  min-height: calc(var(--touch-min) * 2);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-m);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  font: inherit;
+  resize: vertical;
+}
+
+.bn-log-note__remaining {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+}
+
+.bn-log-note .bn-button {
+  justify-self: start;
+}

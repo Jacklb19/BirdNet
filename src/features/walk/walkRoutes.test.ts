@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { HistoryEntry, StoredDetection, StoredWalk } from '../offline/types';
 import { WALK_STALE_MS } from './walk.config';
-import { recordsCsv, walkRecords } from './walkCsv';
+import { ALL_TIME, recordsCsv, walkRecords } from './walkCsv';
 import { escapeXml, walkGpx } from './walkGpx';
 import type { Pin } from './walkPins';
 import { walkEnd, walkSongs } from './walkSummary';
@@ -101,16 +101,23 @@ describe('CSV of a walk', () => {
       [detection('p1', 5), detection('p2', 6, { species: 'Turdus "grande", el negro' }), detection('p3', 90)],
       [synced('h1', 1)],
       new Map([['p2', { action: 'correct', species: 'Turdus serranus' }], ['h1', { action: 'discard', species: null }]]),
-      [{ id: 's1', name: 'Humedal', latitude: 4.6, longitude: -74.1 }],
+      new Map([['p1', { note: '=2+2, dos cantando', individuals: 2 }], ['h1', { note: null, individuals: 1 }]]),
+      [{ id: 's1', name: '-Humedal', latitude: 4.6, longitude: -74.1 }],
       START, START + 60 * MINUTE,
     );
     expect(recordsCsv(records).split('\r\n')).toEqual([
-      'id,species,confidence,status,recorded_at,latitude,longitude,model_version,site,model_species,reviewed_by',
-      'h1,Sturnella magna,0.500,discarded,2026-10-15T12:01:00.000Z,,,,Humedal,,person',
-      'p1,Turdus fuscater,0.813,confirmed,2026-10-15T12:05:00.000Z,4.6789,-74.1234,birdnet-v2.4:int8,,,',
-      'p2,Turdus serranus,0.813,corrected,2026-10-15T12:06:00.000Z,4.6789,-74.1234,birdnet-v2.4:int8,,"Turdus ""grande"", el negro",person',
+      'id,species,confidence,status,recorded_at,latitude,longitude,model_version,site,model_species,reviewed_by,individuals,note',
+      // Text a person wrote never starts as a formula in a spreadsheet.
+      "h1,Sturnella magna,0.500,discarded,2026-10-15T12:01:00.000Z,,,,'-Humedal,,person,1,",
+      'p1,Turdus fuscater,0.813,confirmed,2026-10-15T12:05:00.000Z,4.6789,-74.1234,birdnet-v2.4:int8,,,,2,"\'=2+2, dos cantando"',
+      'p2,Turdus serranus,0.813,corrected,2026-10-15T12:06:00.000Z,4.6789,-74.1234,birdnet-v2.4:int8,,"Turdus ""grande"", el negro",person,,',
       '',
     ]);
+  });
+
+  it('exports every record of the phone when asked for all time', () => {
+    const records = walkRecords([detection('p1', 5), detection('p3', 9000)], [], new Map(), new Map(), [], ALL_TIME.from, ALL_TIME.until);
+    expect(records.map((record) => record.id)).toEqual(['p1', 'p3']);
   });
 });
 

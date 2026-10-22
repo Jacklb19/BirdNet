@@ -5,8 +5,9 @@
 import { saveFile } from '../../shared/download';
 import { scheduleSynchronization } from '../offline/offlineClient';
 import { getSettings, listDetections, listHistory } from '../offline/queueStore';
+import { listNotes } from '../notes/noteStore';
 import { listReviews } from '../review/reviewStore';
-import { CSV_MIME_TYPE, recordsCsv, walkRecords } from './walkCsv';
+import { ALL_TIME, CSV_MIME_TYPE, recordsCsv, walkRecords, type CsvRecord } from './walkCsv';
 import { GPX_MIME_TYPE, walkGpx, type GpxWaypoint } from './walkGpx';
 import { deleteAccountWalk, exportAccountCsv, renameAccountWalk } from './walksApi';
 import { deleteWalk, updateWalk } from './walkStore';
@@ -61,6 +62,24 @@ export function downloadGpx(walk: WalkDetailView, title: string, describe: (plac
   return fileName;
 }
 
+/** The records this phone keeps between two instants (epoch milliseconds), with their verdicts and notes. */
+async function phoneRecords(from: number, until: number): Promise<CsvRecord[]> {
+  const [pending, history, reviews, notes, settings] = await Promise.all([listDetections(), listHistory(), listReviews(), listNotes(), getSettings()]);
+  const verdicts = new Map(reviews.map((review) => [review.id, review]));
+  const written = new Map(notes.map((note) => [note.id, note]));
+  return walkRecords(pending, history, verdicts, written, settings.sites ?? [], from, until);
+}
+
+/**
+ * Saves the CSV of every record kept on this phone, built here: the export of a person without an account, with the
+ * same columns as the account's. Resolves how many records it holds.
+ */
+export async function downloadPhoneCsv(fileName: string): Promise<number> {
+  const records = await phoneRecords(ALL_TIME.from, ALL_TIME.until);
+  saveFile(new Blob([recordsCsv(records)], { type: CSV_MIME_TYPE }), fileName);
+  return records.length;
+}
+
 /**
  * Saves the CSV of a walk's records: built on the phone when the walk is here, otherwise asked of the account.
  * Resolves with the file name and whether the account cut the file at its row limit.
@@ -68,9 +87,7 @@ export function downloadGpx(walk: WalkDetailView, title: string, describe: (plac
 export async function downloadCsv(walk: WalkDetailView, title: string, token: string | null, now: number): Promise<{ fileName: string; truncated: boolean }> {
   const fileName = walkFileName(title, walk.startedAt, 'csv');
   if (walk.local) {
-    const [pending, history, reviews, settings] = await Promise.all([listDetections(), listHistory(), listReviews(), getSettings()]);
-    const verdicts = new Map(reviews.map((review) => [review.id, review]));
-    const records = walkRecords(pending, history, verdicts, settings.sites ?? [], walk.startedAt, walk.endedAt ?? now);
+    const records = await phoneRecords(walk.startedAt, walk.endedAt ?? now);
     saveFile(new Blob([recordsCsv(records)], { type: CSV_MIME_TYPE }), fileName);
     return { fileName, truncated: false };
   }

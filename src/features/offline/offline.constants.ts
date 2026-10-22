@@ -117,7 +117,7 @@ export const QUEUE_CHANGED_CHANNEL = 'birdnet-queue-changed';
  * sync session, cached sites), the walks, the recordings or the reviews (each kept in its own database, announced
  * on the same channel). Views re-read only the part they show.
  */
-export const QUEUE_CHANGE_PARTS = Object.freeze(['records', 'settings', 'walks', 'recordings', 'reviews'] as const);
+export const QUEUE_CHANGE_PARTS = Object.freeze(['records', 'settings', 'walks', 'recordings', 'reviews', 'notes'] as const);
 
 export type QueueChangePart = (typeof QUEUE_CHANGE_PARTS)[number];
 

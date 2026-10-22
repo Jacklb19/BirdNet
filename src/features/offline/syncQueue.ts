@@ -3,6 +3,7 @@ import { SYNC_BATCH_SIZE } from '../../config/contract';
 import { acknowledgedIds, sharesMap } from './queuePolicy';
 import { acknowledge, getSettings, listDetections } from './queueStore';
 import { JSON_HEADERS, SYNC_LOCK_NAME } from './offline.constants';
+import { syncNotes } from '../notes/noteSync';
 import { uploadRecordings } from '../recordings/recordingSync';
 import { syncReviews } from '../review/reviewSync';
 import { uploadWalks } from '../walk/walkSync';
@@ -45,6 +46,7 @@ export async function synchronizeQueue(): Promise<void> {
     }
     // After the detections, so a verdict or a clip is sent only once the server has its detection.
     await syncReviews(session.userId);
+    await syncNotes(session.userId);
     await uploadRecordings(session.userId);
     // A walk only needs its own path; its songs are counted from the detections whenever it is read.
     await uploadWalks(session.userId);

@@ -3,6 +3,7 @@ import { useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
 import { Icon } from '../../shared/ui/Icon';
 import { Page } from '../../shared/ui/Page';
+import { useNotes } from '../notes/useNotes';
 import { useLocalRecording } from '../recordings/useRecordings';
 import { commonName, useSpeciesNames } from '../species/speciesNames';
 import { SpeciesPlate } from '../species/SpeciesPlate';
@@ -12,6 +13,7 @@ import { DetectionStatusCard } from './DetectionStatusCard';
 import { formatConfidence, formatDayTime } from './logFormat';
 import { displayStatus, type LogRecord } from './logRecords';
 import { RecordingCard } from './RecordingCard';
+import { NoteCard } from './NoteCard';
 import { ReviewCard } from './ReviewCard';
 import './DetectionDetail.css';
 
@@ -27,8 +29,9 @@ export function DetectionDetail({ record, online, now }: DetectionDetailProps): 
   const names = useSpeciesNames();
   const { sites } = useSites();
   const recording = useLocalRecording(record.id);
+  const notes = useNotes();
   const name = commonName(names, record.species, locale);
-  const notes = [
+  const facts = [
     { label: dict.common.confidence, value: formatConfidence(record.confidence, locale) },
     { label: dict.log.detail.facts.upload, value: dict.common.status[displayStatus(record)] },
     { label: dict.log.detail.facts.when, value: formatDayTime(record.recordedAt, now, locale) },
@@ -39,7 +42,7 @@ export function DetectionDetail({ record, online, now }: DetectionDetailProps): 
         <Icon name="back" size="s" />
         <span>{dict.log.detail.back}</span>
       </a>
-      <SpeciesPlate scientificName={record.species} name={name} headingLevel={1} notes={notes}
+      <SpeciesPlate scientificName={record.species} name={name} headingLevel={1} notes={facts}
         eyebrow={<><Icon name="log" size="s" />{dict.log.title}</>}>
         <Button variant="primary" icon="book" href={routeHash({ name: 'species', species: record.species })}>{dict.log.openSpecies}</Button>
       </SpeciesPlate>
@@ -47,6 +50,8 @@ export function DetectionDetail({ record, online, now }: DetectionDetailProps): 
       {/* Keyed by the audio, so playback state and a past failure never carry over to another one. */}
       {recording && <RecordingCard key={recording.url} detectionId={record.id} recording={recording} online={online} />}
       <ReviewCard record={record} />
+      {/* Keyed by the record and its stored note: a half-typed note never moves to another record, and one saved elsewhere shows. */}
+      {notes && <NoteCard key={`${record.id}:${notes.get(record.id)?.writtenAt ?? ''}`} detectionId={record.id} stored={notes.get(record.id) ?? null} />}
       <DetectionFacts record={record} sites={sites} online={online} now={now} />
     </Page>
   );

@@ -17,6 +17,9 @@ export const APPROX_CELL_METERS = 10;
 
 export const FIELD_LIMITS = Object.freeze({ speciesName: 200, modelVersion: 200, siteName: 80, alias: 40 });
 
+/** Note and count of individuals per record (ADR-40); `MAX_NOTE_LENGTH` and `MAX_INDIVIDUALS` in the API. */
+export const NOTE_LIMITS = Object.freeze({ noteLength: 500, minIndividuals: 1, maxIndividuals: 999 });
+
 /** Maximum detections per synchronization request. */
 export const SYNC_BATCH_SIZE = 50;
 
