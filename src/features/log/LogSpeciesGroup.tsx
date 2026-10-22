@@ -37,7 +37,9 @@ export function LogSpeciesGroup({ group, name }: LogSpeciesGroupProps): React.JS
     return (
       <SpeciesRow href={routeHash({ name: 'detection', id: only.id })} scientificName={group.species} name={name}
         status={dict.common.status[displayStatus(only)]} tone={toneOf(only)}
-        detail={[formatTime(only.recordedAt, locale), formatConfidence(only.confidence, locale)].join(dict.common.separator)} />
+        detail={only.modelSpecies === null
+          ? [formatTime(only.recordedAt, locale), formatConfidence(only.confidence, locale)].join(dict.common.separator)
+          : formatTime(only.recordedAt, locale)} />
     );
   }
 
@@ -50,7 +52,9 @@ export function LogSpeciesGroup({ group, name }: LogSpeciesGroupProps): React.JS
         <SpeciesPhoto scientificName={group.species} alt="" />
         <span className="bn-log-group__names">
           <span className={named ? 'bn-log-group__name' : 'bn-log-group__name scientific'}>{name}</span>
-          <span className="bn-log-group__detail">{[hours, t.best(formatConfidence(group.bestConfidence, locale))].join(dict.common.separator)}</span>
+          <span className="bn-log-group__detail">
+            {group.bestConfidence === null ? hours : [hours, t.best(formatConfidence(group.bestConfidence, locale))].join(dict.common.separator)}
+          </span>
           {(group.toVerify > 0 || group.notUploaded > 0) && (
             <span className="bn-log-group__flags">
               {group.toVerify > 0 && <span className="bn-log-group__flag bn-log-group__flag--verify">{formatCount(t.toVerify, group.toVerify, locale)}</span>}
@@ -67,7 +71,8 @@ export function LogSpeciesGroup({ group, name }: LogSpeciesGroupProps): React.JS
             <a className="bn-log-group__record" href={routeHash({ name: 'detection', id: record.id })}>
               <span className="bn-log-group__time">{formatTime(record.recordedAt, locale)}</span>
               <span className={`bn-log-group__status bn-log-group__status--${displayStatus(record)}`}>{dict.common.status[displayStatus(record)]}</span>
-              <span className="bn-log-group__confidence">{formatConfidence(record.confidence, locale)}</span>
+              {/* A correction's confidence is the model's for another species: the detail says so, the list leaves it out. */}
+              <span className="bn-log-group__confidence">{record.modelSpecies === null ? formatConfidence(record.confidence, locale) : ''}</span>
               <Icon name="chevron" size="s" />
             </a>
           </li>

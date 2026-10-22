@@ -170,11 +170,17 @@ export interface SpeciesGroup {
   /** Epoch milliseconds of the earliest and of the latest record. */
   readonly firstAt: number;
   readonly lastAt: number;
-  readonly bestConfidence: number;
+  /**
+   * Best confidence the model gave this species; null when every record is a person's correction, whose confidence
+   * belongs to the species the model had said (audit F05).
+   */
+  readonly bestConfidence: number | null;
   /** Records still waiting for verification, and records not in the cloud yet: counted so folding never hides them. */
   readonly toVerify: number;
   readonly notUploaded: number;
 }
+
+const bestOf = (values: readonly number[]): number | null => (values.length ? Math.max(...values) : null);
 
 /** A day's records by species, the species heard most recently first; `records` must already be newest first. */
 export function groupBySpecies(records: readonly LogRecord[]): SpeciesGroup[] {
@@ -189,7 +195,7 @@ export function groupBySpecies(records: readonly LogRecord[]): SpeciesGroup[] {
     records: group,
     firstAt: Math.min(...group.map((record) => record.recordedAt)),
     lastAt: Math.max(...group.map((record) => record.recordedAt)),
-    bestConfidence: Math.max(...group.map((record) => record.confidence)),
+    bestConfidence: bestOf(group.filter((record) => record.modelSpecies === null).map((record) => record.confidence)),
     toVerify: group.filter((record) => matchesFilter(record, 'toVerify')).length,
     notUploaded: group.filter((record) => matchesFilter(record, 'notUploaded')).length,
   }));

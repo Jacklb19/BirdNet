@@ -32,7 +32,9 @@ export function DetectionDetail({ record, online, now }: DetectionDetailProps): 
   const notes = useNotes();
   const name = commonName(names, record.species, locale);
   const facts = [
-    { label: dict.common.confidence, value: formatConfidence(record.confidence, locale) },
+    // After a correction the confidence is the model's, for the species it had said (audit F05).
+    { label: record.modelSpecies ? dict.log.detail.facts.modelConfidence(commonName(names, record.modelSpecies, locale)) : dict.common.confidence,
+      value: formatConfidence(record.confidence, locale) },
     { label: dict.log.detail.facts.upload, value: dict.common.status[displayStatus(record)] },
     { label: dict.log.detail.facts.when, value: formatDayTime(record.recordedAt, now, locale) },
   ];

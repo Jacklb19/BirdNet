@@ -112,8 +112,8 @@ export const logMessages = defineMessages({
       back: 'Volver a la Bitácora',
       explanation: {
         confirmed: {
-          range: (threshold: string) => `El modelo del teléfono está muy seguro (confianza de ${threshold} o más). No hace falta verificarla.`,
-          plain: 'El modelo del teléfono estaba muy seguro al registrarla. No hace falta verificarla.',
+          range: (threshold: string) => `El modelo del teléfono está muy seguro (confianza de ${threshold} o más), pero nadie la ha revisado. Si puedes, escucha la grabación y confírmala.`,
+          plain: 'El modelo del teléfono estaba muy seguro al registrarla, pero nadie la ha revisado. Si puedes, escucha la grabación y confírmala.',
         },
         provisional: {
           range: (low: string, high: string) => `El modelo del teléfono no está del todo seguro (confianza entre ${low} y ${high}). Tómala como probable hasta que la verifiques tú.`,
@@ -165,6 +165,7 @@ export const logMessages = defineMessages({
         when: 'Cuándo',
         where: 'Dónde',
         upload: 'Estado',
+        modelConfidence: (name: string) => `Confianza del modelo en ${name}`,
       },
       when: {
         today: (time: string) => `Hoy, ${time}`,
@@ -302,8 +303,8 @@ export const logMessages = defineMessages({
       back: 'Back to the log',
       explanation: {
         confirmed: {
-          range: (threshold: string) => `The phone's model is very sure (confidence of ${threshold} or more). It does not need checking.`,
-          plain: "The phone's model was very sure when it was recorded. It does not need checking.",
+          range: (threshold: string) => `The phone's model is very sure (confidence of ${threshold} or more). Nobody has reviewed it yet: if you can, listen to the recording and confirm it.`,
+          plain: "The phone's model was very sure when it was recorded. Nobody has reviewed it yet: if you can, listen to the recording and confirm it.",
         },
         provisional: {
           range: (low: string, high: string) => `The phone's model is not entirely sure (confidence between ${low} and ${high}). Treat it as likely until you verify it yourself.`,
@@ -355,6 +356,7 @@ export const logMessages = defineMessages({
         when: 'When',
         where: 'Where',
         upload: 'Status',
+        modelConfidence: (name: string) => `Model's confidence in ${name}`,
       },
       when: {
         today: (time: string) => `Today, ${time}`,
