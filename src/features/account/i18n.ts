@@ -77,18 +77,19 @@ export const accountMessages = defineMessages({
       unavailable: 'Tus totales en la nube se ven con conexión.',
     },
     sync: {
-      synced: 'Todo sincronizado',
-      justNow: 'Hace un momento',
+      // Everything here speaks of this phone: the same account may hold records sent from another one (audit F06).
+      synced: 'Nada pendiente en este teléfono',
+      justNow: 'Última subida desde este teléfono: hace un momento',
       minutesAgo: {
-        one: (minutes: string) => `Hace ${minutes} minuto`,
-        other: (minutes: string) => `Hace ${minutes} minutos`,
+        one: (minutes: string) => `Última subida desde este teléfono: hace ${minutes} minuto`,
+        other: (minutes: string) => `Última subida desde este teléfono: hace ${minutes} minutos`,
       },
       hoursAgo: {
-        one: (hours: string) => `Hace ${hours} hora`,
-        other: (hours: string) => `Hace ${hours} horas`,
+        one: (hours: string) => `Última subida desde este teléfono: hace ${hours} hora`,
+        other: (hours: string) => `Última subida desde este teléfono: hace ${hours} horas`,
       },
-      since: (date: string) => `Última vez: ${date}`,
-      nothingYet: 'Aún no hay cantos subidos.',
+      since: (date: string) => `Última subida desde este teléfono: ${date}`,
+      nothingYet: 'Este teléfono todavía no ha subido cantos a tu cuenta.',
       waitingConnection: {
         one: (count: string) => `${count} canto espera conexión`,
         other: (count: string) => `${count} cantos esperan conexión`,
@@ -270,18 +271,18 @@ export const accountMessages = defineMessages({
       unavailable: 'Your cloud totals show when you are online.',
     },
     sync: {
-      synced: 'Everything synced',
-      justNow: 'A moment ago',
+      synced: 'Nothing pending on this phone',
+      justNow: 'Last upload from this phone: a moment ago',
       minutesAgo: {
-        one: (minutes: string) => `${minutes} minute ago`,
-        other: (minutes: string) => `${minutes} minutes ago`,
+        one: (minutes: string) => `Last upload from this phone: ${minutes} minute ago`,
+        other: (minutes: string) => `Last upload from this phone: ${minutes} minutes ago`,
       },
       hoursAgo: {
-        one: (hours: string) => `${hours} hour ago`,
-        other: (hours: string) => `${hours} hours ago`,
+        one: (hours: string) => `Last upload from this phone: ${hours} hour ago`,
+        other: (hours: string) => `Last upload from this phone: ${hours} hours ago`,
       },
-      since: (date: string) => `Last time: ${date}`,
-      nothingYet: 'No songs uploaded yet.',
+      since: (date: string) => `Last upload from this phone: ${date}`,
+      nothingYet: 'This phone has not uploaded songs to your account yet.',
       waitingConnection: {
         one: (count: string) => `${count} song waiting for a connection`,
         other: (count: string) => `${count} songs waiting for a connection`,
