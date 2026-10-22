@@ -101,6 +101,7 @@ export const listenMessages = defineMessages({
       },
       regionOff: 'Sin filtro por zona',
     },
+    tooSlowForTwo: 'Este teléfono no alcanzó a escuchar con los dos modelos a la vez y se perdían fragmentos de audio. Desde la próxima escucha usará solo BirdNET v2.4; puedes volver a elegir en Ajustes → Opciones técnicas.',
     noLocation: {
       title: 'Tus aves aún no tienen lugar en el mapa',
       text: (distance: string) => `Con la ubicación activada cada canto queda en el punto donde lo oíste, redondeado a unos ${distance}. Sin ella se guarda en el teléfono y puedes asignarle un lugar después en la Bitácora.`,
@@ -247,6 +248,7 @@ export const listenMessages = defineMessages({
       },
       regionOff: 'No area filter',
     },
+    tooSlowForTwo: 'This phone could not keep up with both models listening together and audio was being lost. From the next session it will use BirdNET v2.4 alone; you can choose again in Settings → Technical options.',
     noLocation: {
       title: 'Your birds have no place on the map yet',
       text: (distance: string) => `With location on, each song stays where you heard it, rounded to about ${distance}. Without it the song is kept on the phone and you can assign it a place later in the Log.`,

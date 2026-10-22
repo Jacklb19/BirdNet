@@ -63,3 +63,12 @@ export function isDetectionStatus(value: unknown): value is DetectionStatus {
 
 /** Hours in the per-hour activity series returned by the statistics endpoint. */
 export const HOURS_PER_DAY = 24;
+
+/**
+ * Common names a site report may use (ADR-37), as COMMON_NAME_PATTERN and MAX_COMMON_NAME_LENGTH in the API's domain.py:
+ * letters, spaces and the punctuation bird names use. A name outside it is left out and the report uses the scientific one.
+ */
+export const REPORT_NAME_PATTERN = /^[\p{L}][\p{L} '\-.,()]*$/u;
+export const REPORT_NAME_MAX_LENGTH = 80;
+/** Names sent with one report: the species of the period and those not heard in it (MAX_REPORT_NAMES in the API). */
+export const REPORT_MAX_NAMES = 50;

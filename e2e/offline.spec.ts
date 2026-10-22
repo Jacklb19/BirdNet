@@ -138,6 +138,34 @@ test('fragments left by the removed doubtful-audio upload are deleted and their 
   expect(after.detections - before.detections).toBe(1);
 });
 
+test('deleting an account forgets its records on the phone and keeps those of another account', async ({ page }) => {
+  await ready(page);
+  const other = '00000000-0000-4000-8000-0000000000ff';
+  const foreign = await page.evaluate(async (owner) => {
+    const kept = await window.offlineChecks.seedForeign(owner);
+    // Records of the account, records that had none, and a walk without owner: all of them go.
+    await window.offlineChecks.seed(1);
+    await window.offlineChecks.bind(false);
+    await window.offlineChecks.seed(2);
+    await window.offlineChecks.seedWalk();
+    await window.offlineChecks.updateSettings({ saveWalks: true, shareMap: true });
+    return kept;
+  }, other);
+  const owner = (await page.evaluate(() => window.offlineChecks.getSettings())).session?.userId;
+  expect(owner).toBeTruthy();
+  await page.evaluate((userId) => window.offlineChecks.forgetAccountOnPhone(userId), owner ?? '');
+  const left = await page.evaluate(async () => ({
+    records: (await window.offlineChecks.listDetections()).map((row) => ({ id: row.id, owner: row.owner })),
+    walks: (await window.offlineChecks.listWalks()).length,
+    settings: await window.offlineChecks.getSettings(),
+  }));
+  expect(left.records).toEqual([{ id: foreign, owner: other }]);
+  expect(left.walks).toBe(0);
+  expect(left.settings.session).toBeNull();
+  expect(left.settings.saveWalks).toBeUndefined();
+  expect(left.settings.shareMap).toBeUndefined();
+});
+
 test('unassociated records and records without location stay local', async ({ page }) => {
   await ready(page);
   await page.evaluate(async () => {
@@ -172,7 +200,7 @@ test('real model survives closing, identifies recorded audio offline and detects
   expect(await reopened.evaluate(() => window.offlineChecks.cachedModel())).toBeNull();
 });
 
-test('the preview model installs on request, listens offline when chosen and frees its space when removed', async ({ context, page }) => {
+test('the preview model arrives by itself after the first, both listen by default, and removing it is a lasting choice', async ({ context, page }) => {
   const detection = texts.settings.detection;
   // The queue is read in the order of its random identifiers, so what a listen stored is told apart by what was there before.
   const versions = async (target: Page): Promise<Map<string, string>> =>
@@ -180,10 +208,10 @@ test('the preview model installs on request, listens offline when chosen and fre
   await ready(page, routeHash({ name: 'settings' }));
   await page.locator('details').evaluate((group: HTMLDetailsElement) => { group.open = true; });
   await expect(page.getByRole('button', { name: texts.settings.model.checkUpdate })).toBeVisible({ timeout: MODEL_DOWNLOAD_TIMEOUT_MS });
-  // Until it is on the device it cannot be chosen.
-  await expect(page.getByRole('radio', { name: detection.models.preview.label })).toBeDisabled();
-  await page.getByRole('button', { name: detection.second.download }).click();
+  // Once the first model is in, the second downloads in the background without being asked (ADR-36), and both listen.
   await expect(page.getByRole('button', { name: detection.second.remove })).toBeVisible({ timeout: MODEL_DOWNLOAD_TIMEOUT_MS });
+  await expect(page.getByRole('radio', { name: detection.models.combined.label })).toBeChecked();
+  expect((await page.evaluate(() => window.offlineChecks.getSettings())).detectionModel).toBeUndefined();
   await page.getByText(detection.models.preview.label).click();
   await expect(page.getByRole('radio', { name: detection.models.preview.label })).toBeChecked();
   await page.evaluate(() => window.offlineChecks.loadReference());
@@ -199,6 +227,8 @@ test('the preview model installs on request, listens offline when chosen and fre
   await reopened.locator('details').evaluate((group: HTMLDetailsElement) => { group.open = true; });
   await reopened.getByRole('button', { name: detection.second.remove }).click();
   await expect.poll(() => reopened.evaluate(() => window.offlineChecks.cachedAlternate())).toBeNull();
+  // Removing it chose the first model, so a later visit does not download it again by itself.
+  expect((await reopened.evaluate(() => window.offlineChecks.getSettings())).detectionModel).toBe('standard');
   // The choice that needed it falls back to the model every installation has.
   expect(await reopened.evaluate(() => window.offlineChecks.inferReference())).toContain('Turdus fuscater');
   const afterRemoval = [...await versions(reopened)].filter(([id]) => !withPreview.has(id)).map(([, version]) => version);

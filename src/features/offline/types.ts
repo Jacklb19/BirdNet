@@ -76,8 +76,10 @@ export interface OfflineSettings {
   saveRecordings?: boolean;
   /** The person's answer to "also save my walks in my account" (ADR-35); nothing is uploaded until it is yes. */
   saveWalks?: boolean;
-  /** Which acoustic model listens (ADR-31); absent means the one every installation has. */
+  /** Which acoustic model listens (ADR-31); absent means the default, both models averaged (ADR-36). */
   detectionModel?: DetectionModel;
+  /** Set when this phone could not keep up with both models listening by default; it then listens with the first. */
+  tooSlowForTwo?: boolean;
   /** Whether a doubtful call must be heard twice (ADR-30); absent means it must. */
   detectionStyle?: DetectionStyle;
   /** Last site list fetched online, so a site can be chosen while offline. */

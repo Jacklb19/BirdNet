@@ -9,6 +9,7 @@ import { offlineOperation } from '../../features/offline/offlineClient';
 import { DATABASE_NAME, MODEL_CACHE_NAME, MODEL_RESOURCE_EXTENSIONS, OFFLINE_OPERATIONS, STORES } from '../../features/offline/offline.constants';
 import type { PersistenceContext, SyncSession } from '../../features/offline/types';
 import { listWalks, saveWalk } from '../../features/walk/walkStore';
+import { forgetAccountOnPhone } from '../../features/account/accountDeletion';
 import referenceRecordings from '../../../public/test-audio/metadata.json';
 
 /** Public path of the reference recordings and of their metadata.json, both written by scripts/prepare-model.py. */
@@ -81,6 +82,15 @@ async function leaveLegacyFragment(): Promise<void> {
     return transaction.objectStore(STORES.detections).put({ ...record, audioId, metadataSynced: true });
   });
 }
+/** A record another account left waiting on this phone (a shared phone): deleting one account must not touch it. */
+async function seedForeign(owner: string): Promise<string> {
+  await seed(1);
+  const records = await listDetections();
+  const record = records.find((row) => !row.owner) ?? records.at(-1);
+  if (!record) throw new Error('Seeding failed.');
+  await inQueue('readwrite', (transaction) => transaction.objectStore(STORES.detections).put({ ...record, owner }));
+  return record.id;
+}
 async function loadReference(): Promise<void> {
   const cache = await caches.open(REFERENCE_CACHE_NAME);
   await cache.add(referenceRecording().url);
@@ -109,6 +119,7 @@ async function inferReference(): Promise<string[]> {
 }
 const checks = {
   seed, seedWindow, queueStats, listDetections, updateSettings, getSettings, loadReference, inferReference, leaveLegacyFragment, seedWalk, listWalks,
+  seedForeign, forgetAccountOnPhone,
   legacyFragments: (): Promise<number> => inQueue('readonly', (transaction) => transaction.objectStore(STORES.audio).count()),
   synchronizeQueue: async (): Promise<void> => { await offlineOperation(OFFLINE_OPERATIONS.sync); },
   bind: async (claimUnowned = true): Promise<void> => {

@@ -174,7 +174,7 @@ La regla vive en `recordingLocation` y `unlocatedAssignment` (`queuePolicy.ts`),
 - **Ficha de especie** (`#/species/<nombre científico>`, primera fase de RF-14 sin modelo de lenguaje): foto, resumen de Wikipedia (API REST, en el idioma de la interfaz o en inglés si no existe) con su fuente y licencia CC BY-SA, y lo que la persona registró: cuándo (reloj de 24 horas), dónde (sitios) y sus registros con confianza y estado (RNF-09). Con cuenta y conexión usa el registro de la nube (`GET /v1/me/species/{especie}`); si no, el del teléfono. Se abre desde Escuchar, la Bitácora, el álbum, el mapa y los sitios.
 - **Álbum** (`#/log/album`): una calcomanía por especie registrada (teléfono y nube unidos) y, como espacios por llenar, las especies probables de la zona según el modelo geográfico (ADR-18).
 - **Guía regional**: lo que se ve se guarda solo (el Service Worker conserva fotos y resúmenes); un único botón opcional guarda la foto y el resumen de las especies más probables de la zona para usarlas sin conexión, con su tamaño a la vista.
-- Las fichas que redacta el modelo de lenguaje (RF-14 completo) quedan para un sprint posterior; el texto de Wikipedia nunca se presenta como generado.
+- Las fichas que redacta el modelo de lenguaje (RF-14 completo) quedan para un sprint posterior; el texto de Wikipedia nunca se presenta como generado. *Completado por ADR-37.*
 
 ---
 
@@ -326,7 +326,7 @@ Hasta S8 solo las detecciones dudosas conservaban su audio, y solo hasta subirse
 - El fragmento WAV de las detecciones dudosas (RF-07) sigue aparte: es la entrada exacta del modelo y es lo que usará la verificación en la nube.
 
 ### Consecuencias
-Migración `20261011000000_recordings_and_review.sql`; se aplica antes de desplegar la API, y la API antes que la web. La política de privacidad y los textos de la portada, Escuchar y Ajustes dejan de decir que el audio nunca sale del teléfono. Un clip reemplazado dentro del mismo canto después de haberse subido deja en la cuenta también el anterior. Si se borra la cuenta, sus objetos de Storage no se borran solos (no hay flujo de borrado de cuenta todavía).
+Migración `20261011000000_recordings_and_review.sql`; se aplica antes de desplegar la API, y la API antes que la web. La política de privacidad y los textos de la portada, Escuchar y Ajustes dejan de decir que el audio nunca sale del teléfono. Un clip reemplazado dentro del mismo canto después de haberse subido deja en la cuenta también el anterior. Si se borra la cuenta, sus objetos de Storage no se borran solos (no hay flujo de borrado de cuenta todavía). *ADR-38 añade el borrado de la cuenta, que borra también sus objetos.*
 
 ---
 
@@ -377,7 +377,7 @@ El dueño pidió acercar la detección a la de Merlin tanto como fuera realista 
 - **«Modelo que escucha»**: BirdNET v2.4 (por defecto), BirdNET+ V3 o los dos juntos. Con los dos, la confianza de una especie es el promedio de las dos; un modelo que no la oyó o no la conoce cuenta como cero. Es la combinación que se midió: en WABAD encontró 614 presencias frente a 413 del v2.4 con las mismas inventadas. Una elección que necesita el segundo modelo vuelve sola al primero mientras no esté en el teléfono.
 - **«Cuándo anotar un canto»**: Cuidadosa (la regla del ADR-30, por defecto) o Amplia (cada ventana decide sola).
 - Cada detección guarda con qué modelo se hizo; la de dos modelos lleva los dos identificadores.
-- **El modelo por defecto no cambia.** Cambiarlo sigue siendo decisión del dueño, con números.
+- **El modelo por defecto no cambia.** Cambiarlo sigue siendo decisión del dueño, con números. *Modificado por ADR-36: por defecto escuchan los dos juntos.*
 
 ### Consecuencias
 - La descarga inicial baja de 54,9 a 52,4 MB. Quien ya tenía la app descarga una vez el modelo y el filtro nuevos (52,4 MB), porque un filtro distinto es otra instalación.
@@ -400,8 +400,8 @@ RF-09 pedía verificar en la nube las detecciones de confianza intermedia con un
 
 ### Consecuencias
 - La base local no cambia de versión (subirla rompe al Service Worker de la versión anterior durante una actualización): el almacén de fragmentos queda en el esquema sin usarse, y la app borra lo que hubiera en él la primera vez que abre la cola. Los registros que esperaban su fragmento se sincronizan como cualquier otro.
-- En la base de datos quedan sin uso la columna `ruta_audio` y la tabla `verification_jobs`; no se escribe una migración para quitarlas. El bucket de fragmentos dudosos y la variable `SUPABASE_AUDIO_BUCKET` se pueden borrar a mano.
-- La API sigue enviando `has_audio`, siempre falso, en el registro de una especie: las versiones de la app instaladas antes de este cambio descartan los registros que no lo traen.
+- En la base de datos quedan sin uso la columna `ruta_audio` y la tabla `verification_jobs`; no se escribe una migración para quitarlas. *Las quita ADR-38.* El bucket de fragmentos dudosos y la variable `SUPABASE_AUDIO_BUCKET` se pueden borrar a mano.
+- La API sigue enviando `has_audio`, siempre falso, en el registro de una especie: las versiones de la app instaladas antes de este cambio descartan los registros que no lo traen. *ADR-38 lo retira.*
 - Si más adelante existe un modelo que sí verifique mejor, RF-09 se puede retomar; las grabaciones confirmadas por las personas (ADR-28 y ADR-29) son además los datos que haría falta para entrenar un clasificador propio, que sigue sin autorizarse.
 
 ---
@@ -461,3 +461,70 @@ Hasta S9 una caminata vivía solo en el teléfono (ADR-25): se perdía al cambia
 ### Consecuencias
 Migración `20261015000000_walks.sql`; se aplica antes de desplegar la API, y la API antes que la web. La política de privacidad, la portada y el mapa dejan de decir que el recorrido nunca sale del teléfono. «Mi mapa» sigue dibujando solo las caminatas del teléfono; las que solo están en la cuenta se ven en su página. Con el tope, una cuenta llena ocupa menos de 20 MB de los 500 MB de la base del plan gratuito.
 
+---
+
+## ADR-36. Por defecto escuchan los dos modelos juntos, con el segundo descargado en segundo plano y vuelta sola al primero en un teléfono lento (Sprint 11, modifica ADR-31)
+
+### Contexto
+El dueño delegó la elección del modelo por defecto (2026-10-21) y pidió «el mejor», con los números de `docs/evaluacion.md`. En WABAD, el único conjunto que el v2.4 no pudo ver al entrenarse, el v2.4 deja sin detectar tres de cada cuatro presencias anotadas (413 de 1.619). El V3 solo encuentra más del doble (987), pero inventa seis veces más (657 frente a 104). Promediar los dos encuentra 614 con las mismas inventadas (109) y 89 % de precisión; en los cafetales, donde gana el v2.4, el promedio queda igual que el v2.4 (53 / 32 en 7 h; 115 / 73 en 13 h). Ninguna opción empeora a la otra en ninguno de los dos conjuntos.
+
+Antes de cambiarlo se midió el tiempo por ventana con el Worker real de la app en Chrome, un hilo de WASM, en el PC de desarrollo (Ryzen 7 8845HS), 22 ventanas por configuración: v2.4 solo, mediana 72 ms (p90 77); V3 solo, 322 ms (p90 375); los dos, 403 ms (p90 462). La simulación de CPU lenta del navegador no frena al Worker, así que no sirve para estimar un teléfono. Un teléfono de gama media suele ser de 3 a 5 veces más lento en un hilo: los dos juntos quedarían entre 1,2 y 2 s por ventana, en el límite de RNF-01 (menos de 1,5 s) y del ritmo de una ventana cada 1,5 s.
+
+### Decisión
+- **Por defecto, «Los dos juntos»** (`DEFAULT_DETECTION_MODEL = 'combined'`), solo para quien nunca eligió un modelo. Quien eligió uno en Opciones técnicas lo conserva.
+- **Mientras el V3 no esté en el teléfono escucha el v2.4**, como ya hacía `modelInUse`.
+- **El V3 se descarga solo, en segundo plano**, cuando el primer modelo ya está instalado y lo que escucha lo usaría: con Background Fetch donde existe y, si no, con la descarga reanudable (ADR-34). No empieza si el navegador indica ahorro de datos, red móvil o una conexión 2G, ni si no hay espacio para el doble de su tamaño (los tramos ocupan lo mismo mientras se verifica). En iPhone y Firefox el tipo de red no se conoce y la descarga empieza como la del primer modelo. Se intenta una vez por visita: si falla, no se repite a espaldas de la persona. Ajustes la muestra y deja quitar el modelo.
+- **Vuelta sola al v2.4 en un teléfono lento** (`pace.ts`): con los dos por defecto, la sesión mide cada ventana. Si tras 20 ventanas la mediana de las 8 últimas pasa de 1 s, o la contrapresión descartó más del 20 % de las ventanas, se guarda `tooSlowForTwo` y desde la siguiente escucha el teléfono usa el v2.4 solo. Escuchar y Ajustes lo dicen. El cambio no se aplica en mitad de la sesión, para no recargar el modelo mientras se escucha. Una elección explícita de la persona no se toca.
+
+### Consecuencias
+- Una instalación nueva descarga 52,4 MB y, después y en segundo plano, 80,6 MB más (133 MB en el teléfono). Con 5 GB de egreso al mes, Supabase Free alcanza para unas 37 instalaciones completas al mes; para una demostración basta, y el dueño debe vigilarlo en el panel de uso si crece.
+- Las detecciones hechas con los dos llevan los dos identificadores de modelo (ADR-31). Un ave que solo conoce uno necesita que ese esté muy seguro (0,90 para guardarse).
+- Sin medir en un teléfono: el tiempo por ventana real, la batería con los dos modelos (RNF-04) y si la vuelta automática se activa demasiado pronto o demasiado tarde. Lo confirmaría o cambiaría la comparación en campo pendiente.
+
+---
+
+## ADR-37. Fichas e informes redactados por Gemini a partir de datos ya calculados (Sprint 11, RF-14 y RF-15; completa ADR-17)
+
+### Contexto
+La especificación prevé un modelo de lenguaje que redacte fichas divulgativas (RF-14) e informes del sitio (RF-15), sin recibir audio, sin identificar especies y sin inferir tendencias: solo redacta cifras calculadas de forma determinista. El dueño eligió Gemini si tenía un plan gratuito sin tarjeta que sirviera, con Groq como respaldo (2026-10-21), y que los informes se escriban solo cuando la persona los pide.
+
+Verificado en la documentación oficial de Google el 2026-10-21 (páginas actualizadas el 15 y el 19 de octubre):
+- El nivel gratuito solo pide un proyecto activo; la facturación empieza en el nivel 1.
+- `gemini-3.5-flash-lite` es estable, gratuito y el recomendado para mucho volumen con poca espera.
+- Los límites (peticiones por minuto y por día) ya no se publican en la documentación: se ven en AI Studio para cada proyecto, cuentan por proyecto y el diario se reinicia a medianoche del Pacífico.
+- En el plan gratuito Google usa lo enviado para mejorar sus productos, y revisores humanos pueden leerlo; los términos piden no enviar datos personales.
+- El plan gratuito no puede servir a usuarios del EEE, el Reino Unido ni Suiza.
+
+El dueño aceptó esas condiciones a cambio de no pagar, siempre que no salga nada que identifique a la persona.
+
+### Decisión
+- **Gemini por REST** (`models.generateContent`, respuesta JSON `{"paragraphs": [...]}`) con `httpx`, sin dependencias nuevas. Modelo en `GEMINI_MODEL` (por defecto `gemini-3.5-flash-lite`); la clave, `GEMINI_API_KEY`, solo en las variables de la API. Un texto cortado, bloqueado o con más de 4 párrafos se rechaza.
+- **Fichas (RF-14).** El teléfono solo nombra la especie. La API la acepta si es un nombre científico (`Género especie`) que GBIF conoce exactamente como especie de ave, y reúne ella misma la clasificación y la categoría de la Lista Roja (GBIF) y el resumen de Wikipedia (en el idioma pedido o en inglés). Al modelo solo le llegan esos datos públicos, con la instrucción de no añadir nada que no esté en ellos. Las fichas son compartidas (`species_cards`, una por especie e idioma): la primera persona que la pide gasta un texto de su día y las demás leen la guardada. Se escribe de nuevo a los 180 días o si cambian el modelo o la versión de las instrucciones; hasta entonces se muestra marcada como desactualizada. Leerlas no pide cuenta; escribirlas, sí. En la Guía van en un bloque aparte, «En pocas palabras», rotulado «Redactada por un modelo de lenguaje», con sus fuentes, licencias y fecha; el resumen de Wikipedia sigue igual y nunca se presenta como generado. El teléfono guarda la ficha leída para verla sin conexión (`trino-written-cards-v1`).
+- **Informes del sitio (RF-15)**, solo cuando la persona pulsa «Redactar el informe»; nada programado. Las cifras salen de las estadísticas que ya existen (`SiteRepository.stats`), y la API calcula también lo que el texto podría querer decir: diferencia con el periodo anterior, hora de más cantos, especies nuevas y especies no detectadas en el periodo. Al modelo le llegan solo esas cifras y los nombres comunes que muestra la app (validados como nombres); nunca el nombre del lugar, coordenadas ni datos de la persona. Un texto que escribe un número que no está en las cifras se rechaza (se intenta dos veces). Las instrucciones prohíben presentar una especie no detectada como ausente, explicar causas o dar consejos, y la tarjeta muestra siempre la frase fija «no escuchar un ave no significa que se haya ido». Se guarda el último informe de cada lugar, periodo e idioma (`site_reports`, privado, con las cifras de las que salió); pedirlo de nuevo con las mismas cifras devuelve el guardado sin llamar al modelo, y si cambiaron se marca y se ofrece redactarlo de nuevo. Sin cantos en el periodo no se pide nada al modelo.
+- **Topes**: 10 textos nuevos por persona y día (`LLM_USER_DAILY_QUOTA`) y 200 en total (`LLM_DAILY_QUOTA`, por debajo de lo que muestre AI Studio), en `llm_usage`, contados antes de llamar al modelo y devueltos si no respondió. Pasado el tope se responde 429. Solo la API escribe estas tres tablas, con su propia conexión; sus políticas RLS solo dejan leer.
+
+### Consecuencias
+- Migración `20261021000000_language_model_texts.sql`; se aplica antes de desplegar la API, y la API antes que la web.
+- La comprobación de cifras no ve los números escritos en letras; las instrucciones piden escribirlos con dígitos.
+- Dos personas que piden a la vez la misma ficha nueva pueden escribirla las dos (queda la última); cuesta como mucho un texto más.
+- Una petición puede tardar hasta unos 45 s (fuentes públicas y dos intentos del modelo), dentro de los 60 s de la función.
+- No se probó contra Gemini real: el cliente se probó con respuestas simuladas según la documentación. Lo comprueba el dueño con la clave.
+- La política de privacidad y los créditos dicen qué recibe Gemini y que en el plan gratuito Google puede usarlo.
+
+---
+
+## ADR-38. Borrado completo de la cuenta y limpieza de la base (Sprint 11, completa ADR-28 y ADR-32)
+
+### Contexto
+Hasta S10, borrar una cuenta exigía escribir al responsable, y los objetos de Storage no se borraban solos (ADR-28). Desde ADR-32 quedaban sin uso la tabla `verification_jobs` y la columna `detections.ruta_audio`, y la API seguía enviando `has_audio`, siempre falso, para las versiones de la app anteriores al retiro de los fragmentos.
+
+### Decisión
+- **`DELETE /v1/me`** con `{"confirmation": "DELETE"}`. La API borra primero los objetos de la persona en Storage (su carpeta en `avatars` y en `recordings`, listada por páginas y borrada de mil en mil, también las subidas que nunca se enlazaron; Supabase no deja borrar un usuario que aún tiene objetos) y después el usuario de Supabase Auth. Esto último arrastra, por `on delete cascade`, el perfil y todo lo que cuelga de él: detecciones (también las del mapa de todos), lugares, caminatas, informes y uso del modelo. Si falla Storage no se toca nada más; repetir la petición es seguro.
+- **En el teléfono**, solo después de esa respuesta, se borran los registros de esa cuenta y los que no tenían dueño (cualquier cuenta que entrara los reclamaría), el historial, los clips, las revisiones, las caminatas de esa cuenta o sin dueño, la sesión, los lugares guardados y las respuestas sobre qué guardar en la cuenta y qué compartir. Los registros de otra cuenta que esperan en el mismo teléfono se conservan. También se conservan los modelos descargados, las fotos y fichas (datos públicos), el tema y el idioma. Si algo del teléfono no se pudo borrar, la pantalla lo dice y explica cómo borrarlo desde el navegador.
+- **Qué ve la persona**: en Cuenta, «Borrar mi cuenta» abre la lista de lo que se borra en la cuenta, lo que se borra en el teléfono y lo que se conserva, con el aviso de que no se puede deshacer. El botón solo se habilita al escribir «BORRAR» («DELETE» en inglés) y con conexión. Al terminar, la sesión se cierra y Cuenta muestra «Tu cuenta y todo lo que guardaba se borraron». La política de privacidad explica el procedimiento.
+- **Limpieza de la base**: la migración `20261021000100_drop_cloud_verification.sql` quita `verification_jobs` (con su trigger, índices y políticas) y `detections.ruta_audio`. La API deja de enviar `has_audio`: la app la ignora desde S9, y ADR-33 hace que una instalación anterior reciba la versión nueva al abrirse.
+
+### Consecuencias
+- Orden: migración de ADR-37, API, web y, después de desplegar la API, esta migración de limpieza. Ningún código desplegado nombra ya esa tabla ni esa columna.
+- Tras borrar el usuario, su sesión sigue siendo válida hasta que caduca el token (una hora como mucho). Nada útil se puede hacer con ella: el perfil ya no existe y la app cierra la sesión del navegador.
+- Sin probar contra el Supabase real: el borrado en Storage y en Auth se probó con respuestas simuladas, y la cascada contra PostgreSQL local.

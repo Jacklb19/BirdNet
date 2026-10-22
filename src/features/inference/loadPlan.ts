@@ -10,6 +10,8 @@ import { formatCombinedVersion, formatModelVersion, resolveManifestResource } fr
 export interface DetectionChoices {
   readonly detectionModel?: DetectionModel;
   readonly detectionStyle?: DetectionStyle;
+  /** This phone could not keep up with two models when they listened by default (ADR-36). */
+  readonly tooSlowForTwo?: boolean;
 }
 
 export interface LoadPlan {
@@ -37,7 +39,7 @@ export function planLoad(
     modelUrls: alternate.model_files.map(resolve), labelsUrl: resolve(alternate.labels_file),
     sampleRate: alternate.sample_rate, windowSamples: alternate.window_samples, geoModelUrl: resolve(alternate.geo_model_file),
   };
-  const use = modelInUse(choices.detectionModel, Boolean(preview));
+  const use = modelInUse(choices.detectionModel, Boolean(preview), choices.tooSlowForTwo);
   const plan = (models: readonly ModelSource[], modelSizeBytes: number, modelVersion: string, expectedClasses: number | null): LoadPlan => ({
     request: {
       type: INFERENCE_WORKER_MESSAGES.loadModel, models,

@@ -5,6 +5,7 @@ import { useAccountContext } from '../features/account/accountContext';
 import { useListening } from '../features/listen/listeningContext';
 import { leavePocketMode, usePocketMode } from '../features/listen/pocketMode';
 import { PocketScreen } from '../features/listen/PocketScreen';
+import { useAutomaticAlternate } from '../features/offline/automaticAlternate';
 import { enableAutomaticModel } from '../features/offline/modelStore';
 import { useAppUpdate } from '../features/offline/useAppUpdate';
 import { Button } from '../shared/ui/Button';
@@ -49,6 +50,8 @@ export function AppShell(): React.JSX.Element {
     if (inApp) writePreference('welcomed', true);
     if (inApp || readPreferences().welcomed === true) enableAutomaticModel();
   }, [inApp]);
+  // And, once it is installed, the second model that listens with it by default comes in the background (ADR-36).
+  useAutomaticAlternate(inApp || readPreferences().welcomed === true, dict.settings.detection.second.progressLabel);
 
   // Someone with a session who opens the bare address comes to use the app, not to read about it. The home page
   // stays one link away, and its own address (`#/home`) is never redirected.

@@ -10,6 +10,8 @@ export interface ListeningContextValue {
   readonly captureState: UseAudioCaptureReturn['state'];
   readonly modelStatus: UseAudioCaptureReturn['modelStatus'];
   readonly sessionError: UseAudioCaptureReturn['sessionError'];
+  /** The phone fell behind with both models this session; the next one listens with the first alone (ADR-36). */
+  readonly tooSlowForTwo: boolean;
   /** Species the geographic model considers likely here this week; null when the place is unknown (nothing filtered). */
   readonly regionSpecies: number | null;
   /** Species heard in this session, current singers first. */

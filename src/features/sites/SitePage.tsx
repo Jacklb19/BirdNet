@@ -13,6 +13,7 @@ import { useAccountContext } from '../account/accountContext';
 import { useOnline } from '../offline/useQueueStatus';
 import { MissingSpecies } from './MissingSpecies';
 import { SiteChorusCard } from './SiteChorusCard';
+import { SiteReportCard } from './SiteReportCard';
 import { SitesAccessState } from './SitesAccessState';
 import { SiteSpeciesList } from './SiteSpeciesList';
 import { SiteStatsRow } from './SiteStatsRow';
@@ -111,6 +112,7 @@ export default function SitePage({ id }: { readonly id: string }): React.JSX.Ele
             <SiteStatsRow stats={stats} period={period} />
             <SiteSpeciesList key={period} stats={stats} period={period} />
             {stats.missing.length > 0 && <MissingSpecies missing={stats.missing} period={period} />}
+            {token && <SiteReportCard key={period} siteId={id} period={period} stats={stats} token={token} online={online} />}
             {/* A permanent caveat, so it is not live: it would be read out on every period change. */}
             <Notice tone="caution">{stats.since === null ? dict.common.absenceCaveat : t.absence(span)}</Notice>
           </div>

@@ -47,7 +47,7 @@ export default function ListenPage(): React.JSX.Element {
   const { settings, update } = useOfflineSettings();
   const [locationFailed, setLocationFailed] = useState(false);
   const isDesktop = useIsDesktop();
-  const { species, active, startedAt, sessionError, regionSpecies } = session;
+  const { species, active, startedAt, sessionError, regionSpecies, tooSlowForTwo } = session;
   const phase = sessionPhase(session);
   const siteName = sites.active?.name ?? null;
   const count = formatCount(t.list.count, species.length, locale);
@@ -83,6 +83,7 @@ export default function ListenPage(): React.JSX.Element {
       <ShareChoiceCard />
       {sessionError !== null && showsSessionError(sessionError, model.state) && <SessionErrorNotice error={sessionError} />}
       <ModelNotice model={model} active={active} />
+      {tooSlowForTwo && <Notice tone="info" live>{t.tooSlowForTwo}</Notice>}
       {zone === 'none' && sites.ready && (
         <Notice tone="caution" icon="sites" title={t.noLocation.title}
           action={<Button variant="quiet" onClick={() => { void update({ locationEnabled: true }).then((saved) => { setLocationFailed(!saved); }); }}>{t.noLocation.action}</Button>}>

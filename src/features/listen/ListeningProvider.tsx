@@ -18,7 +18,7 @@ export function ListeningProvider({ children }: { readonly children: ReactNode }
   }, []);
 
   const {
-    state: captureState, modelStatus, sessionError, regionSpecies, startListening, stopListening,
+    state: captureState, modelStatus, sessionError, tooSlowForTwo, regionSpecies, startListening, stopListening,
     rmsLevel, peakLevel, latestSpectrogram, sampleRate, windowCount, droppedWindows, spectrogramLatencyMs, inferenceLatencyMs, endToEndLatencyMs,
   } = useAudioCapture({ onWindowAnalysed });
 
@@ -41,6 +41,7 @@ export function ListeningProvider({ children }: { readonly children: ReactNode }
     captureState,
     modelStatus,
     sessionError,
+    tooSlowForTwo,
     regionSpecies,
     species,
     singing: active ? species.find((row) => row.singingNow) ?? null : null,
@@ -49,7 +50,7 @@ export function ListeningProvider({ children }: { readonly children: ReactNode }
     walking: active && mode === 'walk',
     start,
     stop,
-  }), [captureState, modelStatus, sessionError, regionSpecies, species, active, mode, startedAt, start, stop]);
+  }), [captureState, modelStatus, sessionError, tooSlowForTwo, regionSpecies, species, active, mode, startedAt, start, stop]);
 
   const signal = useMemo<ListeningSignalValue>(() => ({
     rmsLevel, peakLevel, latestSpectrogram, sampleRate, windowCount, droppedWindows, spectrogramLatencyMs, inferenceLatencyMs, endToEndLatencyMs,

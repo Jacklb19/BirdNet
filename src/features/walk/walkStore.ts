@@ -105,3 +105,12 @@ export async function forgetAccountCopies(): Promise<void> {
   });
   announceQueueChange(['walks']);
 }
+
+/** After the account was deleted (ADR-38): its walks and those without an owner; another account's stay. */
+export async function deleteWalksOf(userId: string): Promise<void> {
+  await transact('readwrite', async (store) => {
+    const all = await request(store.getAll() as IDBRequest<StoredWalk[]>);
+    for (const walk of all) if (!walk.owner || walk.owner === userId) await request(store.delete(walk.id));
+  });
+  announceQueueChange(['walks']);
+}

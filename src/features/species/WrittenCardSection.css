@@ -1,0 +1,49 @@
+/* The written card reads like a note pinned to the guide: set apart from the Wikipedia summary so nobody takes one for the other. */
+.bn-written-card {
+  border: 2px dashed var(--color-border-subtle);
+  box-shadow: none;
+}
+
+.bn-written-card__badge,
+.bn-written-card__writing {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  justify-self: start;
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+}
+
+.bn-written-card__badge {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+}
+
+.bn-written-card__writing {
+  color: var(--color-text-secondary);
+}
+
+.bn-written-card__writing .bn-icon {
+  animation: bn-written-card-pulse 1.4s ease-in-out infinite;
+}
+
+.bn-written-card__text {
+  display: grid;
+  gap: var(--space-3);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+}
+
+.bn-written-card .bn-species-page__muted a {
+  overflow-wrap: anywhere;
+}
+
+@keyframes bn-written-card-pulse {
+  50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bn-written-card__writing .bn-icon { animation: none; }
+}

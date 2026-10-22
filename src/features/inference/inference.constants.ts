@@ -53,3 +53,10 @@ export const MODEL_LABEL_SEPARATOR = '_';
 
 /** Line separator of the model labels file (one label per line). */
 export const MODEL_LABELS_LINE_SEPARATOR = '\n';
+
+/**
+ * When two models listening by default are too slow for this phone (ADR-36, `pace.ts`). A window arrives every 1.5 s;
+ * a median above 1 s leaves too little room for the rest of the pipeline, and losing more than a fifth of the windows
+ * to back-pressure costs more songs than the second model finds. Twenty windows are half a minute of listening.
+ */
+export const PACE_LIMITS = Object.freeze({ minWindows: 20, recentWindows: 8, maxMedianMs: 1000, maxDroppedShare: 0.2 });
