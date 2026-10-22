@@ -43,7 +43,29 @@ export function AppShell(): React.JSX.Element {
   const pocket = usePocketMode() && active;
   useEffect(() => { if (!active) leavePocketMode(); }, [active]);
   const inApp = route.name !== 'home';
-  useDocumentMetadata(dict.app.documentTitle, dict.app.description);
+  useDocumentMetadata(route.name === 'home' ? dict.app.documentTitle : dict.app.pageTitle(dict.app.screens[route.name]), dict.app.description);
+
+  // A new screen takes the focus to its heading, so the keyboard and screen readers start there instead of in the
+  // bar (audit F08). Not on the first screen of a visit, nor when only the query of the same screen changes.
+  const screenKey = 'id' in route ? `${route.name}:${route.id}` : route.name;
+  const firstScreen = useRef(true);
+  useEffect(() => {
+    if (firstScreen.current) { firstScreen.current = false; return; }
+    const main = document.getElementById('main');
+    if (!main) return;
+    let frames = 0;
+    let request = 0;
+    // The section's code may still be arriving: look for its heading for a moment, then settle for the main region.
+    const focus = (): void => {
+      const heading = main.querySelector<HTMLElement>('h1');
+      if (!heading && frames++ < 60) { request = requestAnimationFrame(focus); return; }
+      const target = heading ?? main;
+      if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+      target.focus({ preventScroll: true });
+    };
+    request = requestAnimationFrame(focus);
+    return () => { cancelAnimationFrame(request); };
+  }, [screenKey]);
 
   // Once the person has opened the app, the model keeps itself installed and up to date without asking (ADR-19).
   useEffect(() => {

@@ -30,6 +30,12 @@ export const appMessages = defineMessages({
     reload: 'Recargar',
     // Names the background download of the second model in the browser's download list (ADR-36).
     secondModelDownload: 'Descarga de BirdNET+ V3',
+    // Title of the browser tab on each screen (audit F08); the home page keeps documentTitle.
+    pageTitle: (screen: string) => `${screen} · Trino`,
+    screens: {
+      listen: 'Escuchar', log: 'Bitácora', detection: 'Registro', map: 'Mapa', sites: 'Lugares', site: 'Lugar', species: 'Ficha de especie',
+      account: 'Cuenta', settings: 'Ajustes', album: 'Guía', walks: 'Caminatas', walk: 'Caminata',
+    },
   },
   en: {
     name: 'Trino',
@@ -58,5 +64,10 @@ export const appMessages = defineMessages({
     update: { text: 'There is a new version of Trino.', listening: 'There is a new version of Trino. Updating stops listening.', action: 'Update' },
     reload: 'Reload',
     secondModelDownload: 'BirdNET+ V3 download',
+    pageTitle: (screen: string) => `${screen} · Trino`,
+    screens: {
+      listen: 'Listen', log: 'Log', detection: 'Record', map: 'Map', sites: 'Places', site: 'Place', species: 'Species card',
+      account: 'Account', settings: 'Settings', album: 'Guide', walks: 'Walks', walk: 'Walk',
+    },
   },
 });
