@@ -528,3 +528,77 @@ Hasta S10, borrar una cuenta exigía escribir al responsable, y los objetos de S
 - Orden: migración de ADR-37, API, web y, después de desplegar la API, esta migración de limpieza. Ningún código desplegado nombra ya esa tabla ni esa columna.
 - Tras borrar el usuario, su sesión sigue siendo válida hasta que caduca el token (una hora como mucho). Nada útil se puede hacer con ella: el perfil ya no existe y la app cierra la sesión del navegador.
 - Sin probar contra el Supabase real: el borrado en Storage y en Auth se probó con respuestas simuladas, y la cascada contra PostgreSQL local.
+
+---
+
+## ADR-39. Verificación en dos pasos con una app autenticadora (Sprint 11, completa ADR-21)
+
+### Contexto
+ADR-21 dejó pendiente la verificación en dos pasos. El dueño la pidió en S11-B con Supabase Auth y una sola app autenticadora por cuenta. Verificado en la documentación oficial (2026-10-22): el TOTP es gratuito y viene activo en todos los proyectos; lo que se paga aparte es el MFA por teléfono. Entrar con contraseña o con Google da una sesión `aal1`; tras el código, `aal2`. Al quitar el factor, el nivel baja cuando se renueva la sesión. Supabase no da códigos de recuperación en el plan usado (son experimentales).
+
+### Decisión
+- **Cuenta → «Verificación en dos pasos»**: activar muestra el QR y la clave para copiarla, y pide el primer código; desactivar pide un código vigente, aunque la sesión ya lo haya dado. Un intento de activación sin terminar se borra al empezar otro.
+- **Al entrar** (contraseña, Google o enlace de recuperación), una cuenta con el factor ve «Escribe el código de tu app autenticadora». Hasta darlo, la app la trata como sin sesión: la sincronización espera y nada de la cuenta se pide.
+- **La API rechaza con 403** cualquier sesión `aal1` de una cuenta con factor verificado, también el borrado de la cuenta (`birdnet_api/auth.py`). Pasa el nivel de la sesión a las claims de cada transacción.
+- **La base lo exige también** con políticas RLS restrictivas en todas las tablas con datos de una persona (migración `20261022000000_second_factor.sql`), para quien llegue a PostgREST con la clave pública y una sesión que se quedó en la contraseña.
+- **Pérdida de la app**: la persona escribe al responsable desde el correo de la cuenta, que quita el factor en el panel de Supabase.
+- La app ahora carga solo Supabase Auth (`@supabase/auth-js` 2.117.2, el mismo código que ya traía `supabase-js`), aparte de la primera pantalla y con la misma clave de sesión guardada.
+
+### Consecuencias
+La migración se aplica **antes** de desplegar la API: la API nueva consulta `private.has_second_factor` en cada sesión `aal1`. Una consulta más por petición para quien no tiene el segundo paso. Sin probar con Supabase real ni con Google.
+
+---
+
+## ADR-40. Notas y conteo de individuos por registro (Sprint 11)
+
+### Decisión
+- En el detalle de un registro, «Tus notas»: número de individuos (vacío = sin contar, de 1 a 999, con botones de más y menos) y una nota de hasta 500 caracteres.
+- Se guardan primero en el teléfono, en su propia base (`trino-notes-v1`), y se suben después de la detección con `PUT /v1/detections/{id}/note`, que lleva la nota completa: repetirla no cambia nada. Con los dos campos vacíos la nota se borra.
+- En la nube van en una **tabla aparte**, `detection_notes`, que solo lee su dueño (migración `20261022000100_detection_notes.sql`). Como columnas de `detections` cualquiera las habría leído en las filas compartidas del mapa.
+- Salen al final de los dos CSV (`individuals`, `note`). En los CSV, el texto escrito por una persona que empieza como una fórmula (`= + - @`) se escribe con un apóstrofo delante.
+- Nunca van al mapa de todos ni al modelo de lenguaje.
+- Sin cuenta, la Bitácora exporta todo lo que guarda el teléfono con las mismas columnas.
+
+---
+
+## ADR-41. Especies amenazadas en una celda gruesa en el mapa de todos (Sprint 11, completa ADR-22)
+
+### Contexto
+La tabla de seguridad de la especificación pide que las especies amenazadas puedan ocultarse del mapa público. Con la celda de ~10 m (ADR-22), un registro compartido podría señalar el árbol de un nido. El dueño eligió mostrarlas en una celda de ~11 km en lugar de ocultarlas.
+
+### Decisión
+- Para cualquiera que no sea su autor, las detecciones de especies **VU, EN, CR o EW** de la Lista Roja global de la UICN se muestran en el centro de su celda de 0,1° (unos 11 km). El área visible se compara con ese centro, no con el punto real, para que acercar el mapa no revele la celda fina. Las propias se ven siempre a ~10 m. La respuesta lo marca con `generalized_m` y la interfaz lo dice.
+- La lista sale de GBIF con `backend/scripts/build_threatened_species.py` (categoría global de cada etiqueta de los dos modelos; la búsqueda de GBIF por amenaza mezcla listas rojas nacionales y no se usa) y se guarda en `birdnet_api/threatened_species.json`: 631 especies (407 VU, 166 EN, 57 CR, 1 EW) el 2026-10-22; 205 etiquetas sin coincidencia exacta en GBIF. Datos de la UICN en GBIF, CC BY 4.0.
+
+### Consecuencias
+La lista se regenera a mano cuando cambien las etiquetas o la Lista Roja. Una especie de las 205 sin coincidencia no se protege.
+
+---
+
+## ADR-42. Cantos de referencia de xeno-canto (Sprint 11, amplía RF-14)
+
+### Contexto
+Verificado el 2026-10-22: la API v3 de xeno-canto pide una clave de una cuenta con correo verificado y que no se publique; cada grabación tiene su licencia Creative Commons (BY-NC-ND, BY-NC-SA, BY-SA…) y sus condiciones piden mostrar siempre quién la grabó, la licencia y el número XC. Las especies restringidas llegan sin archivo ni lugar. El audio se sirve desde `xeno-canto.org` con `Access-Control-Allow-Origin: *` y sin peticiones por rangos; sus sonogramas no traen CORS.
+
+### Decisión
+- `GET /v1/species/{nombre}/sounds` (sin cuenta): la API pregunta a xeno-canto con la clave (`XENO_CANTO_API_KEY`) por grabaciones de calidad A o B de menos de 60 s y devuelve hasta tres, con grabador, licencia, enlace y número; nunca el lugar. La CDN de Vercel guarda la respuesta 7 días.
+- En la ficha, «Cómo canta»: el audio se descarga de xeno-canto solo al pulsar y se dibuja su forma de onda en el teléfono. El texto dice que son grabaciones de otras personas y que xeno-canto ve que se pidieron. Una especie restringida lo dice. Nada se guarda en la app.
+- Trino es un proyecto sin ánimo de lucro: las licencias NC lo permiten. Si fuera comercial habría que filtrar por licencia.
+
+---
+
+## ADR-43. Errores en producción con Sentry, sin datos personales (Sprint 11)
+
+### Contexto
+En Vercel Hobby los registros de la API se guardan una hora (documentación oficial, 2026-10-22). El dueño eligió Sentry en su plan gratuito (5.000 errores al mes, 30 días).
+
+### Decisión
+- **API** (`sentry-sdk` 2.71.0) y **web** (`@sentry/browser` 11.5.0; se usó el paquete base en lugar de `@sentry/react` porque basta y pesa menos), solo si existen `SENTRY_DSN` y `VITE_SENTRY_DSN`.
+- Sin usuario, IP, migas de pan, cookies, cabeceras, cuerpos, parámetros de consulta (el área del mapa es un lugar) ni identificadores en direcciones y mensajes; sin variables locales en las trazas de la API. La web carga el SDK aparte de la primera pantalla.
+- El dueño activa en el proyecto de Sentry «Prevent storing IP addresses».
+
+---
+
+## Paquete principal de la web (Sprint 11)
+
+Medido con los sourcemaps del build: `app` pasó de 602,6 kB (177,3 kB gzip) a 311,6 kB (100,4 kB gzip). Dos cambios: la app carga solo Supabase Auth (ADR-39) y los textos de las secciones viajan en su propio archivo (96 kB, 29 kB gzip), pedido al arrancar en paralelo con la primera sección; el armazón solo usa los suyos. Lo que queda es sobre todo react-dom (202 kB).
