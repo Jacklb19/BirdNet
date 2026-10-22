@@ -3,7 +3,7 @@
  * "my map" works offline and without an account. Plain functions over stored rows.
  */
 import type { QueuedDetectionStatus } from '../offline/offline.constants';
-import type { HistoryEntry, StoredDetection, StoredWalk } from '../offline/types';
+import type { HistoryEntry, StoredDetection, StoredWalk, TrackPoint } from '../offline/types';
 import { trackMeters } from './walkGeometry';
 
 export interface Pin {
@@ -56,7 +56,7 @@ export interface WalkTotals {
 }
 
 /** What the person has covered so far: paths walked and everything heard with a place. */
-export function walkTotals(walks: readonly Pick<StoredWalk, 'track'>[], pins: readonly Pin[]): WalkTotals {
+export function walkTotals(walks: readonly { readonly track: readonly TrackPoint[] }[], pins: readonly Pin[]): WalkTotals {
   return {
     walks: walks.length,
     meters: walks.reduce((total, walk) => total + trackMeters(walk.track), 0),

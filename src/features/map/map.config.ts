@@ -128,3 +128,9 @@ export const MAP_TOKENS = Object.freeze({
   trackWidth: '--map-track-width',
   territoryOpacity: '--map-territory-opacity',
 } as const);
+
+/**
+ * Newest walks of the account "Mi mapa" draws besides those on the phone (S11): as many as the phone itself keeps
+ * (`WALKS_KEPT_MAX`), read in pages because each one carries its whole path.
+ */
+export const MAP_ACCOUNT_WALKS = 60;

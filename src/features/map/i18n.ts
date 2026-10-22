@@ -73,6 +73,7 @@ export const mapMessages = defineMessages({
       emptyHint: 'Aleja el mapa o elige un periodo más largo.',
       truncated: (shown: string) => `Se muestran los ${shown} cantos más recientes y puede haber más. Acerca el mapa o elige un periodo más corto para verlos todos.`,
       approximate: (distance: string) => `Las ubicaciones son aproximadas: celdas de unos ${distance}.`,
+      threatened: (distance: string) => `Las especies amenazadas de otras personas se muestran en el centro de una zona de unos ${distance}, para no señalar dónde viven.`,
       error: 'No se pudo cargar el mapa compartido.',
       serverError: 'El servidor no pudo atender la consulta. Inténtalo de nuevo en un momento.',
       unavailableTitle: 'El mapa compartido no está disponible en esta versión',
@@ -92,6 +93,7 @@ export const mapMessages = defineMessages({
     popup: {
       detail: (status: string, confidence: string) => `${status} · confianza ${confidence}`,
       approximate: (distance: string) => `Ubicación aproximada (celda de unos ${distance})`,
+      threatened: (distance: string) => `Especie amenazada: se muestra en el centro de una zona de unos ${distance}, no donde se oyó.`,
       own: 'Tu registro',
       ownAt: (site: string) => `Tu registro · ${site}`,
       card: 'Ver la ficha de la especie',
@@ -166,6 +168,7 @@ export const mapMessages = defineMessages({
       emptyHint: 'Zoom out or choose a longer period.',
       truncated: (shown: string) => `Showing the ${shown} most recent songs; there may be more. Zoom in or choose a shorter period to see them all.`,
       approximate: (distance: string) => `Locations are approximate: cells of about ${distance}.`,
+      threatened: (distance: string) => `Other people's threatened species are shown at the centre of an area of about ${distance}, so as not to point to where they live.`,
       error: 'The shared map could not be loaded.',
       serverError: 'The server could not handle the request. Try again in a moment.',
       unavailableTitle: 'The shared map is not available in this version',
@@ -185,6 +188,7 @@ export const mapMessages = defineMessages({
     popup: {
       detail: (status: string, confidence: string) => `${status} · ${confidence} confidence`,
       approximate: (distance: string) => `Approximate location (cell of about ${distance})`,
+      threatened: (distance: string) => `Threatened species: shown at the centre of an area of about ${distance}, not where it was heard.`,
       own: 'Your record',
       ownAt: (site: string) => `Your record · ${site}`,
       card: 'See the species card',
