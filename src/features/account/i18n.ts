@@ -10,8 +10,8 @@ export const accountMessages = defineMessages({
       text: 'Esta versión no tiene cuenta en la nube. Puedes escuchar, llevar tu bitácora y usar el modelo sin señal; lo que registres se queda en el teléfono.',
     },
     signIn: {
-      title: 'Suma tus cantos al mapa',
-      intro: 'Con una cuenta, tus cantos se suben al mapa compartido y a las estadísticas de tus lugares. Sin ella, todo sigue funcionando en este teléfono.',
+      title: 'Guarda tus cantos en tu cuenta',
+      intro: 'Con una cuenta, tus cantos se guardan en la nube y dan las estadísticas de tus lugares. Al mapa de todos solo van si eliges compartirlos, sin tu nombre y a unos 10 m. Sin cuenta, todo sigue funcionando en este teléfono.',
       modeLabel: 'Qué quieres hacer',
       modes: { signIn: 'Iniciar sesión', signUp: 'Crear cuenta' },
       email: 'Correo electrónico',
@@ -203,8 +203,8 @@ export const accountMessages = defineMessages({
       text: 'This version has no cloud account. You can listen, keep your log and use the model offline; what you record stays on the phone.',
     },
     signIn: {
-      title: 'Add your songs to the map',
-      intro: 'With an account, your songs are uploaded to the shared map and to your places’ statistics. Without one, everything keeps working on this phone.',
+      title: 'Keep your songs in your account',
+      intro: 'With an account, your songs are kept in the cloud and feed your places’ statistics. They reach the map of everyone only if you choose to share them, without your name and to about 10 m. Without an account, everything keeps working on this phone.',
       modeLabel: 'What do you want to do',
       modes: { signIn: 'Sign in', signUp: 'Create account' },
       email: 'Email',

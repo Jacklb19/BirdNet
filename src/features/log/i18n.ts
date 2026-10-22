@@ -184,7 +184,7 @@ export const logMessages = defineMessages({
       uploadReason: {
         needsAccount: 'Se subirá cuando asocies los registros del teléfono a tu cuenta.',
         needsSignIn: 'Se subirá cuando inicies sesión con la cuenta con que se guardó.',
-        noLocation: 'Se registró sin ubicación, por eso no se sube al mapa compartido.',
+        noLocation: 'Se registró sin ubicación: se queda en este teléfono y no sale en ningún mapa.',
       },
       notFound: {
         title: 'Registro no encontrado',
@@ -374,7 +374,7 @@ export const logMessages = defineMessages({
       uploadReason: {
         needsAccount: 'It will upload once you link this phone’s records to your account.',
         needsSignIn: 'It will upload when you sign in to the account it was saved with.',
-        noLocation: 'It was recorded without a location, so it is not uploaded to the shared map.',
+        noLocation: 'It was recorded without a location: it stays on this phone and appears on no map.',
       },
       notFound: {
         title: 'Record not found',
