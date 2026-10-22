@@ -11,6 +11,7 @@ import { useOfflineSettings } from '../offline/useOfflineSettings';
 import { ChoiceGroup } from './ChoiceGroup';
 import { DetectionSettings } from './DetectionSettings';
 import { ModelSettings } from './ModelSettings';
+import { PerformanceSettings } from './PerformanceSettings';
 import { PermissionSettings } from './PermissionSettings';
 import { RecordingSettings } from './RecordingSettings';
 import { SelectRow } from './SelectRow';
@@ -71,6 +72,7 @@ export default function SettingsPage(): React.JSX.Element {
           <DetectionSettings offline={offline} />
           <ModelSettings />
           <StorageSettings offline={offline} />
+          <PerformanceSettings />
         </div>
       </details>
 
@@ -80,6 +82,7 @@ export default function SettingsPage(): React.JSX.Element {
         <ListRow label={texts.credits.names} description={texts.credits.namesDetail} />
         <ListRow label={texts.credits.photos} description={texts.credits.photosDetail} />
         <ListRow label={texts.credits.range} description={texts.credits.rangeDetail} />
+        <ListRow label={texts.credits.sounds} description={texts.credits.soundsDetail} />
       </ListGroup>
 
     </Page>

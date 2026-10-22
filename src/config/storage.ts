@@ -8,6 +8,8 @@ export const STORAGE_KEYS = Object.freeze({
   plumagePrefix: 'birdnet:plumage:',
   /** When and for which place the optional regional guide was last saved for offline use. */
   guide: 'birdnet:guide',
+  /** The last listening sessions measured on this phone ("Rendimiento de este teléfono"); never sent anywhere. */
+  performance: 'trino:performance',
 });
 
 export interface StoredPreferences {

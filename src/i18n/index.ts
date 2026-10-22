@@ -13,6 +13,7 @@ export {
   formatKilohertz,
   formatMilliseconds,
   formatSeconds,
+  formatMinutes,
   formatDecibels,
   formatBytes,
   formatDataSize,

@@ -107,6 +107,14 @@ export function formatSeconds(seconds: number, locale: Locale, fractionDigits: n
 }
 
 /**
+ * Formats a duration in whole minutes with the locale's own abbreviation.
+ * Example: 62 -> "62 min" (es and en).
+ */
+export function formatMinutes(minutes: number, locale: Locale): string {
+  return formatUnit(minutes, 'minute', locale, { maximumFractionDigits: 0 });
+}
+
+/**
  * Formats a level in decibels relative to full scale.
  * Example: -14.2 -> "-14,2 dBFS" (es) vs "-14.2 dBFS" (en).
  */
