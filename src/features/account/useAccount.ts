@@ -1,23 +1,41 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { Session } from '@supabase/supabase-js';
+import type { GoTrueClient, Session } from '@supabase/auth-js';
 import { navigateTo, routeHash } from '../../app/routes';
 import { config } from '../../config/env';
 import { scheduleSynchronization } from '../offline/offlineClient';
 import { bindSyncSession, keepSitesOf, listDetections } from '../offline/queueStore';
 import {
-  GENERIC_ACCOUNT_FAILURE, GOOGLE_PROVIDER, PASSWORD_RECOVERY_EVENT, SIGNED_OUT_EVENT, type AccountFailure,
+  GENERIC_ACCOUNT_FAILURE, GOOGLE_PROVIDER, PASSWORD_RECOVERY_EVENT, SIGNED_IN_EVENT, SIGNED_OUT_EVENT, type AccountFailure,
 } from './account.constants';
 import { deleteAccount as deleteAccountEverywhere, type DeletionOutcome } from './accountDeletion';
 import { readAuthCallbackError } from './authCallback';
 import { requestGoogleIdToken, supportsFederatedSignIn, wasDismissed } from './googleSignIn';
 import { encodeAvatar, fetchProfile, normalizeAlias, updateProfile, uploadAvatar, type Profile } from './profileApi';
-import { accountFailure, supabase, toSyncSession } from './supabaseClient';
+import {
+  cancelEnrollment, completeSecondStep, confirmEnrollment, disableSecondStep, needsSecondStep, secondStepEnabled, startEnrollment,
+  type Enrollment,
+} from './secondFactor';
+import { accountFailure, accountsConfigured, authClient, toSyncSession } from './supabaseClient';
 
 export type AccountError = AccountFailure | null;
 
 export interface AccountState {
   readonly configured: boolean;
+  /** The signed-in session; null too while an account with the second step on waits for the authenticator's code. */
   readonly session: Session | null;
+  /** Signed in with the password (or Google) of an account that asks for the authenticator's code (ADR-39). */
+  readonly awaitingCode: boolean;
+  /** Whether the account asks for that code at sign-in; null until known (or offline). */
+  readonly secondStep: boolean | null;
+  /** Resolves true when the code let the session in. */
+  verifySecondStep(code: string): Promise<boolean>;
+  /** Starts adding an authenticator app; null when it could not start. */
+  startSecondStep(): Promise<Enrollment | null>;
+  /** Resolves true when the first code confirmed the app. */
+  confirmSecondStep(factorId: string, code: string): Promise<boolean>;
+  cancelSecondStep(factorId: string): Promise<void>;
+  /** Resolves true when the second step was turned off with a current code. */
+  turnOffSecondStep(code: string): Promise<boolean>;
   /** Alias and photo from the API; null until loaded (or offline). */
   readonly profile: Profile | null;
   /** A password-reset link was opened: the account screen asks for the new password. */
@@ -66,10 +84,14 @@ function authRedirectUrl(): string {
  */
 const returnError = typeof window === 'undefined' ? null : readAuthCallbackError(window.location.href);
 
-function requireClient(): NonNullable<typeof supabase> {
-  if (!supabase) throw new Error('Accounts are not configured.');
-  return supabase;
+async function requireClient(): Promise<GoTrueClient> {
+  const auth = await authClient();
+  if (!auth) throw new Error('Accounts are not configured.');
+  return auth;
 }
+
+// Asked for as soon as the app starts, not when a screen first needs it (see authClient).
+if (typeof window !== 'undefined') void authClient();
 
 async function countUnowned(): Promise<number> {
   if (typeof indexedDB === 'undefined') return 0;
@@ -78,7 +100,8 @@ async function countUnowned(): Promise<number> {
 
 /** One instance per app: keeps the service worker's sync session in step with Supabase Auth. */
 export function useAccount(): AccountState {
-  const [session, setSession] = useState<Session | null>(null);
+  const [signedIn, setSignedIn] = useState<Session | null>(null);
+  const [secondStepState, setSecondStepState] = useState<{ readonly userId: string; readonly enabled: boolean } | null>(null);
   const [loadedProfile, setLoadedProfile] = useState<{ readonly userId: string; readonly profile: Profile } | null>(null);
   const [recovering, setRecovering] = useState(false);
   const [unownedCount, setUnownedCount] = useState(0);
@@ -97,15 +120,24 @@ export function useAccount(): AccountState {
   }, []);
 
   useEffect(() => {
-    if (!supabase) return;
-    const subscription = { active: true };
-    const { data } = supabase.auth.onAuthStateChange((event, next) => {
-      if (!subscription.active) return;
-      setSession(next);
-      if (event === PASSWORD_RECOVERY_EVENT) {
-        setRecovering(true);
-        navigateTo({ name: 'account' });
-      }
+    const subscription = { active: true, unsubscribe: (): void => undefined };
+    void authClient().then((auth) => {
+      if (!auth || !subscription.active) return;
+      const { data } = auth.onAuthStateChange((event, signedInNow) => {
+        if (!subscription.active) return;
+        setSignedIn(signedInNow);
+        if (event === PASSWORD_RECOVERY_EVENT) {
+          setRecovering(true);
+          navigateTo({ name: 'account' });
+        }
+        // An account that asks for the code is out of reach until it is given: sync waits without a session.
+        const waiting = needsSecondStep(signedInNow);
+        if (waiting && event === SIGNED_IN_EVENT) navigateTo({ name: 'account' });
+        follow(event, waiting ? null : signedInNow);
+      });
+      subscription.unsubscribe = () => { data.subscription.unsubscribe(); };
+    });
+    const follow = (event: string, next: Session | null): void => {
       // Token refreshes must reach IndexedDB too, or background sync stops when the hour-long token expires.
       void (async () => {
         if (typeof indexedDB !== 'undefined') {
@@ -119,12 +151,25 @@ export function useAccount(): AccountState {
         const unowned = next ? await countUnowned() : 0;
         if (subscription.active) setUnownedCount(unowned);
       })().catch(() => { if (subscription.active) setError(GENERIC_ACCOUNT_FAILURE); });
-    });
-    return () => { subscription.active = false; data.subscription.unsubscribe(); };
+    };
+    return () => { subscription.active = false; subscription.unsubscribe(); };
   }, []);
 
+  const awaitingCode = needsSecondStep(signedIn);
+  const session = awaitingCode ? null : signedIn;
   const token = session?.access_token ?? null;
   const userId = session?.user.id ?? null;
+
+  // Whether the account asks for the code, for its switch in Account; read again with each new token.
+  useEffect(() => {
+    if (!token || !userId) return;
+    let active = true;
+    requireClient().then(secondStepEnabled)
+      .then((enabled) => { if (active) setSecondStepState({ userId, enabled }); })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [token, userId]);
+  const secondStep = secondStepState && secondStepState.userId === userId ? secondStepState.enabled : null;
 
   // The profile follows the signed-in account; offline it simply stays unknown and the e-mail is shown instead.
   useEffect(() => {
@@ -148,12 +193,12 @@ export function useAccount(): AccountState {
   }, []);
 
   const signIn = useCallback((email: string, password: string) => run(async () => {
-    const { error: failure } = await requireClient().auth.signInWithPassword({ email, password });
+    const { error: failure } = await (await requireClient()).signInWithPassword({ email, password });
     if (failure) throw failure;
   }, undefined), [run]);
 
   const signInWithGoogle = useCallback(() => run(async () => {
-    const auth = requireClient().auth;
+    const auth = await requireClient();
     if (config.googleClientId && supportsFederatedSignIn()) {
       try {
         const { token: idToken, nonce } = await requestGoogleIdToken(config.googleClientId);
@@ -170,36 +215,38 @@ export function useAccount(): AccountState {
   }, undefined), [run]);
 
   const signUp = useCallback((email: string, password: string) => run(async () => {
-    const { data, error: failure } = await requireClient().auth.signUp({ email, password, options: { emailRedirectTo: authRedirectUrl() } });
+    const { data, error: failure } = await (await requireClient()).signUp({ email, password, options: { emailRedirectTo: authRedirectUrl() } });
     if (failure) throw failure;
     return data.session === null;
   }, false), [run]);
 
   const requestPasswordReset = useCallback((email: string) => run(async () => {
-    const { error: failure } = await requireClient().auth.resetPasswordForEmail(email, { redirectTo: authRedirectUrl() });
+    const { error: failure } = await (await requireClient()).resetPasswordForEmail(email, { redirectTo: authRedirectUrl() });
     if (failure) throw failure;
     return true;
   }, false), [run]);
 
   const updatePassword = useCallback((password: string) => run(async () => {
-    const { error: failure } = await requireClient().auth.updateUser({ password });
+    const { error: failure } = await (await requireClient()).updateUser({ password });
     if (failure) throw failure;
     setRecovering(false);
     return true;
   }, false), [run]);
 
   const signOut = useCallback(() => run(async () => {
-    if (!supabase) return;
+    const auth = await authClient();
+    if (!auth) return;
     setClaimed(false);
     setDismissed(false);
     setRecovering(false);
-    const { error: failure } = await supabase.auth.signOut();
+    const { error: failure } = await auth.signOut();
     if (failure) throw failure;
   }, undefined), [run]);
 
   // Not through `run`: the deletion screen reports its own failure, next to the button that was pressed.
   const deleteAccount = useCallback(async (): Promise<DeletionOutcome | null> => {
-    if (!supabase || !token || !userId) return null;
+    const auth = await authClient();
+    if (!auth || !token || !userId) return null;
     setWorking(true);
     try {
       const outcome = await deleteAccountEverywhere(token, userId);
@@ -208,7 +255,7 @@ export function useAccount(): AccountState {
       setRecovering(false);
       setDeleted(outcome);
       // The user no longer exists, so only this browser's session is ended; the server has nothing left to revoke.
-      await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
+      await auth.signOut({ scope: 'local' }).catch(() => undefined);
       return outcome;
     } catch {
       return null;
@@ -240,8 +287,33 @@ export function useAccount(): AccountState {
 
   const declineClaim = useCallback(() => { setDismissed(true); }, []);
 
+  const verifySecondStep = useCallback((code: string) => run(async () => {
+    await completeSecondStep(await requireClient(), code);
+    return true;
+  }, false), [run]);
+
+  const startSecondStep = useCallback(() => run(async () => startEnrollment(await requireClient()), null), [run]);
+
+  const confirmSecondStep = useCallback((factorId: string, code: string) => run(async () => {
+    await confirmEnrollment(await requireClient(), factorId, code);
+    if (userId) setSecondStepState({ userId, enabled: true });
+    return true;
+  }, false), [run, userId]);
+
+  const cancelSecondStep = useCallback(async (factorId: string): Promise<void> => {
+    // Best effort: an enrollment left behind is removed the next time one starts.
+    await cancelEnrollment(await requireClient(), factorId).catch(() => undefined);
+  }, []);
+
+  const turnOffSecondStep = useCallback((code: string) => run(async () => {
+    await disableSecondStep(await requireClient(), code);
+    if (userId) setSecondStepState({ userId, enabled: false });
+    return true;
+  }, false), [run, userId]);
+
   return {
-    configured: supabase !== null, session, profile, recovering, unownedCount: dismissed ? 0 : unownedCount, claimed, error, errorDetail, working,
+    configured: accountsConfigured, session, awaitingCode, secondStep, verifySecondStep, startSecondStep, confirmSecondStep, cancelSecondStep,
+    turnOffSecondStep, profile, recovering, unownedCount: dismissed ? 0 : unownedCount, claimed, error, errorDetail, working,
     signIn, signInWithGoogle, signUp, requestPasswordReset, updatePassword, signOut, deleteAccount, deleted, saveAlias, saveAvatar, claimLocal, declineClaim,
   };
 }

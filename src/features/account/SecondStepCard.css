@@ -1,0 +1,74 @@
+.bn-second-step {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-surface);
+}
+
+.bn-second-step__title {
+  font-family: var(--font-display);
+  font-size: var(--text-title);
+  line-height: var(--leading-title);
+}
+
+.bn-second-step__text,
+.bn-second-step__hint {
+  color: var(--color-text-secondary);
+}
+
+.bn-second-step__hint {
+  font-size: var(--text-small);
+}
+
+.bn-second-step__form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.bn-second-step__enroll {
+  display: grid;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+@media (min-width: 40rem) {
+  .bn-second-step__enroll { grid-template-columns: auto minmax(0, 1fr); }
+}
+
+/* Scanners read dark on light: the code keeps a white frame in the dark theme too. */
+.bn-second-step__qr {
+  justify-self: center;
+  padding: var(--space-3);
+  border-radius: var(--radius-l);
+  background: var(--color-sticker-edge);
+}
+
+.bn-second-step__secret {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+  min-width: 0;
+}
+
+.bn-second-step__label {
+  font-weight: var(--font-weight-semibold);
+}
+
+.bn-second-step__key {
+  max-width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-m);
+  background: var(--color-bg-sunken);
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+  overflow-wrap: anywhere;
+}
+
+.bn-second-step__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
