@@ -149,6 +149,9 @@ describe('deployment configuration', () => {
     // MapLibre loads the range tiles with fetch (connect-src) or through an <img>, depending on the request and the browser.
     expect(allows(csp.get('img-src'), defaults.gbif.tilesUrl), 'img-src range tiles').toBe(true);
     expect(csp.get('connect-src')).toContain(SUPABASE_SOURCE);
+    // Reference songs are downloaded from xeno-canto when played (ADR-42); errors go to Sentry's ingest hosts (ADR-43).
+    expect(allows(csp.get('connect-src'), 'https://xeno-canto.org/694038/download'), 'xeno-canto audio').toBe(true);
+    expect(allows(csp.get('connect-src'), 'https://o1.ingest.us.sentry.io/api/1/envelope/'), 'Sentry ingest').toBe(true);
   });
 
   it('sends the same cross-origin isolation headers from Vite and Vercel', () => {
