@@ -33,7 +33,7 @@ function useDocumentMetadata(title: string, description: string): void {
  * skip link, the phone's tab bar and the live player.
  */
 export function AppShell(): React.JSX.Element {
-  const { dict } = useI18n();
+  const { dict, sections } = useI18n();
   const [route] = useRoute();
   const { active, walking } = useListening();
   const { session } = useAccountContext();
@@ -51,7 +51,7 @@ export function AppShell(): React.JSX.Element {
     if (inApp || readPreferences().welcomed === true) enableAutomaticModel();
   }, [inApp]);
   // And, once it is installed, the second model that listens with it by default comes in the background (ADR-36).
-  useAutomaticAlternate(inApp || readPreferences().welcomed === true, dict.settings.detection.second.progressLabel);
+  useAutomaticAlternate(inApp || readPreferences().welcomed === true, dict.app.secondModelDownload);
 
   // Someone with a session who opens the bare address comes to use the app, not to read about it. The home page
   // stays one link away, and its own address (`#/home`) is never redirected.
@@ -62,10 +62,22 @@ export function AppShell(): React.JSX.Element {
   }, [signedIn]);
 
   const loading = <p className="bn-shell__loading" role="status">{dict.common.loading}</p>;
+  // A section draws only with its texts, which arrive in their own file with the section's code.
+  const withTexts = (page: React.JSX.Element): React.JSX.Element => {
+    if (sections === 'ready') return page;
+    if (sections === 'loading') return loading;
+    return (
+      <div className="bn-shell__error">
+        <Notice tone="error" icon="offline" action={<Button variant="quiet" onClick={() => { window.location.reload(); }}>{dict.app.reload}</Button>}>
+          {dict.app.pageError}
+        </Notice>
+      </div>
+    );
+  };
   if (route.name === 'home') {
     return (
       <main id="main" className="bn-shell__home">
-        <Suspense fallback={loading}><HomePage /></Suspense>
+        {withTexts(<Suspense fallback={loading}><HomePage /></Suspense>)}
       </main>
     );
   }
@@ -90,7 +102,7 @@ export function AppShell(): React.JSX.Element {
             </div>
           )}
           <PageErrorBoundary key={route.name} message={dict.app.pageError} actionLabel={dict.app.reload}>
-            <Suspense fallback={loading}><RoutePage route={route} /></Suspense>
+            {withTexts(<Suspense fallback={loading}><RoutePage route={route} /></Suspense>)}
           </PageErrorBoundary>
         </main>
         {player && <LivePlayer variant="bar" />}

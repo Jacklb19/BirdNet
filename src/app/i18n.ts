@@ -28,6 +28,8 @@ export const appMessages = defineMessages({
     pageError: 'Esta sección no se pudo abrir. Recarga la página para intentarlo de nuevo.',
     update: { text: 'Hay una versión nueva de Trino.', listening: 'Hay una versión nueva de Trino. Al actualizar se detiene la escucha.', action: 'Actualizar' },
     reload: 'Recargar',
+    // Names the background download of the second model in the browser's download list (ADR-36).
+    secondModelDownload: 'Descarga de BirdNET+ V3',
   },
   en: {
     name: 'Trino',
@@ -55,5 +57,6 @@ export const appMessages = defineMessages({
     pageError: 'This section could not be opened. Reload the page to try again.',
     update: { text: 'There is a new version of Trino.', listening: 'There is a new version of Trino. Updating stops listening.', action: 'Update' },
     reload: 'Reload',
+    secondModelDownload: 'BirdNET+ V3 download',
   },
 });

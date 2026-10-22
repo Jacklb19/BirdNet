@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dictionaries } from '../../i18n';
+import { dictionaries } from '../../i18n/allMessages';
 import type { ModelState } from '../offline/useModel';
 import { heardAgoText } from './listenFormat';
 import { heardAgo, listPhase, sessionPhase, showsSessionError, startBlocker } from './listenState';

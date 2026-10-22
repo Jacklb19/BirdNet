@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dictionaries } from '../../i18n';
+import { dictionaries } from '../../i18n/allMessages';
 import { reportLines, reportText } from '../settings/performanceReport';
 import { droppedShare, percentile, recordSession } from './sessionMetrics';
 

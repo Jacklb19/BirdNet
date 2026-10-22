@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dictionaries } from '../../i18n';
+import { dictionaries } from '../../i18n/allMessages';
 import { cardChangeText, spokenChangeText } from './statsText';
 
 const es = dictionaries.es.sites;

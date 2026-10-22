@@ -18,7 +18,7 @@ import {
 import { APP_SHELL_URL, SERVICE_WORKER_URL } from '../features/offline/offline.constants';
 import { STATIC_MANIFEST_URL } from '../features/inference/modelManifest';
 import { DEFAULT_LOCALE } from '../i18n/locales';
-import { dictionaries } from '../i18n/messages';
+import { dictionaries } from '../i18n/allMessages';
 import { API_ROUTES } from './api';
 import { readConfig, type AppConfig } from './env';
 

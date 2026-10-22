@@ -6,7 +6,7 @@ import { MIN_QUEUE_BYTES, OFFLINE_OPERATIONS, SERVICE_WORKER_URL, type OfflineRe
 import { STORAGE_KEYS } from '../src/config/storage';
 import { routeHash } from '../src/app/routes';
 import { DEFAULT_LOCALE } from '../src/i18n/locales';
-import { dictionaries } from '../src/i18n/messages';
+import { dictionaries } from '../src/i18n/allMessages';
 import productionManifest from '../public/models/manifest.json' with { type: 'json' };
 
 /** Labels come from the interface dictionaries, so copy changes do not break the suite. */
