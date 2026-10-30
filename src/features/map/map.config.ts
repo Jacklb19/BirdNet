@@ -134,3 +134,6 @@ export const MAP_TOKENS = Object.freeze({
  * (`WALKS_KEPT_MAX`), read in pages because each one carries its whole path.
  */
 export const MAP_ACCOUNT_WALKS = 60;
+
+/** Newest songs of the account "Mi mapa" adds to those on the phone; the same bound as the shared map's answer. */
+export const MAP_ACCOUNT_SONGS = 2000;

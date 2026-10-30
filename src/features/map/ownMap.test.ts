@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { StoredWalk } from '../offline/types';
 import type { AccountWalkPath } from '../walk/walksApi';
 import type { Pin } from '../walk/walkPins';
+import type { MapDetection } from './mapData';
 import { ownMap } from './ownMap';
 
 const LOCAL_WALK = '00000000-0000-4000-8000-000000000001';
@@ -23,5 +24,13 @@ describe('own map', () => {
     expect(view.result.detections.map((row) => [row.species, row.status])).toEqual([['Turdus fuscater', 'confirmed'], ['Sturnella magna', 'provisional']]);
     expect(view.speciesOptions).toEqual(['Sturnella magna', 'Turdus fuscater']);
     expect(ownMap([pin], [stored], { species: 'Sturnella magna', walking: false }, account).result.detections).toHaveLength(1);
+  });
+
+  it('adds the songs of the account the phone does not keep, never twice', () => {
+    const song = (id: string, species: string): MapDetection => ({ id, species, confidence: 0.85, status: 'confirmed', recorded_at: '2026-09-01T10:00:00.000Z',
+      latitude: 4.7, longitude: -74.05, own: true, site_name: null, generalized_m: null });
+    const view = ownMap([pin], [], { species: null, walking: false }, [], [song('p1', 'Turdus fuscater'), song('old', 'Pheucticus ludovicianus')]);
+    expect(view.result.detections.map((row) => row.id)).toEqual(['p1', 'old']);
+    expect(view.speciesOptions).toEqual(['Pheucticus ludovicianus', 'Turdus fuscater']);
   });
 });
