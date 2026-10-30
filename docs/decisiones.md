@@ -602,3 +602,15 @@ En Vercel Hobby los registros de la API se guardan una hora (documentación ofic
 ## Paquete principal de la web (Sprint 11)
 
 Medido con los sourcemaps del build: `app` pasó de 602,6 kB (177,3 kB gzip) a 311,6 kB (100,4 kB gzip). Dos cambios: la app carga solo Supabase Auth (ADR-39) y los textos de las secciones viajan en su propio archivo (96 kB, 29 kB gzip), pedido al arrancar en paralelo con la primera sección; el armazón solo usa los suyos. Lo que queda es sobre todo react-dom (202 kB).
+
+---
+
+## Términos de uso de GBIF (2026-10-29, completa ADR-26)
+
+La app usa la API pública de GBIF sin clave (coincidencia de nombres, categoría de la Lista Roja y teselas de densidad) y la API la consulta para las fichas y para generar la lista de especies amenazadas (ADR-41). Las páginas de términos de gbif.org piden una verificación contra bots que no se saltó, así que no se leyeron completas. Lo comprobado:
+
+- La documentación técnica de GBIF (techdocs.gbif.org) dice que la API es pública, que las consultas rápidas o numerosas pueden limitarse (HTTP 429) y recomienda identificarse en el `User-Agent`. La API de Trino lo hace (`USER_AGENT` en `birdnet_api/public_sources.py` y en el script), y el script de amenazadas usa seis peticiones a la vez y se ejecuta a mano.
+- El conjunto de la Lista Roja de la UICN en GBIF es CC BY 4.0 (consultado en la propia API). La ficha y los créditos citan a GBIF y a la Lista Roja de la UICN, y el mapa «Dónde vive» dice «Datos de GBIF.org».
+- Según el acuerdo de uso de datos de GBIF citado por fuentes secundarias (última versión de agosto de 2017): hay que respetar la licencia de cada conjunto y reconocer a quien lo publica, y GBIF no persigue legalmente el uso de datos CC BY-NC.
+
+**Pendiente del dueño:** abrir https://www.gbif.org/terms/data-user en un navegador y confirmar que no pide nada más para mostrar sus datos en una app.
