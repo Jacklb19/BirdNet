@@ -216,6 +216,18 @@ Antes de cambiar el modelo por defecto (ADR-36) se midió el tiempo por ventana 
 
 La simulación de CPU lenta de Chrome (×4, ×6) no frena al Worker: las cifras no cambiaron, así que no sirve para estimar un teléfono. Un teléfono de gama media suele ser de 3 a 5 veces más lento en un hilo, lo que pone los dos juntos entre 1,2 y 2 s por ventana, cerca de las 1,5 s entre ventanas (RNF-01). Por eso, con los dos por defecto la app vuelve sola al v2.4 en un teléfono que no alcanza (`pace.ts`). El tiempo en un teléfono real sigue sin medirse.
 
+### 9. Hilo principal y ventanas durante una escucha (2026-10-29)
+
+Medido con `e2e/performance.spec.ts`, que escucha un minuto con el micrófono simulado de Chrome sobre el build de producción (PC de desarrollo, Chrome sin interfaz, BirdNET v2.4 solo, como queda en una instalación nueva hasta que llega el V3). Cinco corridas:
+
+| Medida | Resultado |
+|---|---|
+| Tareas del hilo principal de más de 50 ms (RNF-03) | Ninguna en 4 corridas; una de 61 ms en la otra |
+| Tiempo por ventana (RNF-01) | Mediana 114–115 ms, p90 125–129 ms, máximo 200–228 ms |
+| Ventanas perdidas en un minuto (RNF-02) | 1 o 2 de unas 38, al empezar; ninguna después |
+
+Ninguna ventana tarda ni cerca de los 1,5 s entre ventanas, así que las que se pierden no son de un modelo lento: ocurren al arrancar la escucha y su punto exacto (el worklet o la cola del Worker) no se aisló. RNF-03 se cumple casi siempre en este PC y RNF-02 no del todo. Un teléfono de gama media es varias veces más lento: estas cifras no sustituyen la prueba de campo, que «Rendimiento de este teléfono» deja copiar.
+
 ### Lo que estos números no dicen
 
 - Son grabadoras de campo en un cafetal de Antioquia, no un teléfono en Bogotá: sirven para comparar variantes entre sí, no como la precisión que verá una persona.

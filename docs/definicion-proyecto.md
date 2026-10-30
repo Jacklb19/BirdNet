@@ -8,6 +8,19 @@ Documento de definición técnica del proyecto
 
 26 de septiembre de 2026
 
+> **Estado al cierre (29 de octubre de 2026).** Este documento es la definición con la que empezó el proyecto y se conserva como tal. Lo construido se llama **Trino** y se apartó de ella en los puntos de la tabla siguiente, cada uno con su decisión registrada en `docs/decisiones.md`; donde este documento y una decisión no coinciden, manda la decisión.
+>
+> | Punto de esta definición | Lo construido | Decisión |
+> |---|---|---|
+> | RF-09: verificación en la nube de las detecciones dudosas, con el fragmento de audio (zona intermedia de la tabla 7, apartado «Modelo de verificación en la nube», S7 y la definición de terminado) | No se construyó: ningún modelo público gratuito verificaba mejor que el del teléfono. Una detección dudosa la revisa la persona oyendo su grabación (RF-11) | ADR-32 |
+> | RNF-08 y tabla 19: el audio solo sale con las detecciones dudosas | Ningún fragmento sale para verificarse; el único audio que puede salir son las grabaciones que la persona elige guardar en su cuenta, privadas | ADR-28, ADR-32 |
+> | Cuadrícula de unos cien metros (ADR-04 y tabla 19) | Celda de unos 10 m, nunca la coordenada cruda; compartir en el mapa de todos es una elección explícita; las especies amenazadas de otras personas se ven en una zona de unos 11 km | ADR-22, ADR-41 |
+> | RNF-05: 25 MB en la primera carga | Una descarga obligatoria del modelo (52,4 MB) aparte de la aplicación, y un segundo modelo de 80,6 MB que llega en segundo plano | ADR-07, ADR-19, ADR-36 |
+> | RF-15: informes periódicos | Informes redactados solo cuando la persona los pide, a partir de cifras ya calculadas | ADR-37 |
+> | Plan de sprints (tabla 22) | Once sprints; S8 a S11 añadieron caminatas, grabaciones, revisión, segundo modelo, cuentas completas, verificación en dos pasos, notas y cantos de referencia | `PROGRESS.md` |
+>
+> Pendiente de la definición de terminado: las dos pruebas de campo de una hora (RNF-01, RNF-02, RNF-04) y las pruebas manuales con dispositivos y cuentas reales, que se guían con `docs/pruebas.md`.
+
 # **Introducción**
 
 Este documento establece la definición técnica de BirdNet Local con anterioridad a su construcción: el problema que atiende, su alcance, su arquitectura, las tecnologías seleccionadas y los criterios de finalización. De los tres proyectos de la asignatura, este es el que opera en las condiciones más adversas —al aire libre, sin conexión, en dispositivos de gama modesta y con batería limitada—, circunstancias que condicionan el diseño de manera profunda y que conviene fijar desde el inicio.

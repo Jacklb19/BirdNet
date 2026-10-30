@@ -48,15 +48,19 @@ function placeDetection(walk: AccountWalkPath, index: number): MapDetection | nu
 
 const cellKey = (species: string, latitude: number, longitude: number): string => `${species}|${latitude.toFixed(4)}|${longitude.toFixed(4)}`;
 
-export function ownMap(pins: readonly Pin[], walks: readonly StoredWalk[], filter: OwnMapFilter, accountWalks: readonly AccountWalkPath[] = []): OwnMap {
+export function ownMap(pins: readonly Pin[], walks: readonly StoredWalk[], filter: OwnMapFilter, accountWalks: readonly AccountWalkPath[] = [],
+  accountSongs: readonly MapDetection[] = []): OwnMap {
   // Walks on the phone are drawn from the phone; only the others come from the account, and a place whose song the
   // phone still has is drawn once.
   const onPhone = new Set(walks.map((walk) => walk.id));
   const fromAccount = accountWalks.filter((walk) => !onPhone.has(walk.id));
-  const seen = new Set(pins.map((pin) => cellKey(pin.species, pin.latitude, pin.longitude)));
+  // Songs of the account the phone does not keep (by id); the phone's copy, with any review not sent yet, wins.
+  const pinned = new Set(pins.map((pin) => pin.id));
+  const songs = accountSongs.filter((song) => !pinned.has(song.id));
+  const seen = new Set([...pins, ...songs].map((row) => cellKey(row.species, row.latitude, row.longitude)));
   const places = fromAccount.flatMap((walk) => walk.places.map((_, index) => placeDetection(walk, index)))
     .filter((row): row is MapDetection => row !== null && !seen.has(cellKey(row.species, row.latitude, row.longitude)));
-  const detections = [...pins.map(toDetection), ...places].filter((row) => filter.species === null || row.species === filter.species);
+  const detections = [...pins.map(toDetection), ...songs, ...places].filter((row) => filter.species === null || row.species === filter.species);
   const tracks = [
     ...walks.filter((walk) => !(filter.walking && walk.endedAt === null)).map((walk) => walk.track),
     ...fromAccount.map((walk) => walk.track),
@@ -64,7 +68,8 @@ export function ownMap(pins: readonly Pin[], walks: readonly StoredWalk[], filte
   return {
     result: { detections, truncated: false },
     tracks,
-    speciesOptions: [...new Set([...pins.map((pin) => pin.species), ...places.map((row) => row.species)])].sort((a, b) => a.localeCompare(b)),
+    speciesOptions: [...new Set([...pins.map((pin) => pin.species), ...songs.map((row) => row.species), ...places.map((row) => row.species)])]
+      .sort((a, b) => a.localeCompare(b)),
   };
 }
 

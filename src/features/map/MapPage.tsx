@@ -26,6 +26,7 @@ import { coveredEdges, NOTHING_COVERED, visibleCentreOffset, type CoveredEdges }
 import { NO_WALK_OVERLAY, type WalkOverlay } from './mapWalkLayers';
 import { MAP_OWN_FIT, MAP_SCOPES, MAP_WEBGL_CONTEXT, type MapScope } from './map.config';
 import { ownExtent, ownMap } from './ownMap';
+import { useAccountSongs } from './useAccountSongs';
 import { useAccountWalkPaths } from './useAccountWalkPaths';
 import { useLocate } from './useLocate';
 import { useMapResult } from './useMapResult';
@@ -64,6 +65,7 @@ function MapScreen({ initialSpecies }: { readonly initialSpecies: string | null 
   const walk = useWalk();
   const own = useWalkData();
   const accountWalks = useAccountWalkPaths(token, session?.user.id ?? null, online);
+  const accountSongs = useAccountSongs(token, session?.user.id ?? null, online);
   const isDesktop = useIsDesktop();
   const [map, setMap] = useState<MapLibreMap | null>(null);
   // A species card opens the map already filtered to its species (`#/map?species=…`).
@@ -98,8 +100,8 @@ function MapScreen({ initialSpecies }: { readonly initialSpecies: string | null 
   const shown = enabled ? result : null;
 
   const view = useMemo(
-    () => ownMap(own.pins ?? [], own.walks, { species, walking: walk.walking }, accountWalks),
-    [own.pins, own.walks, species, walk.walking, accountWalks],
+    () => ownMap(own.pins ?? [], own.walks, { species, walking: walk.walking }, accountWalks, accountSongs),
+    [own.pins, own.walks, species, walk.walking, accountWalks, accountSongs],
   );
   // Walks and distance count every path drawn, those of the account too; songs are the ones this phone holds.
   const totals = useMemo(() => {

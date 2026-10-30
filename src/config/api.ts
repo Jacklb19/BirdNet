@@ -27,6 +27,8 @@ export const API_ROUTES = {
   meAvatarUrl: `${VERSION}/me/avatar-url`,
   meSummary: `${VERSION}/me/summary`,
   meSpecies: `${VERSION}/me/species`,
+  /** The person's located songs, for "Mi mapa" to draw those the phone no longer keeps (S11). */
+  meDetections: `${VERSION}/me/detections`,
   meSharing: `${VERSION}/me/sharing`,
   meRecordings: `${VERSION}/me/recordings`,
   /** Walks saved in the account (ADR-35): the list, and one walk by the id the phone gave it. */
