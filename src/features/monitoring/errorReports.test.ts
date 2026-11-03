@@ -10,6 +10,11 @@ describe('error reports', () => {
     expect(cleanUrl('not an address')).toBe('');
   });
 
+  it('never carry the tokens of a sign-in or recovery link', () => {
+    const link = 'https://birdnet-nu.vercel.app/#access_token=eyJhbGciOiJIUzI1NiJ9.e30.c2ln&refresh_token=abc123&type=recovery';
+    expect(cleanUrl(link)).toBe('https://birdnet-nu.vercel.app/');
+  });
+
   it('carry no user, breadcrumbs, headers or identifiers', () => {
     const event = {
       type: undefined, user: { id: 'u', ip_address: '1.2.3.4' }, breadcrumbs: [{ message: 'click' }],
