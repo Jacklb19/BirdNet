@@ -154,6 +154,15 @@ describe('deployment configuration', () => {
     expect(allows(csp.get('connect-src'), 'https://o1.ingest.us.sentry.io/api/1/envelope/'), 'Sentry ingest').toBe(true);
   });
 
+  it('lets the page use only the microphone and the location, and post forms only to itself', () => {
+    // The app listens and pins songs; nothing else of the device is for it, nor for anything it embeds (audit of 2026-11-02).
+    const permissions = headersFor(ALL_ROUTES).get('Permissions-Policy') ?? '';
+    expect(permissions).toContain('microphone=(self)');
+    expect(permissions).toContain('geolocation=(self)');
+    for (const feature of ['camera', 'payment', 'usb']) expect(permissions).toContain(`${feature}=()`);
+    expect(cspDirectives().get('form-action')).toEqual(["'self'"]);
+  });
+
   it('sends the same cross-origin isolation headers from Vite and Vercel', () => {
     const resolved = viteConfig({ command: 'serve', mode: 'test' });
     const production = headersFor(ALL_ROUTES);
