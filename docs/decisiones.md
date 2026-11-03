@@ -639,10 +639,17 @@ Una auditoría de la versión desplegada encontró lo siguiente:
   - borrar una grabación pide confirmación;
   - las confirmaciones en línea llevan y devuelven el foco.
 
+### Tercera tanda (2026-11-03)
+- **Dirección desconocida**: abre «Pantalla no encontrada», con enlaces a Escuchar y al inicio, en lugar de Escuchar sin aviso.
+- **Vuelta fallida de Google o de un enlace de correo**: la pantalla muestra solo el código de error (`[a-z][a-z0-9_]*`), nunca el texto libre de `error_description`, que cualquiera puede poner en un enlace.
+- **Pantallas anchas**: el botón de lugares del mapa lleva su nombre y la cabecera de la Bitácora enlaza siempre las caminatas.
+- **Sentry**: también se borran los tokens y JWT citados en los mensajes de error.
+- **E2E con sesión**: `npm run build:e2e` hace la build con cuentas apuntando a un Supabase ficticio; `e2e/account.spec.ts` responde su Auth con rutas de Playwright y usa una sesión firmada por la API local.
+
 ### Pendiente
-- Un límite de peticiones (comprobar qué ofrece Vercel Hobby).
-- En pantallas anchas no hay menú, así que lugares y caminatas siguen abriéndose desde el mapa y la Bitácora.
+- Un límite de peticiones: Vercel Hobby admite una regla de límite por proyecto (verificado el 2026-11-02). La recomendación es ponerla en el proyecto de la web, sobre `/api/v1/`, por IP. La configura el dueño.
 - Volver a generar `species-names.json` traería los nombres de eBird en su nueva forma, solo con la primera palabra en mayúscula (7.288 nombres). Se dejó la forma actual y solo se añadió la garcilla bueyera occidental.
+- Decisiones del dueño aún abiertas: identificación reciente para borrar la cuenta, `flowType: 'pkce'` y la forma de los nombres de eBird.
 
 ---
 
