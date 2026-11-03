@@ -260,7 +260,8 @@ export function useAccount(): AccountState {
     setClaimed(false);
     setDismissed(false);
     setRecovering(false);
-    const { error: failure } = await auth.signOut();
+    // This device only: signing out of every device at once was neither asked for nor said (audit of 2026-11-02).
+    const { error: failure } = await auth.signOut({ scope: 'local' });
     if (failure) throw failure;
   }, undefined), [run]);
 
