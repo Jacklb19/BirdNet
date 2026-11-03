@@ -14,17 +14,20 @@ describe('readAuthCallbackError', () => {
   // The address Supabase really returns to when it cannot finish a Google sign-in.
   it('reads the failure of a return from Google, from the hash or from the query', () => {
     const failed = `${SITE}?error=server_error&error_code=unexpected_failure&error_description=Unable+to+exchange+external+code#error=server_error&error_code=unexpected_failure&error_description=Unable+to+exchange+external+code&sb=`;
-    expect(readAuthCallbackError(failed)).toEqual({ failure: 'returnFailed', detail: 'Unable to exchange external code' });
-    expect(readAuthCallbackError(`${SITE}/?error=access_denied&error_description=Database+error+saving+new+user`)).toEqual({ failure: 'returnFailed', detail: 'Database error saving new user' });
-    expect(readAuthCallbackError(`${SITE}/#error=access_denied`)).toEqual({ failure: 'returnFailed', detail: null });
+    expect(readAuthCallbackError(failed)).toEqual({ failure: 'returnFailed', detail: 'unexpected_failure' });
+    expect(readAuthCallbackError(`${SITE}/?error=access_denied&error_description=Database+error+saving+new+user`)).toEqual({ failure: 'returnFailed', detail: 'access_denied' });
+    expect(readAuthCallbackError(`${SITE}/#error=access_denied`)).toEqual({ failure: 'returnFailed', detail: 'access_denied' });
+    expect(readAuthCallbackError(`${SITE}/#error_description=x`)).toEqual({ failure: 'returnFailed', detail: null });
   });
 
   it('tells an e-mail link that expired from any other failure', () => {
     expect(readAuthCallbackError(`${SITE}/#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired`))
-      .toEqual({ failure: 'linkExpired', detail: 'Email link is invalid or has expired' });
+      .toEqual({ failure: 'linkExpired', detail: 'otp_expired' });
   });
 
-  it('bounds the text taken from the address', () => {
-    expect(readAuthCallbackError(`${SITE}/#error=x&error_description=${'a'.repeat(500)}`)?.detail).toHaveLength(200);
+  it('never shows text that a link to Trino could carry, only an error code', () => {
+    const forged = `${SITE}/#error=Tu+cuenta+fue+bloqueada.+Llama+al+300...&error_description=Escribe+tu+clave+en+evil.example`;
+    expect(readAuthCallbackError(forged)).toEqual({ failure: 'returnFailed', detail: null });
+    expect(readAuthCallbackError(`${SITE}/#error=${'a'.repeat(61)}`)?.detail).toBeNull();
   });
 });
