@@ -45,6 +45,7 @@ En desarrollo y en `npm run preview`, Vite reenvía `/api` a `API_PROXY_TARGET` 
 | `npm run test` | Pruebas unitarias (Vitest) |
 | `npm run build` | Build de producción y precaché sin conexión |
 | `npm run test:offline` | E2E sin conexión (Playwright; requiere el repositorio de la API) |
+| `npm run build:e2e` | Build para las E2E: la de producción con cuentas apuntando a un Supabase ficticio que `e2e/account.spec.ts` responde solo; sin ella esa prueba se salta |
 | `npm run data:species-names` | Regenera `public/models/species-names.json` desde la taxonomía de eBird (al cambiar el modelo) |
 | `python scripts/eval/score-models.py`, `node scripts/eval/report.mjs`, `python scripts/eval/explore.py` | Miden la detección contra grabaciones etiquetadas y prueban ideas sobre lo ya medido (ver `docs/evaluacion.md`) |
 | `python scripts/prepare-birdnet-plus.py` | Prepara para el navegador el filtro geográfico del V3 y el modelo BirdNET+ V3 (ver ADR-31 y `docs/despliegue.md`) |
