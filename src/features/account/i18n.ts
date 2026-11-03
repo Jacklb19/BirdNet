@@ -72,7 +72,8 @@ export const accountMessages = defineMessages({
       species: { one: 'especie', other: 'especies' },
       sites: { one: 'lugar', other: 'lugares' },
       days: { one: 'día con cantos', other: 'días con cantos' },
-      since: (date: string) => `Registras desde el ${date}.`,
+      // No final period: some clocks already end in one ("2:06 p. m.").
+      since: (date: string) => `Registras desde el ${date}`,
       album: 'Abrir mi álbum',
       unavailable: 'Tus totales en la nube se ven con conexión.',
     },
@@ -266,7 +267,7 @@ export const accountMessages = defineMessages({
       species: { one: 'species', other: 'species' },
       sites: { one: 'place', other: 'places' },
       days: { one: 'day with songs', other: 'days with songs' },
-      since: (date: string) => `Recording since ${date}.`,
+      since: (date: string) => `Recording since ${date}`,
       album: 'Open my album',
       unavailable: 'Your cloud totals show when you are online.',
     },
