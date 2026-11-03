@@ -12,8 +12,8 @@ export interface NavItem {
 const item = (section: Section, route: Route, icon: IconName): NavItem => ({ section, href: routeHash(route), icon });
 
 /**
- * Top-level sections in display order (tab bar on phones, the bar on wide screens). Places are reached from the
- * map, where they belong since songs are pinned to the walk (ADR-22).
+ * Top-level sections in display order (tab bar on phones, the bar on wide screens). Places open from the map, where
+ * they belong since songs are pinned to the walk (ADR-22), and with walks from the menu (ADR-44).
  */
 export const NAV_ITEMS: readonly NavItem[] = Object.freeze([
   item('listen', { name: 'listen' }, 'listen'),

@@ -14,6 +14,17 @@ export function appLinks(dict: Messages, current: Section | null): SiteBarLink[]
   }));
 }
 
+/**
+ * Places and walks, in the phone menu after the sections. They also open from the map and the log, but the audit of
+ * 2026-11-02 found them too hard to find there alone (ADR-44); the bars keep only the sections.
+ */
+export function collectionLinks(dict: Messages, place: MenuPlace): SiteBarLink[] {
+  return [
+    { key: 'places', label: dict.app.menuLinks.places, href: routeHash({ name: 'sites' }), icon: 'sites', current: place === 'sites' || place === 'site' },
+    { key: 'walks', label: dict.app.menuLinks.walks, href: routeHash({ name: 'walks' }), icon: 'walk', current: place === 'walks' || place === 'walk' },
+  ];
+}
+
 /** The link back to the home page, first in the app's bar: the site and the app are one place (ADR-27). */
 export function homeLink(dict: Messages): SiteBarLink {
   return { key: 'home', label: dict.app.nav.home, href: routeHash({ name: 'home' }), icon: 'home' };

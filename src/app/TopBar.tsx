@@ -6,7 +6,7 @@ import type { Section } from './navigation';
 import { routeHash, type Route } from './routes';
 import { SessionEntry } from './SessionEntry';
 import { SiteBar } from './SiteBar';
-import { accountGroup, appLinks, homeLink } from './siteMenu';
+import { accountGroup, appLinks, collectionLinks, homeLink } from './siteMenu';
 import './TopBar.css';
 
 export interface TopBarProps {
@@ -26,7 +26,7 @@ export function TopBar({ current, route }: TopBarProps): React.JSX.Element {
     <SiteBar navLabel={dict.app.navLabel} brandHref={home.href ?? routeHash({ name: 'home' })}
       links={[home, ...sections]}
       menu={[
-        { key: 'app', label: dict.app.menuGroups.app, links: sections },
+        { key: 'app', label: dict.app.menuGroups.app, links: [...sections, ...collectionLinks(dict, route)] },
         { key: 'site', label: dict.app.menuGroups.site, links: [home] },
         accountGroup(dict, account.session !== null, route),
       ]}
