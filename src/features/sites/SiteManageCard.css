@@ -1,0 +1,39 @@
+.bn-site-manage {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-raised);
+}
+
+.bn-site-manage__title {
+  margin: 0;
+  font-size: var(--text-title);
+}
+
+.bn-site-manage__form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.bn-site-manage__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.bn-site-manage__hint,
+.bn-site-manage__ask {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.bn-site-manage__ask:focus {
+  outline: none;
+}
+
+.bn-site-manage__ask:focus-visible {
+  outline: var(--focus-width) solid var(--color-brand);
+  outline-offset: var(--focus-offset);
+}

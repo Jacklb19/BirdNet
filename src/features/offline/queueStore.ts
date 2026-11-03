@@ -242,6 +242,26 @@ export async function assignSiteToUnlocated(siteId: string): Promise<number> {
   return assigned;
 }
 
+/**
+ * After a site was deleted in the account (ADR-44): the records filed under it keep their cell but no longer name it,
+ * or the server would refuse their whole batch for an unknown site. The history only shows it, so it forgets it too.
+ */
+export async function forgetSite(siteId: string): Promise<void> {
+  if (!isUuid(siteId)) throw new Error('Invalid site.');
+  await transact([STORES.detections, STORES.history], 'readwrite', async (tx) => {
+    for (const record of await request(tx.objectStore(STORES.detections).getAll()) as StoredDetection[]) {
+      if (record.siteId !== siteId) continue;
+      const updated = { ...record, siteId: null };
+      measureRecord(updated);
+      await request(tx.objectStore(STORES.detections).put(updated));
+    }
+    for (const entry of await request(tx.objectStore(STORES.history).getAll()) as HistoryEntry[]) {
+      if (entry.siteId === siteId) await request(tx.objectStore(STORES.history).put({ ...entry, siteId: null }));
+    }
+  });
+  announceQueueChange(['records']);
+}
+
 /** Moves the records the server confirmed from the queue to the local history; the others stay intact. */
 export async function acknowledge(ids: readonly string[]): Promise<void> {
   await transact([STORES.detections, STORES.history], 'readwrite', async (tx) => {
