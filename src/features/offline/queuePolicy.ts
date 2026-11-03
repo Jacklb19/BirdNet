@@ -52,6 +52,23 @@ export function sharesMap(settings: Pick<OfflineSettings, 'shareMap'>): boolean 
 }
 
 /**
+ * The settings once `userId` is the account on this phone (null: signed out), or null when nothing changes. Answers
+ * given by an account are forgotten when it signs out or another one signs in, so the next person is asked again;
+ * answers given without an account are taken by the first one that signs in (audit of 2026-11-02, ADR-44).
+ */
+export function choicesFor(settings: OfflineSettings, userId: string | null): OfflineSettings | null {
+  const owner = settings.choicesOwner ?? null;
+  if (owner === userId) return null;
+  if (owner === null && userId !== null) return { ...settings, choicesOwner: userId };
+  // The answers about what leaves the phone (sharing, recordings and walks in the account) go; the rest stays.
+  const next: OfflineSettings = { ...settings, choicesOwner: userId };
+  delete next.shareMap;
+  delete next.saveRecordings;
+  delete next.saveWalks;
+  return next;
+}
+
+/**
  * Records that `assignSiteToUnlocated` may file under `site`: those still without a location that belong to
  * `accountId` or to nobody yet (they are claimed when the person signs in). A record with a device location keeps
  * it, and another account's records are never touched, because the site belongs to `accountId`.

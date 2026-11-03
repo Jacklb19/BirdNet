@@ -3,7 +3,7 @@ import type { GoTrueClient, Session } from '@supabase/auth-js';
 import { navigateTo, routeHash } from '../../app/routes';
 import { config } from '../../config/env';
 import { scheduleSynchronization } from '../offline/offlineClient';
-import { bindSyncSession, keepSitesOf, listDetections } from '../offline/queueStore';
+import { bindSyncSession, keepChoicesOf, keepSitesOf, listDetections } from '../offline/queueStore';
 import {
   GENERIC_ACCOUNT_FAILURE, GOOGLE_PROVIDER, PASSWORD_RECOVERY_EVENT, SIGNED_IN_EVENT, SIGNED_OUT_EVENT, type AccountFailure,
 } from './account.constants';
@@ -144,8 +144,12 @@ export function useAccount(): AccountState {
           await bindSyncSession(toSyncSession(next));
           // The cached sites belong to one account (privacy on a shared phone): forgotten on sign-out or when another
           // account signs in. A missing session alone is not a sign-out: a stored session that cannot be renewed
-          // offline also starts without one, and the field still needs the saved sites.
-          if (next || event === SIGNED_OUT_EVENT) await keepSitesOf(next?.user.id ?? null);
+          // offline also starts without one, and the field still needs the saved sites. The answers about what leaves
+          // the phone follow the same account.
+          if (next || event === SIGNED_OUT_EVENT) {
+            await keepSitesOf(next?.user.id ?? null);
+            await keepChoicesOf(next?.user.id ?? null);
+          }
         }
         if (next) await scheduleSynchronization();
         const unowned = next ? await countUnowned() : 0;

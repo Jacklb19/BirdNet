@@ -2,7 +2,7 @@ import { isDetectionModel, isDetectionStyle } from '../inference/detectionChoice
 import type { ClassifiedDetection } from '../inference/detectionPolicy';
 import { CONFIDENCE_THRESHOLDS, FIELD_LIMITS, isUuid } from '../../config/contract';
 import { announceQueueChange } from './queueChanges';
-import { assertQueueCapacity, recordingLocation, recordingSite, unlocatedAssignment } from './queuePolicy';
+import { assertQueueCapacity, choicesFor, recordingLocation, recordingSite, unlocatedAssignment } from './queuePolicy';
 import {
   DATABASE_NAME, DATABASE_VERSION, DEFAULT_QUEUE_BYTES, isEditableSettingsKey, QUEUED_STATUS_BY_LOCAL_STATUS,
   SETTINGS_RECORD_KEY, STORES, type EditableSettings, type StoreName,
@@ -145,6 +145,16 @@ export async function keepSitesOf(userId: string | null): Promise<void> {
   });
   if (forgotten) announceQueueChange(['settings']);
 }
+/** Keeps the answers about what leaves the phone with the account that gave them (see `choicesFor`). */
+export async function keepChoicesOf(userId: string | null): Promise<void> {
+  if (userId !== null && !isUuid(userId)) throw new Error('Invalid account.');
+  const changed = await transact([STORES.settings], 'readwrite', async (tx) => {
+    const next = choicesFor(await readSettings(tx), userId);
+    if (next) await writeSettings(tx, next);
+    return next !== null;
+  });
+  if (changed) announceQueueChange(['settings']);
+}
 /**
  * After the account was deleted (ADR-38): its records waiting to upload and those without an owner (which any account
  * signing in here would claim) go, the history of uploaded songs goes (it keeps no owner, and on this phone it is the
@@ -157,7 +167,7 @@ export async function forgetAccountRecords(userId: string): Promise<void> {
     const records = await request(tx.objectStore(STORES.detections).getAll()) as StoredDetection[];
     for (const row of records) if (!row.owner || row.owner === userId) await request(tx.objectStore(STORES.detections).delete(row.id));
     await request(tx.objectStore(STORES.history).clear());
-    const next: OfflineSettings = { ...await readSettings(tx), session: null, sites: [], sitesOwner: null, activeSiteId: null };
+    const next: OfflineSettings = { ...await readSettings(tx), session: null, sites: [], sitesOwner: null, activeSiteId: null, choicesOwner: null };
     // Unanswered again: a later account on this phone is asked anew.
     delete next.shareMap;
     delete next.saveRecordings;
