@@ -80,7 +80,6 @@ export default function ListenPage(): React.JSX.Element {
       {isDesktop ? header : <div className="visually-hidden">{header}</div>}
       <ListenContext picker={picker} zone={zone} regionSpecies={regionSpecies} active={active} />
 
-      <ShareChoiceCard />
       {sessionError !== null && showsSessionError(sessionError, model.state) && <SessionErrorNotice error={sessionError} />}
       <ModelNotice model={model} active={active} />
       {tooSlowForTwo && <Notice tone="info" live>{t.tooSlowForTwo}</Notice>}
@@ -99,6 +98,9 @@ export default function ListenPage(): React.JSX.Element {
         </div>
         <div className="bn-listen__side">
           <SessionAlbum species={species} active={active} />
+          {/* Below the plate and only between sessions: the question waits until listening is not what the person came
+              for, and nothing is shared until it is answered (ADR-22, ADR-44). Account asks it first. */}
+          {!active && <ShareChoiceCard />}
           {active && <PocketInvite />}
           {!active && <WalkInvite blockedReason={blocker ? t.record[blocker] : null} />}
           {species.length === 0 && <RecentAlbum />}
