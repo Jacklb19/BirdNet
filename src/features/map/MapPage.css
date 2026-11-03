@@ -76,6 +76,28 @@
   box-shadow: var(--shadow-float);
 }
 
+/* Phones show the icon alone; its name stays for assistive technology. */
+@media not all and (min-width: 64rem) {
+  .bn-map__tool-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 64rem) {
+  .bn-map__tool--labelled {
+    width: auto;
+    gap: var(--space-2);
+    padding-inline: var(--space-3) var(--space-4);
+    font-weight: var(--font-weight-semibold);
+    text-decoration: none;
+  }
+}
+
 .bn-map__tool[aria-pressed='true'] {
   background: var(--color-bg-inverse);
   color: var(--color-text-inverse);

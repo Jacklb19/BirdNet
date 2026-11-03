@@ -178,7 +178,10 @@ function MapScreen({ initialSpecies }: { readonly initialSpecies: string | null 
               <Icon name="layers" />
             </button>
           )}
-          <a className="bn-map__tool" href={routeHash({ name: 'sites' })} aria-label={m.tools.places} title={m.tools.places}><Icon name="sites" /></a>
+          {/* Named in words on wide screens, which have no menu to find places in (ADR-44); an icon on phones. */}
+          <a className="bn-map__tool bn-map__tool--labelled" href={routeHash({ name: 'sites' })}>
+            <Icon name="sites" /><span className="bn-map__tool-label">{m.tools.places}</span>
+          </a>
         </span>
       </div>
       {/* Filters need something to filter: the person's own songs (hidden during a walk, which shows it all), or a server to ask. */}

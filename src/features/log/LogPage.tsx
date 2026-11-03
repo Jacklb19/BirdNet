@@ -1,5 +1,6 @@
 import { useId, useMemo, useState } from 'react';
 import { routeHash } from '../../app/routes';
+import { useIsDesktop } from '../../config/layout';
 import { formatCount, useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
 import { EmptyState } from '../../shared/ui/EmptyState';
@@ -36,6 +37,7 @@ export default function LogPage(): React.JSX.Element {
   const { sites, active } = useSites();
   const { records, everything, readAt, error, reload } = useLogRecords();
   const { walks } = useWalkData();
+  const isDesktop = useIsDesktop();
   const [filter, setFilter] = useState<LogFilter>('all');
   const [query, setQuery] = useState('');
   const [site, setSite] = useState(ALL_SITES);
@@ -66,7 +68,9 @@ export default function LogPage(): React.JSX.Element {
 
   return (
     <Page width="narrow" className="bn-log">
-      <PageHeader title={dict.log.title} subtitle={subtitle} />
+      {/* Wide screens have no menu: the walks are reached from here, whatever the log holds (ADR-44). */}
+      <PageHeader title={dict.log.title} subtitle={subtitle}
+        actions={isDesktop ? <Button variant="quiet" icon="walk" href={routeHash({ name: 'walks' })}>{dict.log.empty.walks}</Button> : undefined} />
       {error && (
         <Notice tone="error" action={<Button variant="quiet" onClick={reload}>{dict.common.actions.retry}</Button>}>{dict.log.loadError}</Notice>
       )}
@@ -79,8 +83,8 @@ export default function LogPage(): React.JSX.Element {
             <div className="bn-log__empty-actions">
               <Button href={routeHash({ name: 'listen' })} icon="listen">{dict.log.empty.action}</Button>
               <Button variant="secondary" href={routeHash({ name: 'map' })} icon="walk">{dict.log.empty.walk}</Button>
-              {/* A walk can be saved without any song, and the log is where walks are looked for. */}
-              <Button variant="quiet" href={routeHash({ name: 'walks' })}>{dict.log.empty.walks}</Button>
+              {/* A walk can be saved without any song, and the log is where walks are looked for; wide screens have it in the header. */}
+              {!isDesktop && <Button variant="quiet" href={routeHash({ name: 'walks' })}>{dict.log.empty.walks}</Button>}
             </div>
           )}>
           {dict.log.empty.text}
