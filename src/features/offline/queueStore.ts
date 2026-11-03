@@ -2,7 +2,7 @@ import { isDetectionModel, isDetectionStyle } from '../inference/detectionChoice
 import type { ClassifiedDetection } from '../inference/detectionPolicy';
 import { CONFIDENCE_THRESHOLDS, FIELD_LIMITS, isUuid } from '../../config/contract';
 import { announceQueueChange } from './queueChanges';
-import { assertQueueCapacity, recordingLocation, recordingSite, unlocatedAssignment } from './queuePolicy';
+import { assertQueueCapacity, choicesFor, recordingLocation, recordingSite, unlocatedAssignment } from './queuePolicy';
 import {
   DATABASE_NAME, DATABASE_VERSION, DEFAULT_QUEUE_BYTES, isEditableSettingsKey, QUEUED_STATUS_BY_LOCAL_STATUS,
   SETTINGS_RECORD_KEY, STORES, type EditableSettings, type StoreName,
@@ -145,6 +145,16 @@ export async function keepSitesOf(userId: string | null): Promise<void> {
   });
   if (forgotten) announceQueueChange(['settings']);
 }
+/** Keeps the answers about what leaves the phone with the account that gave them (see `choicesFor`). */
+export async function keepChoicesOf(userId: string | null): Promise<void> {
+  if (userId !== null && !isUuid(userId)) throw new Error('Invalid account.');
+  const changed = await transact([STORES.settings], 'readwrite', async (tx) => {
+    const next = choicesFor(await readSettings(tx), userId);
+    if (next) await writeSettings(tx, next);
+    return next !== null;
+  });
+  if (changed) announceQueueChange(['settings']);
+}
 /**
  * After the account was deleted (ADR-38): its records waiting to upload and those without an owner (which any account
  * signing in here would claim) go, the history of uploaded songs goes (it keeps no owner, and on this phone it is the
@@ -157,7 +167,7 @@ export async function forgetAccountRecords(userId: string): Promise<void> {
     const records = await request(tx.objectStore(STORES.detections).getAll()) as StoredDetection[];
     for (const row of records) if (!row.owner || row.owner === userId) await request(tx.objectStore(STORES.detections).delete(row.id));
     await request(tx.objectStore(STORES.history).clear());
-    const next: OfflineSettings = { ...await readSettings(tx), session: null, sites: [], sitesOwner: null, activeSiteId: null };
+    const next: OfflineSettings = { ...await readSettings(tx), session: null, sites: [], sitesOwner: null, activeSiteId: null, choicesOwner: null };
     // Unanswered again: a later account on this phone is asked anew.
     delete next.shareMap;
     delete next.saveRecordings;
@@ -230,6 +240,26 @@ export async function assignSiteToUnlocated(siteId: string): Promise<number> {
   });
   if (assigned) announceQueueChange(['records']);
   return assigned;
+}
+
+/**
+ * After a site was deleted in the account (ADR-44): the records filed under it keep their cell but no longer name it,
+ * or the server would refuse their whole batch for an unknown site. The history only shows it, so it forgets it too.
+ */
+export async function forgetSite(siteId: string): Promise<void> {
+  if (!isUuid(siteId)) throw new Error('Invalid site.');
+  await transact([STORES.detections, STORES.history], 'readwrite', async (tx) => {
+    for (const record of await request(tx.objectStore(STORES.detections).getAll()) as StoredDetection[]) {
+      if (record.siteId !== siteId) continue;
+      const updated = { ...record, siteId: null };
+      measureRecord(updated);
+      await request(tx.objectStore(STORES.detections).put(updated));
+    }
+    for (const entry of await request(tx.objectStore(STORES.history).getAll()) as HistoryEntry[]) {
+      if (entry.siteId === siteId) await request(tx.objectStore(STORES.history).put({ ...entry, siteId: null }));
+    }
+  });
+  announceQueueChange(['records']);
 }
 
 /** Moves the records the server confirmed from the queue to the local history; the others stay intact. */

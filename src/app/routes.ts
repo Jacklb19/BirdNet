@@ -5,7 +5,7 @@ export type Route =
   | { name: 'listen' } | { name: 'log' } | { name: 'album' } | { name: 'detection'; id: string }
   | { name: 'map'; species?: string } | { name: 'sites' } | { name: 'site'; id: string }
   | { name: 'species'; species: string } | { name: 'account' } | { name: 'settings' } | { name: 'home' }
-  | { name: 'walks' } | { name: 'walk'; id: string };
+  | { name: 'walks' } | { name: 'walk'; id: string } | { name: 'notFound' };
 
 /** Path of the guide: the album of recorded species and the birds still to find (`#/guide`). */
 const GUIDE_PATH = 'guide';
@@ -42,11 +42,13 @@ export function parseRoute(hash: string): Route {
       const species = speciesFrom(id);
       return species ? { name: 'species', species } : { name: 'album' };
     }
+    case 'listen': return { name: 'listen' };
     case 'account': return { name: 'account' };
     case 'settings': return { name: 'settings' };
     // The bare address is the home page (ADR-27). "welcome" was the first-run screen until S6; old links land here too.
     case '': case 'home': case 'welcome': return { name: 'home' };
-    default: return { name: 'listen' };
+    // A mistyped or outdated address says so, instead of opening a screen the person did not ask for (audit U6).
+    default: return { name: 'notFound' };
   }
 }
 
@@ -64,12 +66,14 @@ export function routeHash(route: Route): string {
 }
 
 /** Top-level section a route belongs to, for navigation highlighting. */
-export function sectionOf(route: Route): 'listen' | 'map' | 'guide' | 'log' | 'account' {
+export function sectionOf(route: Route): 'listen' | 'map' | 'guide' | 'log' | 'account' | null {
   switch (route.name) {
     case 'album': case 'species': return 'guide';
     case 'detection': case 'walks': case 'walk': return 'log';
     case 'sites': case 'site': return 'map';
     case 'settings': case 'home': return 'account';
+    // Belongs to no section, so none is marked.
+    case 'notFound': return null;
     default: return route.name;
   }
 }

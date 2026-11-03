@@ -106,6 +106,12 @@ export const logMessages = defineMessages({
       text: 'Lo que el teléfono identifique mientras escuchas aparecerá aquí, agrupado por día.',
       action: 'Empezar a escuchar',
       walk: 'Salir a caminar',
+      walks: 'Ver mis caminatas',
+    },
+    account: {
+      title: 'En tu cuenta',
+      text: 'Cantos guardados en tu cuenta que este teléfono no tiene: los grabaste en otro teléfono o son anteriores. Ábrelos para revisarlos o anotarlos.',
+      more: 'Ver más',
     },
     loadError: 'No se pudo leer la bitácora guardada en el teléfono.',
     detail: {
@@ -159,6 +165,8 @@ export const logMessages = defineMessages({
         onPhone: 'Grabación guardada en este teléfono.',
         inAccount: 'Grabación guardada en este teléfono y en tu cuenta, donde solo tú puedes oírla.',
         delete: 'Borrar la grabación',
+        deleteAsk: { phone: 'Se borra de este teléfono. No se puede deshacer.', everywhere: 'Se borra de este teléfono y de tu cuenta. No se puede deshacer.' },
+        deleteConfirm: 'Borrar',
         deleteFailed: 'No se pudo borrar de tu cuenta. Inténtalo de nuevo con conexión y sesión iniciada.',
       },
       facts: {
@@ -190,6 +198,14 @@ export const logMessages = defineMessages({
       notFound: {
         title: 'Registro no encontrado',
         text: 'Este registro no está guardado en este teléfono.',
+      },
+      account: {
+        source: 'Guardado en tu cuenta',
+        offline: 'Sin conexión. Este canto está solo en tu cuenta: ábrelo de nuevo cuando vuelva la señal.',
+        loadError: 'No se pudo leer este canto de tu cuenta.',
+        play: 'Oír la grabación',
+        stop: 'Detener la grabación',
+        failed: 'No se pudo reproducir la grabación.',
       },
     },
   },
@@ -297,6 +313,12 @@ export const logMessages = defineMessages({
       text: 'What the phone identifies while you listen will appear here, grouped by day.',
       action: 'Start listening',
       walk: 'Go for a walk',
+      walks: 'See my walks',
+    },
+    account: {
+      title: 'In your account',
+      text: 'Songs saved in your account that this phone does not have: you recorded them on another phone, or they are older. Open them to review or annotate them.',
+      more: 'Show more',
     },
     loadError: 'The log kept on this phone could not be read.',
     detail: {
@@ -350,6 +372,8 @@ export const logMessages = defineMessages({
         onPhone: 'Recording kept on this phone.',
         inAccount: 'Recording kept on this phone and in your account, where only you can listen to it.',
         delete: 'Delete the recording',
+        deleteAsk: { phone: 'It is deleted from this phone. This cannot be undone.', everywhere: 'It is deleted from this phone and from your account. This cannot be undone.' },
+        deleteConfirm: 'Delete',
         deleteFailed: 'It could not be deleted from your account. Try again online and signed in.',
       },
       facts: {
@@ -381,6 +405,14 @@ export const logMessages = defineMessages({
       notFound: {
         title: 'Record not found',
         text: 'This record is not stored on this phone.',
+      },
+      account: {
+        source: 'Saved in your account',
+        offline: 'Offline. This song is only in your account: open it again once you have a connection.',
+        loadError: 'This song could not be read from your account.',
+        play: 'Play the recording',
+        stop: 'Stop the recording',
+        failed: 'The recording could not be played.',
       },
     },
   },

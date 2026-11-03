@@ -599,6 +599,60 @@ En Vercel Hobby los registros de la API se guardan una hora (documentación ofic
 
 ---
 
+## ADR-44. Arreglos de la auditoría del 2026-11-02: datos atados a su dueño, preferencias por cuenta y lo que costaba encontrar (completa ADR-21, ADR-22 y ADR-28)
+
+### Contexto
+Una auditoría de la versión desplegada encontró lo siguiente:
+- El esquema `public` estaba expuesto por PostgREST. Con la clave anónima del bundle y una cuenta cualquiera se leían las detecciones compartidas con `user_id`, `site_id` y la celda sin generalizar.
+- Una clave foránea simple ignora RLS. Por eso, escribiendo directo en la base, una detección podía nombrar el lugar de otra persona y entrar en sus estadísticas y su informe, y una nota podía moverse a la detección de otra persona.
+- Las subidas firmadas y nunca enlazadas no contaban en el tope de grabaciones.
+- Las respuestas de privacidad (compartir en el mapa, guardar grabaciones y caminatas en la cuenta) se guardaban por teléfono y pasaban a la siguiente cuenta.
+- Lugares y caminatas eran difíciles de encontrar.
+- En el teléfono, la pregunta de compartir ocupaba la primera pantalla de Escuchar.
+
+### Decisión
+- **Data API**: el dueño quita `public` de los esquemas expuestos de Supabase (*Settings → Data API*). Ni la web ni la API usan PostgREST; la API entra por PostgreSQL con `SET LOCAL ROLE authenticated`, así que no se pueden revocar los permisos de ese rol.
+- **Migración `20261102000000_ownership_and_pending_uploads.sql`**:
+  - clave foránea compuesta `(site_id, user_id) → sites(id, owner_id)`, con `on delete set null (site_id)`;
+  - longitud de `especie` y `version_modelo` entre 1 y 200;
+  - la política de edición de notas vuelve a exigir que la detección sea del dueño;
+  - tabla `recording_uploads` (RLS del dueño y segundo paso).
+- **Estadísticas de un lugar**: cuentan solo los cantos de su dueño.
+- **Tope de grabaciones**: una subida firmada y aún no enlazada cuenta como el clip más grande que admite el bucket (100 000 bytes) hasta que se enlaza o se borra. Borrar las grabaciones borra también esos objetos.
+- **La API ya no publica `/openapi.json`.**
+- **Preferencias por cuenta**: `shareMap`, `saveRecordings` y `saveWalks` llevan su dueño (`choicesOwner`). Se olvidan al cerrar sesión o si entra otra cuenta. Las dadas sin cuenta pasan a la primera que entra.
+- **Lugares y «Mis caminatas»** van en el menú del teléfono, tras las secciones; las barras siguen con solo las secciones. La Bitácora vacía enlaza las caminatas.
+- **Escuchar**: la pregunta de compartir va debajo de la lámina y el espectrograma, y solo entre sesiones. Cuenta la sigue haciendo primero, y nada se comparte hasta responderla (ADR-22).
+- **Correo**: el dueño aprobó volver a activar *Confirm email* (cambia ADR-21). Con el SMTP propio (2026-10-29) ya llega a cualquiera. Así nadie crea una cuenta con un correo ajeno, y Supabase deja de responder distinto a un correo ya registrado. La app ya maneja el registro que espera confirmación (`signUp` devuelve que falta confirmar).
+
+### Ampliación (2026-11-02, misma auditoría)
+- **Cantos que solo están en la cuenta** (RF-11):
+  - la Bitácora los lista en «En tu cuenta»;
+  - su detalle se lee con `GET /v1/me/detections/{id}` y la revisión y la nota van directo a la API, sin pasar por la cola local ni por la sincronización;
+  - los propios del mapa y de la ficha de especie abren ese detalle.
+- **Lugares**: se renombran (`PATCH /v1/sites/{id}`; no se mueven) y se borran (`DELETE /v1/sites/{id}`). Sus cantos se quedan sin lugar y los que esperan subir dejan de nombrarlo.
+- **Mapa de todos**: los cantos de otra persona llevan solo la hora en punto. Al segundo, una serie de ellos dibujaba cuándo pasa alguien por un sitio.
+- **CSV**: todas las columnas de texto libre se neutralizan contra fórmulas.
+- **Web**:
+  - `Permissions-Policy` deja a la app solo el micrófono y la ubicación, y la CSP añade `form-action 'self'`;
+  - cerrar sesión cierra solo este dispositivo;
+  - borrar una grabación pide confirmación;
+  - las confirmaciones en línea llevan y devuelven el foco.
+
+### Tercera tanda (2026-11-03)
+- **Dirección desconocida**: abre «Pantalla no encontrada», con enlaces a Escuchar y al inicio, en lugar de Escuchar sin aviso.
+- **Vuelta fallida de Google o de un enlace de correo**: la pantalla muestra solo el código de error (`[a-z][a-z0-9_]*`), nunca el texto libre de `error_description`, que cualquiera puede poner en un enlace.
+- **Pantallas anchas**: el botón de lugares del mapa lleva su nombre y la cabecera de la Bitácora enlaza siempre las caminatas.
+- **Sentry**: también se borran los tokens y JWT citados en los mensajes de error.
+- **E2E con sesión**: `npm run build:e2e` hace la build con cuentas apuntando a un Supabase ficticio; `e2e/account.spec.ts` responde su Auth con rutas de Playwright y usa una sesión firmada por la API local.
+
+### Pendiente
+- Un límite de peticiones: Vercel Hobby admite una regla de límite por proyecto (verificado el 2026-11-02). La recomendación es ponerla en el proyecto de la web, sobre `/api/v1/`, por IP. La configura el dueño.
+- Volver a generar `species-names.json` traería los nombres de eBird en su nueva forma, solo con la primera palabra en mayúscula (7.288 nombres). Se dejó la forma actual y solo se añadió la garcilla bueyera occidental.
+- Decisiones del dueño aún abiertas: identificación reciente para borrar la cuenta, `flowType: 'pkce'` y la forma de los nombres de eBird.
+
+---
+
 ## Paquete principal de la web (Sprint 11)
 
 Medido con los sourcemaps del build: `app` pasó de 602,6 kB (177,3 kB gzip) a 311,6 kB (100,4 kB gzip). Dos cambios: la app carga solo Supabase Auth (ADR-39) y los textos de las secciones viajan en su propio archivo (96 kB, 29 kB gzip), pedido al arrancar en paralelo con la primera sección; el armazón solo usa los suyos. Lo que queda es sobre todo react-dom (202 kB).

@@ -86,6 +86,8 @@ export interface OfflineSettings {
   sites?: CachedSite[];
   /** Account that fetched `sites`; absent on lists cached before it was recorded. */
   sitesOwner?: string | null;
+  /** Account whose answers `shareMap`, `saveRecordings` and `saveWalks` are; absent or null while nobody signed in gave them. */
+  choicesOwner?: string | null;
 }
 export interface QueueStats { count: number; bytes: number; waitingLocation: number; waitingAccount: number }
 export interface PersistenceContext {

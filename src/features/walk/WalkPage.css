@@ -58,8 +58,19 @@
   gap: var(--space-3);
 }
 
-.bn-walk-page__rename-button {
+.bn-walk-page__rename-button,
+.bn-walk-page__rename-slot {
   justify-self: start;
+}
+
+/* The question of the delete step takes the focus when it opens; the outline shows only for the keyboard. */
+.bn-walk-page__ask:focus {
+  outline: none;
+}
+
+.bn-walk-page__ask:focus-visible {
+  outline: var(--focus-width) solid var(--color-brand);
+  outline-offset: var(--focus-offset);
 }
 
 .bn-walk-page__rename {

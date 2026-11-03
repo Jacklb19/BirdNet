@@ -3,7 +3,7 @@ import type { GoTrueClient, Session } from '@supabase/auth-js';
 import { navigateTo, routeHash } from '../../app/routes';
 import { config } from '../../config/env';
 import { scheduleSynchronization } from '../offline/offlineClient';
-import { bindSyncSession, keepSitesOf, listDetections } from '../offline/queueStore';
+import { bindSyncSession, keepChoicesOf, keepSitesOf, listDetections } from '../offline/queueStore';
 import {
   GENERIC_ACCOUNT_FAILURE, GOOGLE_PROVIDER, PASSWORD_RECOVERY_EVENT, SIGNED_IN_EVENT, SIGNED_OUT_EVENT, type AccountFailure,
 } from './account.constants';
@@ -18,6 +18,12 @@ import {
 import { accountFailure, accountsConfigured, authClient, toSyncSession } from './supabaseClient';
 
 export type AccountError = AccountFailure | null;
+
+/**
+ * Part of the account screen an error belongs to, so each failure is shown once, beside what failed: signing in or
+ * the background work after it, the name and photo, the new password, or the authenticator app.
+ */
+export type AccountErrorScope = 'session' | 'profile' | 'recovery' | 'secondStep';
 
 export interface AccountState {
   readonly configured: boolean;
@@ -44,8 +50,11 @@ export interface AccountState {
   readonly unownedCount: number;
   readonly claimed: boolean;
   readonly error: AccountError;
+  readonly errorScope: AccountErrorScope;
   /** What the account service said about `error`, when it came back from Google or an e-mail link with a failure. */
   readonly errorDetail: string | null;
+  /** Forgets the error, when the person leaves what failed (cancels it or switches to another form). */
+  clearError(): void;
   readonly working: boolean;
   signIn(email: string, password: string): Promise<void>;
   /** Opens the browser's Google account chooser; where there is none, leaves for Google's page and Supabase brings the person back. */
@@ -108,6 +117,7 @@ export function useAccount(): AccountState {
   const [claimed, setClaimed] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [error, setError] = useState<AccountError>(returnError?.failure ?? null);
+  const [errorScope, setErrorScope] = useState<AccountErrorScope>('session');
   const [errorDetail, setErrorDetail] = useState<string | null>(returnError?.detail ?? null);
   const [working, setWorking] = useState(false);
   const [deleted, setDeleted] = useState<DeletionOutcome | null>(null);
@@ -144,13 +154,21 @@ export function useAccount(): AccountState {
           await bindSyncSession(toSyncSession(next));
           // The cached sites belong to one account (privacy on a shared phone): forgotten on sign-out or when another
           // account signs in. A missing session alone is not a sign-out: a stored session that cannot be renewed
-          // offline also starts without one, and the field still needs the saved sites.
-          if (next || event === SIGNED_OUT_EVENT) await keepSitesOf(next?.user.id ?? null);
+          // offline also starts without one, and the field still needs the saved sites. The answers about what leaves
+          // the phone follow the same account.
+          if (next || event === SIGNED_OUT_EVENT) {
+            await keepSitesOf(next?.user.id ?? null);
+            await keepChoicesOf(next?.user.id ?? null);
+          }
         }
         if (next) await scheduleSynchronization();
         const unowned = next ? await countUnowned() : 0;
         if (subscription.active) setUnownedCount(unowned);
-      })().catch(() => { if (subscription.active) setError(GENERIC_ACCOUNT_FAILURE); });
+      })().catch(() => {
+        if (!subscription.active) return;
+        setErrorScope('session');
+        setError(GENERIC_ACCOUNT_FAILURE);
+      });
     };
     return () => { subscription.active = false; subscription.unsubscribe(); };
   }, []);
@@ -181,16 +199,19 @@ export function useAccount(): AccountState {
   const profile = loadedProfile && loadedProfile.userId === userId ? loadedProfile.profile : null;
   const setProfile = useCallback((next: Profile): void => { if (userId) setLoadedProfile({ userId, profile: next }); }, [userId]);
 
-  const run = useCallback(async <T,>(action: () => Promise<T>, fallback: T): Promise<T> => {
+  const run = useCallback(async <T,>(action: () => Promise<T>, fallback: T, scope: AccountErrorScope = 'session'): Promise<T> => {
     setWorking(true);
     setError(null);
     setErrorDetail(null);
     try { return await action(); }
     catch (caught) {
+      setErrorScope(scope);
       setError(accountFailure(caught));
       return fallback;
     } finally { setWorking(false); }
   }, []);
+
+  const clearError = useCallback((): void => { setError(null); setErrorDetail(null); }, []);
 
   const signIn = useCallback((email: string, password: string) => run(async () => {
     const { error: failure } = await (await requireClient()).signInWithPassword({ email, password });
@@ -231,7 +252,7 @@ export function useAccount(): AccountState {
     if (failure) throw failure;
     setRecovering(false);
     return true;
-  }, false), [run]);
+  }, false, 'recovery'), [run]);
 
   const signOut = useCallback(() => run(async () => {
     const auth = await authClient();
@@ -239,7 +260,8 @@ export function useAccount(): AccountState {
     setClaimed(false);
     setDismissed(false);
     setRecovering(false);
-    const { error: failure } = await auth.signOut();
+    // This device only: signing out of every device at once was neither asked for nor said (audit of 2026-11-02).
+    const { error: failure } = await auth.signOut({ scope: 'local' });
     if (failure) throw failure;
   }, undefined), [run]);
 
@@ -268,13 +290,13 @@ export function useAccount(): AccountState {
     if (!token) return false;
     setProfile(await updateProfile(token, { alias: normalizeAlias(alias) }));
     return true;
-  }, false), [run, token, setProfile]);
+  }, false, 'profile'), [run, token, setProfile]);
 
   const saveAvatar = useCallback((file: Blob) => run(async () => {
     if (!token || !userId) return false;
     setProfile(await uploadAvatar(token, userId, await encodeAvatar(file)));
     return true;
-  }, false), [run, token, userId, setProfile]);
+  }, false, 'profile'), [run, token, userId, setProfile]);
 
   const claimLocal = useCallback(() => run(async () => {
     const sync = toSyncSession(session);
@@ -290,15 +312,15 @@ export function useAccount(): AccountState {
   const verifySecondStep = useCallback((code: string) => run(async () => {
     await completeSecondStep(await requireClient(), code);
     return true;
-  }, false), [run]);
+  }, false, 'secondStep'), [run]);
 
-  const startSecondStep = useCallback(() => run(async () => startEnrollment(await requireClient()), null), [run]);
+  const startSecondStep = useCallback(() => run(async () => startEnrollment(await requireClient()), null, 'secondStep'), [run]);
 
   const confirmSecondStep = useCallback((factorId: string, code: string) => run(async () => {
     await confirmEnrollment(await requireClient(), factorId, code);
     if (userId) setSecondStepState({ userId, enabled: true });
     return true;
-  }, false), [run, userId]);
+  }, false, 'secondStep'), [run, userId]);
 
   const cancelSecondStep = useCallback(async (factorId: string): Promise<void> => {
     // Best effort: an enrollment left behind is removed the next time one starts.
@@ -309,11 +331,11 @@ export function useAccount(): AccountState {
     await disableSecondStep(await requireClient(), code);
     if (userId) setSecondStepState({ userId, enabled: false });
     return true;
-  }, false), [run, userId]);
+  }, false, 'secondStep'), [run, userId]);
 
   return {
     configured: accountsConfigured, session, awaitingCode, secondStep, verifySecondStep, startSecondStep, confirmSecondStep, cancelSecondStep,
-    turnOffSecondStep, profile, recovering, unownedCount: dismissed ? 0 : unownedCount, claimed, error, errorDetail, working,
+    turnOffSecondStep, profile, recovering, unownedCount: dismissed ? 0 : unownedCount, claimed, error, errorScope, errorDetail, clearError, working,
     signIn, signInWithGoogle, signUp, requestPasswordReset, updatePassword, signOut, deleteAccount, deleted, saveAlias, saveAvatar, claimLocal, declineClaim,
   };
 }

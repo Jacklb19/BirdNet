@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react';
-import { routeHash } from '../../app/routes';
+import { navigateTo, routeHash } from '../../app/routes';
 import { useIsDesktop } from '../../config/layout';
 import { APPROX_CELL_METERS, DEFAULT_PERIOD, PERIODS, type Period } from '../../config/contract';
 import { formatCount, formatMeters, useI18n } from '../../i18n';
@@ -13,6 +13,7 @@ import { useAccountContext } from '../account/accountContext';
 import { useOnline } from '../offline/useQueueStatus';
 import { MissingSpecies } from './MissingSpecies';
 import { SiteChorusCard } from './SiteChorusCard';
+import { SiteManageCard } from './SiteManageCard';
 import { SiteReportCard } from './SiteReportCard';
 import { SitesAccessState } from './SitesAccessState';
 import { SiteSpeciesList } from './SiteSpeciesList';
@@ -29,7 +30,7 @@ export default function SitePage({ id }: { readonly id: string }): React.JSX.Ele
   const { configured, session } = useAccountContext();
   const online = useOnline();
   const isDesktop = useIsDesktop();
-  const { sites, ready, refresh } = useSites();
+  const { sites, ready, refresh, rename, remove } = useSites();
   const [period, setPeriod] = useState<Period>(DEFAULT_PERIOD);
   const token = session?.access_token ?? null;
   const site = sites.find((entry) => entry.id === id) ?? null;
@@ -125,6 +126,14 @@ export default function SitePage({ id }: { readonly id: string }): React.JSX.Ele
         </div>
       )}
       {!isDesktop && <div className="bn-site__export">{exportButton}{exportFeedback}</div>}
+      {site && (
+        <SiteManageCard key={site.id} site={site} online={online} onRename={(name) => rename(site.id, name)}
+          onRemove={async () => {
+            const done = await remove(site.id);
+            if (done) navigateTo({ name: 'sites' });
+            return done;
+          }} />
+      )}
     </Page>
   );
 }

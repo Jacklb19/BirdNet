@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
 import { Notice } from '../../shared/ui/Notice';
+import { useStepFocus } from '../../shared/ui/useStepFocus';
 import { useAccountContext } from '../account/accountContext';
 import { deleteRecording } from '../recordings/recordingStore';
 import { deleteAccountRecording } from '../recordings/recordingsApi';
@@ -22,6 +23,8 @@ export function RecordingCard({ detectionId, recording, online }: RecordingCardP
   const { session } = useAccountContext();
   const [working, setWorking] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [asking, setAsking] = useState(false);
+  const [askRef, backRef] = useStepFocus<HTMLParagraphElement, HTMLDivElement>(asking);
   const inAccount = recording.upload === 'uploaded';
 
   const remove = async (): Promise<void> => {
@@ -46,8 +49,20 @@ export function RecordingCard({ detectionId, recording, online }: RecordingCardP
       <FragmentPlayer fragment={recording} labels={texts} />
       <div className="bn-log-recording__foot">
         <p className="bn-log-recording__place">{inAccount ? texts.inAccount : texts.onPhone}</p>
-        <Button variant="quiet" icon="close" disabled={working} onClick={() => { void remove(); }}>{texts.delete}</Button>
+        <div ref={backRef}>
+          {!asking && <Button variant="quiet" icon="close" disabled={working} onClick={() => { setAsking(true); }}>{texts.delete}</Button>}
+        </div>
       </div>
+      {/* Confirmed in place: a recording deleted from the account cannot come back. */}
+      {asking && (
+        <div className="bn-log-recording__confirm" role="group" aria-label={texts.delete}>
+          <p ref={askRef} tabIndex={-1} className="bn-log-recording__ask">{inAccount ? texts.deleteAsk.everywhere : texts.deleteAsk.phone}</p>
+          <div className="bn-log-recording__actions">
+            <Button variant="secondary" aria-disabled={working} aria-busy={working} onClick={() => { if (!working) void remove(); }}>{texts.deleteConfirm}</Button>
+            <Button variant="quiet" disabled={working} onClick={() => { setAsking(false); setFailed(false); }}>{dict.common.actions.cancel}</Button>
+          </div>
+        </div>
+      )}
       {failed && <Notice tone="error" live>{texts.deleteFailed}</Notice>}
     </div>
   );

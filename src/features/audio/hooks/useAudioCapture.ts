@@ -167,8 +167,11 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
     };
     serviceRef.current = capture;
     inferenceRef.current = inference;
+    const followVisibility = (): void => { paceRef.current?.hidden(document.visibilityState !== 'visible'); };
+    document.addEventListener('visibilitychange', followVisibility);
     return () => {
       mounted = false;
+      document.removeEventListener('visibilitychange', followVisibility);
       monitorRef.current?.finish();
       monitorRef.current = null;
       clearLocation();
@@ -186,6 +189,7 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
     setSessionError(null);
     setTooSlowForTwo(false);
     paceRef.current = watchPace();
+    paceRef.current.hidden(document.visibilityState !== 'visible');
     monitorRef.current?.finish();
     monitorRef.current = startSessionMonitor();
     setDetections([]);

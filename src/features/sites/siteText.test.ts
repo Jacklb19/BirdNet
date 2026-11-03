@@ -10,6 +10,7 @@ describe('species change', () => {
     expect(speciesChange(23, 23)).toEqual({ kind: 'same' });
     expect(speciesChange(23, 20)).toEqual({ kind: 'change', delta: 3 });
     expect(speciesChange(0, 4)).toEqual({ kind: 'change', delta: -4 });
+    expect(speciesChange(0, 0)).toEqual({ kind: 'unknown' });
   });
 });
 

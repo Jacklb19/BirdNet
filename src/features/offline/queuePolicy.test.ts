@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { MIN_QUEUE_BYTES } from './offline.constants';
-import { acknowledgedIds, approximateLocation, assertQueueCapacity, recordingLocation, recordingSite, sharesMap, unlocatedAssignment } from './queuePolicy';
-import type { CachedSite, StoredDetection } from './types';
+import { acknowledgedIds, approximateLocation, assertQueueCapacity, choicesFor, recordingLocation, recordingSite, sharesMap, unlocatedAssignment } from './queuePolicy';
+import type { CachedSite, OfflineSettings, StoredDetection } from './types';
 
 describe('persistent queue policy', () => {
   it('checks capacity and acknowledgement membership across 1000 scenarios', () => {
@@ -64,5 +64,29 @@ describe('location of a recording (ADR-16)', () => {
     const assigned = unlocatedAssignment([located, mine, unclaimed, foreign], site, account);
     expect(assigned.map((record) => record.id)).toEqual(['mine', 'unclaimed']);
     expect(assigned.every((record) => record.siteId === site.id && record.location.latitude === site.latitude)).toBe(true);
+  });
+});
+
+describe('answers about what leaves the phone (ADR-44)', () => {
+  const ana = '0a1b2c3d-0000-4000-8000-00000000000a';
+  const beto = '0a1b2c3d-0000-4000-8000-00000000000b';
+  const base: OfflineSettings = { maxBytes: MIN_QUEUE_BYTES, locationEnabled: true, session: null };
+  const answered = (owner: string | null): OfflineSettings => ({ ...base, shareMap: true, saveRecordings: true, saveWalks: true, choicesOwner: owner });
+
+  it('never pass from one account to the next on a shared phone', () => {
+    const next = choicesFor(answered(ana), beto);
+    expect(next).toEqual({ ...base, choicesOwner: beto });
+    expect(next && sharesMap(next)).toBe(false);
+  });
+
+  it('are forgotten when their account signs out, and kept while it stays', () => {
+    expect(choicesFor(answered(ana), ana)).toBeNull();
+    expect(choicesFor(answered(ana), null)).toEqual({ ...base, choicesOwner: null });
+  });
+
+  it('given without an account go to the first account that signs in', () => {
+    expect(choicesFor(answered(null), ana)).toEqual(answered(ana));
+    expect(choicesFor({ ...base, shareMap: false }, ana)).toEqual({ ...base, shareMap: false, choicesOwner: ana });
+    expect(choicesFor(answered(null), null)).toBeNull();
   });
 });

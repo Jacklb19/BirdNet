@@ -73,7 +73,7 @@ export default function AccountPage(): React.JSX.Element {
           <ProfileCard account={account}>
             <SyncRow queue={queue} pending={pending} lastSyncedAt={totals?.lastSyncedAt ?? null} />
           </ProfileCard>
-          {account.error && !account.recovering && <Notice tone="error">{texts.errors[account.error]}</Notice>}
+          {account.error && (account.errorScope === 'session' || account.errorScope === 'profile') && <Notice tone="error">{texts.errors[account.error]}</Notice>}
           <AccountSummaryCard state={summary} />
         </>
       )}

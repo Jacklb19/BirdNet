@@ -7,15 +7,18 @@
  */
 import type { ReturnFailure } from './account.constants';
 
-/** Longest server description shown; it is foreign text, so it is bounded as well as escaped. */
-const MAX_DETAIL_LENGTH = 200;
+/**
+ * What may be shown of the server's answer: its error code, a short machine word. The description is free text that
+ * anyone can put in a link to Trino, so it never reaches the screen (audit of 2026-11-02).
+ */
+const ERROR_CODE = /^[a-z][a-z0-9_]{0,59}$/;
 
 /** Supabase Auth code of an e-mail link that was already used or is too old. */
 const EXPIRED_LINK_CODE = 'otp_expired';
 
 export interface AuthCallbackError {
   readonly failure: ReturnFailure;
-  /** What the server said, for whoever has to fix the configuration; null when it said nothing. */
+  /** The server's error code, for whoever has to fix the configuration; null when it gave none that looks like one. */
   readonly detail: string | null;
 }
 
@@ -28,6 +31,6 @@ export function readAuthCallbackError(href: string): AuthCallbackError | null {
   const code = read('error_code');
   const description = read('error_description');
   if (!read('error') && !code && !description) return null;
-  const detail = (description ?? code ?? '').trim().slice(0, MAX_DETAIL_LENGTH);
-  return { failure: code === EXPIRED_LINK_CODE ? 'linkExpired' : 'returnFailed', detail: detail || null };
+  const named = [code, read('error')].find((candidate) => candidate !== null && ERROR_CODE.test(candidate)) ?? null;
+  return { failure: code === EXPIRED_LINK_CODE ? 'linkExpired' : 'returnFailed', detail: named };
 }

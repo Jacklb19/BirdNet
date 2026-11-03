@@ -17,3 +17,28 @@
   color: var(--color-text-secondary);
   font-size: var(--text-small);
 }
+
+.bn-log-recording__confirm {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.bn-log-recording__ask {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.bn-log-recording__ask:focus {
+  outline: none;
+}
+
+.bn-log-recording__ask:focus-visible {
+  outline: var(--focus-width) solid var(--color-brand);
+  outline-offset: var(--focus-offset);
+}
+
+.bn-log-recording__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

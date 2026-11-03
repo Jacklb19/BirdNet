@@ -37,6 +37,8 @@ export declare const CROSS_ORIGIN_ISOLATION_HEADERS: Readonly<{
 }>;
 
 export declare const API_PROXY_PREFIX: string;
+/** Supabase project of the e2e build (`npm run build:e2e`), answered by e2e/account.spec.ts. */
+export declare const E2E_SUPABASE: Readonly<{ url: string; anonKey: string }>;
 export declare const LOCAL_HOST: string;
 export declare const LOCAL_API_PORT: number;
 export declare const E2E_API_READINESS_PATH: string;

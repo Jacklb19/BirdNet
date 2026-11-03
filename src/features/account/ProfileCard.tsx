@@ -3,6 +3,7 @@ import { FIELD_LIMITS } from '../../config/contract';
 import { useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
 import { Icon } from '../../shared/ui/Icon';
+import { useStepFocus } from '../../shared/ui/useStepFocus';
 import { useOnline } from '../offline/useQueueStatus';
 import { accountInitials } from './accountInitials';
 import type { AccountState } from './useAccount';
@@ -26,6 +27,7 @@ export function ProfileCard({ account, children }: ProfileCardProps): React.JSX.
   const alias = account.profile?.alias ?? null;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
+  const [aliasRef, namesRef] = useStepFocus<HTMLInputElement, HTMLDivElement>(editing);
   const fileRef = useRef<HTMLInputElement>(null);
   const aliasId = useId();
   const initials = accountInitials(alias ?? email);
@@ -58,11 +60,11 @@ export function ProfileCard({ account, children }: ProfileCardProps): React.JSX.
           <input ref={fileRef} className="visually-hidden" type="file" accept="image/*" tabIndex={-1} aria-hidden="true"
             onChange={(event) => { pickPhoto(event.target.files); }} />
         </span>
-        <div className="bn-account-profile__names">
+        <div className="bn-account-profile__names" ref={namesRef}>
           {editing ? (
             <form className="bn-account-profile__alias-form" onSubmit={(event) => { void save(event); }}>
               <label className="visually-hidden" htmlFor={aliasId}>{texts.alias}</label>
-              <input id={aliasId} className="bn-account-signin__input" value={draft} maxLength={FIELD_LIMITS.alias} autoComplete="nickname"
+              <input ref={aliasRef} id={aliasId} className="bn-account-signin__input" value={draft} maxLength={FIELD_LIMITS.alias} autoComplete="nickname"
                 placeholder={texts.aliasPlaceholder} onChange={(event) => { setDraft(event.target.value); }} />
               <span className="bn-account-profile__alias-actions">
                 <Button type="submit" aria-disabled={blocked} aria-busy={account.working}>{dict.common.actions.save}</Button>

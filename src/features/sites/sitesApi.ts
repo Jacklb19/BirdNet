@@ -46,6 +46,18 @@ export async function createSite(token: string, name: string, location: { latitu
   return site;
 }
 
+export async function renameSite(token: string, id: string, name: string): Promise<CachedSite> {
+  const response = await apiFetch(API_ROUTES.site(id), { token, method: 'PATCH', headers: JSON_HEADERS, body: JSON.stringify({ name }) });
+  const site = toSite(await response.json());
+  if (!site) throw new Error('Invalid site response.');
+  return site;
+}
+
+/** Deleting a site that is already gone is not an error. */
+export async function deleteSite(token: string, id: string): Promise<void> {
+  await apiFetch(API_ROUTES.site(id), { token, method: 'DELETE' });
+}
+
 /** Every field a species row formats: a bad date or count would otherwise break the whole screen, not one row. */
 function isSpeciesStat(value: unknown): boolean {
   const entry = value as Partial<Record<keyof SpeciesStat, unknown>> | null;

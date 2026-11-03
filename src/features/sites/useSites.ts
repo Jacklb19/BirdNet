@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAccountContext } from '../account/accountContext';
 import { approximateLocation } from '../offline/queuePolicy';
-import { setCachedSites } from '../offline/queueStore';
+import { forgetSite, setCachedSites } from '../offline/queueStore';
 import type { CachedSite, OfflineSettings } from '../offline/types';
 import { useOfflineSettings } from '../offline/useOfflineSettings';
 import { useOnline } from '../offline/useQueueStatus';
-import { createSite, listSites } from './sitesApi';
+import { createSite, deleteSite, listSites, renameSite } from './sitesApi';
 
 export interface SitesState {
   /** Sites as last fetched online; available offline so a site can be chosen in the field. */
@@ -26,6 +26,10 @@ export interface SitesState {
    * outlive the form or be mistaken for a failed refresh.
    */
   readonly create: (name: string, location: { latitude: number; longitude: number }) => Promise<CachedSite | null>;
+  /** Resolves false when the account could not rename it; the place itself never moves. */
+  readonly rename: (siteId: string, name: string) => Promise<boolean>;
+  /** Resolves false when the account could not delete it; its songs stay, without a site. */
+  readonly remove: (siteId: string) => Promise<boolean>;
 }
 
 const NO_SITES: readonly CachedSite[] = Object.freeze([]);
@@ -110,7 +114,31 @@ export function useSites(): SitesState {
     }
   }, [token, userId, sites]);
 
+  const rename = useCallback(async (siteId: string, name: string): Promise<boolean> => {
+    if (!token || !userId) return false;
+    try {
+      const renamed = await renameSite(token, siteId, name.trim());
+      await setCachedSites(sites.map((site) => (site.id === siteId ? renamed : site)), userId);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [token, userId, sites]);
+
+  const remove = useCallback(async (siteId: string): Promise<boolean> => {
+    if (!token || !userId) return false;
+    try {
+      await deleteSite(token, siteId);
+      // Records waiting to upload must stop naming it before the next synchronization sends them.
+      await forgetSite(siteId);
+      await setCachedSites(sites.filter((site) => site.id !== siteId), userId);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [token, userId, sites]);
+
   const select = useCallback((siteId: string | null) => update({ activeSiteId: siteId }), [update]);
 
-  return { sites, active, ready, canEdit: Boolean(token) && online, loading, refreshError, select, refresh, create };
+  return { sites, active, ready, canEdit: Boolean(token) && online, loading, refreshError, select, refresh, create, rename, remove };
 }

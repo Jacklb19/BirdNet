@@ -55,10 +55,22 @@ export function MapSpeciesRow({ summary, name, now }: MapSpeciesRowProps): React
         <ul className="bn-map-row__detections" aria-label={m.species.recentLabel(name)}>
           {shown.map((row) => (
             <li key={row.id} className="bn-map-row__detection">
-              <span className={`bn-map-row__status bn-map-row__status--${row.status}`}>{dict.common.status[row.status]}</span>
-              <span className="bn-map-row__detail">
-                {m.species.detail(formatDate(new Date(row.recorded_at), locale), formatPercent(row.confidence, locale, MAP_CONFIDENCE_FRACTION_DIGITS))}
-              </span>
+              {/* One's own songs open their detail, where they are reviewed (ADR-44); other people's are only shown. */}
+              {row.own ? (
+                <a className="bn-map-row__open" href={routeHash({ name: 'detection', id: row.id })}>
+                  <span className={`bn-map-row__status bn-map-row__status--${row.status}`}>{dict.common.status[row.status]}</span>
+                  <span className="bn-map-row__detail">
+                    {m.species.detail(formatDate(new Date(row.recorded_at), locale), formatPercent(row.confidence, locale, MAP_CONFIDENCE_FRACTION_DIGITS))}
+                  </span>
+                </a>
+              ) : (
+                <>
+                  <span className={`bn-map-row__status bn-map-row__status--${row.status}`}>{dict.common.status[row.status]}</span>
+                  <span className="bn-map-row__detail">
+                    {m.species.detail(formatDate(new Date(row.recorded_at), locale), formatPercent(row.confidence, locale, MAP_CONFIDENCE_FRACTION_DIGITS))}
+                  </span>
+                </>
+              )}
             </li>
           ))}
         </ul>

@@ -16,3 +16,12 @@
   background: var(--on-plate);
   color: var(--plate);
 }
+
+/* A recording kept only in the account: its play button and what it does, on one line. */
+.bn-log-detail__account-recording {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  color: var(--color-text-secondary);
+}

@@ -13,6 +13,8 @@ const TAXONOMY_CATEGORY = 'species';
 const FETCH_TIMEOUT_MS = 60_000;
 // Model labels are "<scientific name>_<English common name>".
 const LABEL_SEPARATOR = '_';
+// Model labels whose species eBird now files under another genus: label name -> eBird name.
+const EBIRD_SYNONYMS = new Map([['Bubulcus ibis', 'Ardea ibis']]);
 const SOURCE_NOTE = 'Spanish: eBird/Clements taxonomy, Cornell Lab of Ornithology. English: BirdNET labels.';
 
 const MODELS_PATH = join(PUBLIC_DIR, MODEL_ASSETS_DIR);
@@ -38,9 +40,12 @@ if (!response.ok) throw new Error(`eBird taxonomy unavailable: ${String(response
 const taxonomy = await response.json();
 if (!Array.isArray(taxonomy)) throw new Error('Unexpected eBird taxonomy format.');
 
+const labelOf = new Map([...EBIRD_SYNONYMS].map(([label, ebird]) => [ebird, label]));
 const spanish = new Map();
 for (const entry of taxonomy) {
-  if (typeof entry?.sciName === 'string' && typeof entry.comName === 'string' && english.has(entry.sciName)) spanish.set(entry.sciName, entry.comName);
+  if (typeof entry?.sciName !== 'string' || typeof entry.comName !== 'string') continue;
+  const label = english.has(entry.sciName) ? entry.sciName : labelOf.get(entry.sciName);
+  if (label && !spanish.has(label)) spanish.set(label, entry.comName);
 }
 // Compact tuples [es, en]; an empty Spanish name means eBird has no match and the English label is used.
 const names = {};

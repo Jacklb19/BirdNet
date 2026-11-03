@@ -15,6 +15,8 @@ export const API_ROUTES = {
   detectionRecordingUrl: (detectionId: string): string => `${VERSION}/detections/${encodeURIComponent(detectionId)}/recording-url`,
   detectionRecording: (detectionId: string): string => `${VERSION}/detections/${encodeURIComponent(detectionId)}/recording`,
   sites: `${VERSION}/sites`,
+  /** Rename (PATCH) or delete (DELETE) one site (ADR-44). */
+  site: (siteId: string): string => `${VERSION}/sites/${encodeURIComponent(siteId)}`,
   siteStats: (siteId: string): string => `${VERSION}/sites/${encodeURIComponent(siteId)}/stats`,
   /** Report of a site written by the language model, only when the person asks (RF-15). */
   siteReport: (siteId: string): string => `${VERSION}/sites/${encodeURIComponent(siteId)}/report`,
@@ -29,6 +31,8 @@ export const API_ROUTES = {
   meSpecies: `${VERSION}/me/species`,
   /** The person's located songs, for "Mi mapa" to draw those the phone no longer keeps (S11). */
   meDetections: `${VERSION}/me/detections`,
+  /** One of the person's songs with its review, note and recording, also when this phone does not keep it (ADR-44). */
+  meDetection: (detectionId: string): string => `${VERSION}/me/detections/${encodeURIComponent(detectionId)}`,
   meSharing: `${VERSION}/me/sharing`,
   meRecordings: `${VERSION}/me/recordings`,
   /** Walks saved in the account (ADR-35): the list, and one walk by the id the phone gave it. */

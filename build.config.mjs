@@ -168,6 +168,12 @@ export const BUILD_ENV_DEFAULTS = Object.freeze({
   previewPort: 4173,
 });
 
+/**
+ * Accounts of the e2e build (`npm run build:e2e`): a Supabase project that does not exist, whose Auth the account spec
+ * answers itself with Playwright routes. The local API accepts the session tokens it signs (tests/local_server.py).
+ */
+export const E2E_SUPABASE = Object.freeze({ url: 'https://e2e-trino.supabase.co', anonKey: 'e2e-anon-key' });
+
 /** Test bridge that `npm run test:offline` builds after the production build and e2e/ injects into pages. */
 export const OFFLINE_CHECK_ENTRY = 'src/test/browser/offline.ts';
 export const OFFLINE_CHECK_NAME = 'offline-check';

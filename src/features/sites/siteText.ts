@@ -13,9 +13,12 @@ export type SpeciesChange =
   | { readonly kind: 'same' }
   | { readonly kind: 'change'; readonly delta: number };
 
-/** Species compared with the previous period; the whole record has nothing to compare with (`previous` is null). */
+/**
+ * Species compared with the previous period. The whole record has nothing to compare with (`previous` is null), and
+ * neither do two silent periods: "no change" would be said of a site just created (audit of 2026-11-02).
+ */
 export function speciesChange(current: number, previous: number | null): SpeciesChange {
-  if (previous === null) return { kind: 'unknown' };
+  if (previous === null || (current === 0 && previous === 0)) return { kind: 'unknown' };
   const delta = current - previous;
   return delta === 0 ? { kind: 'same' } : { kind: 'change', delta };
 }

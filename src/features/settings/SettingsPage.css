@@ -28,3 +28,13 @@
   gap: var(--space-5);
   padding: 0 var(--space-4) var(--space-5);
 }
+
+/* The question of a confirmation takes the focus when it opens; the outline shows only for the keyboard. */
+.bn-settings-step:focus {
+  outline: none;
+}
+
+.bn-settings-step:focus-visible {
+  outline: var(--focus-width) solid var(--color-brand);
+  outline-offset: var(--focus-offset);
+}

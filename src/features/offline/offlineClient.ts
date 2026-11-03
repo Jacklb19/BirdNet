@@ -96,7 +96,9 @@ export async function scheduleSynchronization(): Promise<void> {
   if (synchronization) return synchronization;
   synchronization = (async () => {
     const ready = await navigator.serviceWorker.ready;
-    if ('sync' in ready) await (ready.sync as { register(tag: string): Promise<void> }).register(SYNC_TAG);
+    // Background Sync only adds a later retry. A browser or a site setting can turn it off and then `register`
+    // rejects; the upload below must still run (audit of 2026-11-02).
+    if ('sync' in ready) await (ready.sync as { register(tag: string): Promise<void> }).register(SYNC_TAG).catch(() => undefined);
     if (navigator.onLine) await offlineOperation(OFFLINE_OPERATIONS.sync);
   })();
   try { await synchronization; } finally { synchronization = null; }

@@ -61,6 +61,11 @@ describe('offline worker communication', () => {
     await scheduleSynchronization();
     expect(registration.active.postMessage).toHaveBeenCalledTimes(1);
   });
+  it('still uploads when the browser has Background Sync turned off', async () => {
+    registration.sync = { register: vi.fn(() => Promise.reject(new DOMException('Background Sync is disabled.', 'UnknownError'))) };
+    await expect(scheduleSynchronization()).resolves.toBeUndefined();
+    expect(registration.active.postMessage).toHaveBeenCalledTimes(1);
+  });
   it('keeps development free of production registration', async () => {
     vi.stubEnv('PROD', false);
     await registerOffline();

@@ -5,7 +5,7 @@ import { tabItems, type Section } from './navigation';
 import './TabBar.css';
 
 /** Bottom navigation on phones; hidden by CSS on wide screens, where the bar's links take over. */
-export function TabBar({ current }: { readonly current: Section }): React.JSX.Element {
+export function TabBar({ current }: { readonly current: Section | null }): React.JSX.Element {
   const { dict } = useI18n();
   const { session } = useAccountContext();
   return (

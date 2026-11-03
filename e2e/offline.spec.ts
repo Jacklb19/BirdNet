@@ -8,6 +8,7 @@ import { routeHash } from '../src/app/routes';
 import { DEFAULT_LOCALE } from '../src/i18n/locales';
 import { dictionaries } from '../src/i18n/allMessages';
 import productionManifest from '../public/models/manifest.json' with { type: 'json' };
+import { buildHasAccounts } from './builds';
 
 /** Labels come from the interface dictionaries, so copy changes do not break the suite. */
 const texts = dictionaries[DEFAULT_LOCALE];
@@ -27,6 +28,8 @@ const FIXTURE_ROUTES = {
   loseWalkAck: `${API_PROXY_PREFIX}/test/lose-walk-ack`,
   loseNoteAck: `${API_PROXY_PREFIX}/test/lose-note-ack`,
 } as const;
+
+test.skip(buildHasAccounts, 'Build with `npm run build` to run the offline checks; `npm run build:e2e` is for e2e/account.spec.ts.');
 
 const bridge = fs.readFileSync(OFFLINE_CHECK_BUNDLE, 'utf8');
 async function ready(page: Page, hash = ''): Promise<void> {
