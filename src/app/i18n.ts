@@ -34,7 +34,13 @@ export const appMessages = defineMessages({
     pageTitle: (screen: string) => `${screen} · Trino`,
     screens: {
       listen: 'Escuchar', log: 'Bitácora', detection: 'Registro', map: 'Mapa', sites: 'Lugares', site: 'Lugar', species: 'Ficha de especie',
-      account: 'Cuenta', settings: 'Ajustes', album: 'Guía', walks: 'Caminatas', walk: 'Caminata',
+      account: 'Cuenta', settings: 'Ajustes', album: 'Guía', walks: 'Caminatas', walk: 'Caminata', notFound: 'Pantalla no encontrada',
+    },
+    notFound: {
+      title: 'No encontramos esta pantalla',
+      text: 'La dirección no lleva a ninguna parte de Trino: quizá está mal escrita o viene de una versión anterior.',
+      listen: 'Ir a Escuchar',
+      home: 'Ir al inicio',
     },
   },
   en: {
@@ -67,7 +73,13 @@ export const appMessages = defineMessages({
     pageTitle: (screen: string) => `${screen} · Trino`,
     screens: {
       listen: 'Listen', log: 'Log', detection: 'Record', map: 'Map', sites: 'Places', site: 'Place', species: 'Species card',
-      account: 'Account', settings: 'Settings', album: 'Guide', walks: 'Walks', walk: 'Walk',
+      account: 'Account', settings: 'Settings', album: 'Guide', walks: 'Walks', walk: 'Walk', notFound: 'Screen not found',
+    },
+    notFound: {
+      title: 'We could not find this screen',
+      text: 'This address leads nowhere in Trino: it may be mistyped or come from an older version.',
+      listen: 'Go to Listen',
+      home: 'Go to the home page',
     },
   },
 });

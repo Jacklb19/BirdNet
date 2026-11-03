@@ -11,17 +11,19 @@ const id = '7d9c2a52-1f0e-4f39-9a59-0d0f2f0d6c11';
 const emptyDay = (): number[] => Array.from({ length: HOURS_PER_DAY }, () => 0);
 
 describe('routes', () => {
-  it('round-trips every route and falls back to listening', () => {
+  it('round-trips every route and says so on an unknown address', () => {
     const routes: Route[] = [{ name: 'listen' }, { name: 'log' }, { name: 'detection', id }, { name: 'map' }, { name: 'sites' }, { name: 'site', id }, { name: 'account' }, { name: 'settings' }, { name: 'home' },
-      { name: 'album' }, { name: 'species', species: 'Turdus fuscater' }, { name: 'map', species: 'Colibri coruscans' }, { name: 'walks' }, { name: 'walk', id }];
+      { name: 'album' }, { name: 'species', species: 'Turdus fuscater' }, { name: 'map', species: 'Colibri coruscans' }, { name: 'walks' }, { name: 'walk', id },
+      { name: 'notFound' }];
     for (const route of routes) expect(parseRoute(routeHash(route))).toEqual(route);
     expect(parseRoute('#/log/not-a-uuid')).toEqual({ name: 'log' });
     // 36 characters is not enough: the identifier must have the UUID layout the API issues.
     expect(parseRoute(`#/sites/${'-'.repeat(36)}`)).toEqual({ name: 'sites' });
-    // The bare address is the home page; an unknown path falls back to listening.
+    // The bare address is the home page; an unknown path gets its own screen, which belongs to no section.
     expect(parseRoute('')).toEqual({ name: 'home' });
     expect(parseRoute('#/')).toEqual({ name: 'home' });
-    expect(parseRoute('#/nowhere')).toEqual({ name: 'listen' });
+    expect(parseRoute('#/nowhere')).toEqual({ name: 'notFound' });
+    expect(sectionOf({ name: 'notFound' })).toBeNull();
     expect([isSiteRoot(''), isSiteRoot('#'), isSiteRoot('#/'), isSiteRoot('#/home')]).toEqual([true, true, true, false]);
     expect(sectionOf({ name: 'site', id })).toBe('map');
     expect(sectionOf({ name: 'walk', id })).toBe('log');

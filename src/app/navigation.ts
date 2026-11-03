@@ -1,7 +1,7 @@
 import type { IconName } from '../shared/ui/Icon';
 import { routeHash, type Route, type sectionOf } from './routes';
 
-export type Section = ReturnType<typeof sectionOf>;
+export type Section = NonNullable<ReturnType<typeof sectionOf>>;
 
 export interface NavItem {
   readonly section: Section;

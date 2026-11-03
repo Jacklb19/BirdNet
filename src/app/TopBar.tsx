@@ -10,7 +10,7 @@ import { accountGroup, appLinks, collectionLinks, homeLink } from './siteMenu';
 import './TopBar.css';
 
 export interface TopBarProps {
-  readonly current: Section;
+  readonly current: Section | null;
   readonly route: Route['name'];
 }
 

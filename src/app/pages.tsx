@@ -17,6 +17,7 @@ const AlbumPage = lazy(() => import('../features/species/AlbumPage'));
 const SpeciesPage = lazy(() => import('../features/species/SpeciesPage'));
 const WalksPage = lazy(() => import('../features/walk/WalksPage'));
 const WalkPage = lazy(() => import('../features/walk/WalkPage'));
+const NotFoundPage = lazy(() => import('./NotFoundPage'));
 
 /** The screen for a route; the home page is handled by the shell because it has no navigation. */
 export function RoutePage({ route }: { readonly route: Exclude<Route, { name: 'home' }> }): React.JSX.Element {
@@ -34,5 +35,6 @@ export function RoutePage({ route }: { readonly route: Exclude<Route, { name: 'h
     case 'settings': return <SettingsPage />;
     case 'walks': return <WalksPage />;
     case 'walk': return <WalkPage id={route.id} />;
+    case 'notFound': return <NotFoundPage />;
   }
 }
