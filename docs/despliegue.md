@@ -87,6 +87,9 @@ Ajustes opcionales de la API (tiempos de espera, límites de resultados y export
 - Guía → una ficha → «Cómo canta»: hasta tres grabaciones con su grabador y licencia; al pulsar suena y se dibuja la onda.
 - Ajustes → Opciones técnicas → «Rendimiento de este teléfono»: tras escuchar unos minutos aparecen el tiempo por ventana, las ventanas perdidas y, en Chrome de Android y escuchando más de 15 minutos sin cargar, la batería por hora; «Copiar el resumen» lo deja en el portapapeles.
 - Mapa → «De todos»: una especie amenazada de otra persona aparece en el centro de una zona de ~11 km y su ventana lo dice.
+- Con una cuenta que ya tiene cantos, en un navegador nuevo (ADR-44): la Bitácora muestra «En tu cuenta»; abrir uno, confirmarlo o corregirlo y escribir una nota; al volver a abrirlo siguen ahí. En «Mi mapa», un canto propio abre el mismo detalle.
+- Lugares → un lugar → «Este lugar»: cambiar el nombre y borrarlo (pide confirmación); sus cantos siguen en la Bitácora, sin lugar.
+- Menú del teléfono: aparecen «Lugares» y «Mis caminatas».
 
 ## Desarrollo local
 

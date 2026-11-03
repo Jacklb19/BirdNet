@@ -625,11 +625,24 @@ Una auditoría de la versión desplegada encontró lo siguiente:
 - **Escuchar**: la pregunta de compartir va debajo de la lámina y el espectrograma, y solo entre sesiones. Cuenta la sigue haciendo primero, y nada se comparte hasta responderla (ADR-22).
 - **Correo**: el dueño aprobó volver a activar *Confirm email* (cambia ADR-21). Con el SMTP propio (2026-10-29) ya llega a cualquiera. Así nadie crea una cuenta con un correo ajeno, y Supabase deja de responder distinto a un correo ya registrado. La app ya maneja el registro que espera confirmación (`signUp` devuelve que falta confirmar).
 
+### Ampliación (2026-11-02, misma auditoría)
+- **Cantos que solo están en la cuenta** (RF-11):
+  - la Bitácora los lista en «En tu cuenta»;
+  - su detalle se lee con `GET /v1/me/detections/{id}` y la revisión y la nota van directo a la API, sin pasar por la cola local ni por la sincronización;
+  - los propios del mapa y de la ficha de especie abren ese detalle.
+- **Lugares**: se renombran (`PATCH /v1/sites/{id}`; no se mueven) y se borran (`DELETE /v1/sites/{id}`). Sus cantos se quedan sin lugar y los que esperan subir dejan de nombrarlo.
+- **Mapa de todos**: los cantos de otra persona llevan solo la hora en punto. Al segundo, una serie de ellos dibujaba cuándo pasa alguien por un sitio.
+- **CSV**: todas las columnas de texto libre se neutralizan contra fórmulas.
+- **Web**:
+  - `Permissions-Policy` deja a la app solo el micrófono y la ubicación, y la CSP añade `form-action 'self'`;
+  - cerrar sesión cierra solo este dispositivo;
+  - borrar una grabación pide confirmación;
+  - las confirmaciones en línea llevan y devuelven el foco.
+
 ### Pendiente
-- Leer y revisar los cantos que solo están en la cuenta desde otro teléfono (RF-11).
-- Renombrar y borrar lugares.
 - Un límite de peticiones (comprobar qué ofrece Vercel Hobby).
 - En pantallas anchas no hay menú, así que lugares y caminatas siguen abriéndose desde el mapa y la Bitácora.
+- Volver a generar `species-names.json` traería los nombres de eBird en su nueva forma, solo con la primera palabra en mayúscula (7.288 nombres). Se dejó la forma actual y solo se añadió la garcilla bueyera occidental.
 
 ---
 
