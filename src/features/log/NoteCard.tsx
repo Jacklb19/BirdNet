@@ -9,12 +9,19 @@ import { saveNote } from '../notes/noteStore';
 import { scheduleSynchronization } from '../offline/offlineClient';
 import './NoteCard.css';
 
+export interface NoteCardProps {
+  readonly detectionId: string;
+  readonly stored: StoredNote | null;
+  /** Where the note goes; by default the phone keeps it and the next synchronization sends it. */
+  readonly onSave?: (content: NoteContent) => Promise<void>;
+}
+
 /**
  * A note and a count of individuals on one record (ADR-40): kept on the phone first, sent to the account by the next
  * synchronization, private everywhere. The counter has its own buttons so it works with a thumb in the field. The
  * caller keys it by the stored note, so a note changed elsewhere (another tab) starts the form again.
  */
-export function NoteCard({ detectionId, stored }: { readonly detectionId: string; readonly stored: StoredNote | null }): React.JSX.Element {
+export function NoteCard({ detectionId, stored, onSave }: NoteCardProps): React.JSX.Element {
   const { dict, locale } = useI18n();
   const texts = dict.log.detail.note;
   const saved: NoteContent = stored ?? EMPTY_NOTE;
@@ -41,8 +48,13 @@ export function NoteCard({ detectionId, stored }: { readonly detectionId: string
     setWorking(true);
     setFailed(false);
     try {
-      await saveNote(detectionId, { note: cleanNote(text), individuals });
-      void scheduleSynchronization().catch(() => undefined);
+      const content = { note: cleanNote(text), individuals };
+      if (onSave) {
+        await onSave(content);
+      } else {
+        await saveNote(detectionId, content);
+        void scheduleSynchronization().catch(() => undefined);
+      }
     } catch {
       setFailed(true);
     } finally {

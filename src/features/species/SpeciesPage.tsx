@@ -138,8 +138,8 @@ export default function SpeciesPage({ species }: { readonly species: string }): 
     ...(facts.lastAt !== null ? [{ label: texts.notes.last, value: formatDayTime(facts.lastAt, readAt, locale) }] : []),
   ] : [];
 
-  // Records on this phone link to their detail (recording, state); cloud-only ones are listed without a
-  // link, with a button to play the recording the account keeps, if any.
+  // Every record links to its detail (recording, state, review); cloud-only ones open it from the account (ADR-44) and
+  // also keep a button to play the recording the account keeps, if any.
   const recent = [
     ...local.map((record) => ({
       id: record.id, at: record.recordedAt, confidence: record.confidence, status: record.status,
@@ -148,7 +148,7 @@ export default function SpeciesPage({ species }: { readonly species: string }): 
     })),
     ...(cloud?.recent ?? []).filter((item) => !local.some((record) => record.id === item.id)).map((item) => ({
       id: item.id, at: Date.parse(item.recordedAt), confidence: item.confidence, status: item.status,
-      href: undefined, playable: item.hasRecording, extra: texts.recent.cloudOnly,
+      href: routeHash({ name: 'detection', id: item.id }), playable: item.hasRecording, extra: texts.recent.cloudOnly,
     })),
   ].sort((a, b) => b.at - a.at).slice(0, SPECIES_RECENT_RECORDS);
 
@@ -259,14 +259,14 @@ export default function SpeciesPage({ species }: { readonly species: string }): 
                           <span className={`bn-species-page__status bn-species-page__status--${item.status}`}>{dict.common.status[item.status]}</span>
                         </>
                       );
-                      if (item.href) return <li key={item.id}><a className="bn-species-page__record" href={item.href}>{body}</a></li>;
+                      if (!item.playable) return <li key={item.id}><a className="bn-species-page__record" href={item.href}>{body}</a></li>;
                       return (
                         <li key={item.id} className="bn-species-page__playable">
-                          {item.playable && token && (
+                          {token && (
                             <AccountRecordingButton detectionId={item.id} token={token}
                               labels={{ play: texts.recent.playRecording, stop: texts.recent.stopRecording, failed: texts.recent.recordingFailed }} />
                           )}
-                          <div className="bn-species-page__record">{body}</div>
+                          <a className="bn-species-page__record" href={item.href}>{body}</a>
                         </li>
                       );
                     })}

@@ -15,6 +15,8 @@ import './ReviewCard.css';
 
 export interface ReviewCardProps {
   readonly record: Pick<LogRecord, 'id' | 'species' | 'review' | 'modelSpecies'>;
+  /** Where the verdict goes; by default the phone keeps it and the next synchronization sends it. */
+  readonly onSave?: (verdict: Verdict) => Promise<void>;
 }
 
 /**
@@ -22,7 +24,7 @@ export interface ReviewCardProps {
  * The verdict is stored on the phone at once and sent to the account with the next synchronization; it can be
  * changed at any time, and what the model said is kept apart from it.
  */
-export function ReviewCard({ record }: ReviewCardProps): React.JSX.Element {
+export function ReviewCard({ record, onSave }: ReviewCardProps): React.JSX.Element {
   const { dict, locale } = useI18n();
   const texts = dict.log.detail.review;
   const names = useSpeciesNames();
@@ -43,7 +45,7 @@ export function ReviewCard({ record }: ReviewCardProps): React.JSX.Element {
     setWorking(true);
     setFailed(false);
     try {
-      await saveReview(record.id, verdict);
+      await (onSave ? onSave(verdict) : saveReview(record.id, verdict));
       setChoosing(false);
       setQuery('');
     } catch {

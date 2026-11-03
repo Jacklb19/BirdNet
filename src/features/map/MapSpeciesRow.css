@@ -112,6 +112,16 @@
   line-height: var(--leading-small);
 }
 
+/* One's own song opens its detail: the same line, as a link tall enough for a thumb. */
+.bn-map-row__open {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--space-2);
+  min-height: var(--touch-min);
+  color: inherit;
+}
+
 .bn-map-row__status {
   font-weight: var(--font-weight-semibold);
 }

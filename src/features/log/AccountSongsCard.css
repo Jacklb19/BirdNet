@@ -1,0 +1,62 @@
+.bn-log-account {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-raised);
+}
+
+.bn-log-account__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-title);
+}
+
+.bn-log-account__count {
+  font-size: var(--text-small);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-secondary);
+}
+
+.bn-log-account__text {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.bn-log-account__list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each song is one row the whole width, tall enough for a thumb. */
+.bn-log-account__song {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--space-3);
+  min-height: var(--touch-min);
+  padding-block: var(--space-2);
+  border-top: 1px solid var(--color-border-subtle);
+  color: inherit;
+  text-decoration: none;
+}
+
+.bn-log-account__song .bn-icon {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+}
+
+.bn-log-account__name {
+  font-weight: var(--font-weight-semibold);
+}
+
+.bn-log-account__meta {
+  font-size: var(--text-small);
+  color: var(--color-text-secondary);
+}
