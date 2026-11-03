@@ -15,6 +15,16 @@ describe('error reports', () => {
     expect(cleanUrl(link)).toBe('https://birdnet-nu.vercel.app/');
   });
 
+  it('never carry a token quoted in an error message', () => {
+    const event = {
+      type: undefined, message: 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ4In0.c2lnbmF0dXJl rejected',
+      exception: { values: [{ type: 'Error', value: 'Failed on /#access_token=abc.def&refresh_token=r3fr3sh&type=recovery' }] },
+    } as unknown as ErrorEvent;
+    const cleaned = withoutPersonalData(event);
+    expect(cleaned.message).toBe('Bearer {token} rejected');
+    expect(cleaned.exception?.values?.[0]?.value).toBe('Failed on /#access_token={token}&refresh_token={token}&type=recovery');
+  });
+
   it('carry no user, breadcrumbs, headers or identifiers', () => {
     const event = {
       type: undefined, user: { id: 'u', ip_address: '1.2.3.4' }, breadcrumbs: [{ message: 'click' }],

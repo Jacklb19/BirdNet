@@ -10,6 +10,14 @@ import { config } from '../../config/env';
 const IDENTIFIER = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 const IDENTIFIER_PLACEHOLDER = '{id}';
 const ROUTE_PREFIX = '#/';
+/** A session token, signed (header.payload.signature) or named in an address; never part of a report. */
+const TOKEN = /eyJ[\w-]+\.[\w-]+\.[\w-]+|\b((?:access|refresh)_token=)[^&\s#]+/g;
+const TOKEN_PLACEHOLDER = '{token}';
+
+/** Text of a report without identifiers or tokens: a message may quote the address or the header it failed on. */
+function withoutSecrets(text: string): string {
+  return text.replace(TOKEN, (_, name: string | undefined) => `${name ?? ''}${TOKEN_PLACEHOLDER}`).replace(IDENTIFIER, IDENTIFIER_PLACEHOLDER);
+}
 
 type Reporter = (error: unknown) => void;
 let report: Reporter | null = null;
@@ -30,9 +38,9 @@ export function cleanUrl(address: string): string {
 export function withoutPersonalData(event: ErrorEvent): ErrorEvent {
   const cleaned: ErrorEvent = { ...event, user: undefined, breadcrumbs: undefined };
   if (event.request) cleaned.request = { url: event.request.url ? cleanUrl(event.request.url) : undefined };
-  // A message may quote an address it failed on.
+  if (event.message) cleaned.message = withoutSecrets(event.message);
   if (event.exception?.values) {
-    cleaned.exception = { ...event.exception, values: event.exception.values.map((value) => ({ ...value, value: value.value?.replace(IDENTIFIER, IDENTIFIER_PLACEHOLDER) })) };
+    cleaned.exception = { ...event.exception, values: event.exception.values.map((value) => ({ ...value, value: value.value === undefined ? undefined : withoutSecrets(value.value) })) };
   }
   return cleaned;
 }
