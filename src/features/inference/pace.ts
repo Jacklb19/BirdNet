@@ -18,6 +18,11 @@ export interface PaceLimits {
 export interface PaceWatch {
   analysed(latencyMs: number): void;
   dropped(count: number): void;
+  /**
+   * Whether the page is hidden. The browser slows a hidden page down, so what happens meanwhile says nothing about the
+   * phone: it is not counted, and the latest windows start over when the page is seen again.
+   */
+  hidden(isHidden: boolean): void;
   /** True once the phone proved too slow; it does not change back within a session. */
   tooSlow(): boolean;
 }
@@ -34,6 +39,7 @@ export function watchPace(limits: PaceLimits = PACE_LIMITS): PaceWatch {
   let analysed = 0;
   let dropped = 0;
   let slow = false;
+  let away = false;
   const judge = (): void => {
     if (slow) return;
     const seen = analysed + dropped;
@@ -43,16 +49,21 @@ export function watchPace(limits: PaceLimits = PACE_LIMITS): PaceWatch {
   };
   return {
     analysed(latencyMs) {
-      if (!Number.isFinite(latencyMs) || latencyMs < 0) return;
+      if (away || !Number.isFinite(latencyMs) || latencyMs < 0) return;
       analysed += 1;
       recent.push(latencyMs);
       if (recent.length > limits.recentWindows) recent.shift();
       judge();
     },
     dropped(count) {
-      if (!Number.isSafeInteger(count) || count <= 0) return;
+      if (away || !Number.isSafeInteger(count) || count <= 0) return;
       dropped += count;
       judge();
+    },
+    hidden(isHidden) {
+      // Windows queued while hidden may still be analysed just after: they wait in the recent ones no longer.
+      if (away && !isHidden) recent.length = 0;
+      away = isHidden;
     },
     tooSlow: () => slow,
   };

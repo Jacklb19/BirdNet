@@ -33,6 +33,19 @@ describe('whether a phone keeps up with two models', () => {
     expect(pace.tooSlow()).toBe(false);
   });
 
+  it('does not count what happens while the page is hidden, nor the backlog it leaves', () => {
+    const pace = watchPace(limits);
+    for (let window = 0; window < 4; window++) pace.analysed(400);
+    pace.hidden(true);
+    pace.analysed(10_943);
+    pace.dropped(3);
+    pace.hidden(false);
+    expect(pace.tooSlow()).toBe(false);
+    // The latest windows start over: one slow window left over from the hidden time does not tip the median.
+    for (const latency of [2500, 420, 450]) pace.analysed(latency);
+    expect(pace.tooSlow()).toBe(false);
+  });
+
   it('is too slow when back-pressure drops more than the allowed share of windows', () => {
     const pace = watchPace(limits);
     for (let window = 0; window < 4; window++) pace.analysed(400);
