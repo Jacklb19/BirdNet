@@ -3,6 +3,7 @@ import { formatDataSize, formatCount, useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
 import { ListGroup, ListRow } from '../../shared/ui/ListGroup';
 import { Notice } from '../../shared/ui/Notice';
+import { useStepFocus } from '../../shared/ui/useStepFocus';
 import { Toggle } from '../../shared/ui/Toggle';
 import { useAccountContext } from '../account/accountContext';
 import type { OfflineSettingsState } from '../offline/useOfflineSettings';
@@ -36,6 +37,7 @@ export function RecordingSettings({ offline }: { readonly offline: OfflineSettin
   const local = useLocalRecordingUsage();
   const account = useAccountRecordingUsage(token, online, deleted);
   const [confirming, setConfirming] = useState<Place | null>(null);
+  const [askRef, backRef] = useStepFocus<HTMLParagraphElement, HTMLDivElement>(confirming !== null);
   const [working, setWorking] = useState(false);
   const [failed, setFailed] = useState(false);
   const compresses = canCompress();
@@ -70,7 +72,7 @@ export function RecordingSettings({ offline }: { readonly offline: OfflineSettin
         description={token ? texts.saveDetail(accountLimit ?? formatDataSize(ACCOUNT_RECORDINGS_DEFAULT_LIMIT_BYTES, locale)) : texts.saveNeedsAccount}
         trailing={<Toggle labelledBy={ids.save} describedBy={ids.saveDetail} checked={Boolean(token) && Boolean(settings && savesRecordings(settings))} disabled={!settings || !token}
           onChange={(checked) => { void update({ saveRecordings: checked }); }} />} />
-      <div className="bn-settings-recordings">
+      <div className="bn-settings-recordings" ref={backRef}>
         <p className="bn-settings-recordings__line">
           <span>{texts.onPhone}</span>
           {local && <span className="bn-settings-recordings__value">{texts.localUsage(count(local.recordings), formatDataSize(local.bytes, locale))}</span>}
@@ -84,7 +86,7 @@ export function RecordingSettings({ offline }: { readonly offline: OfflineSettin
         {full && <Notice tone="caution" icon="pending">{texts.accountFull}</Notice>}
         {confirming ? (
           <div className="bn-settings-recordings__confirm" role="group" aria-label={confirming === 'local' ? texts.deleteLocal : texts.deleteAccount}>
-            <p>{confirming === 'local' ? texts.deleteLocalConfirm : texts.deleteAccountConfirm}</p>
+            <p ref={askRef} tabIndex={-1} className="bn-settings-step">{confirming === 'local' ? texts.deleteLocalConfirm : texts.deleteAccountConfirm}</p>
             <div className="bn-settings-recordings__actions">
               <Button variant="primary" disabled={working} onClick={() => { void remove(confirming); }}>{texts.confirm}</Button>
               <Button variant="quiet" disabled={working} onClick={() => { setConfirming(null); setFailed(false); }}>{texts.cancel}</Button>

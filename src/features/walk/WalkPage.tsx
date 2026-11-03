@@ -1,10 +1,11 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { navigateTo, routeHash } from '../../app/routes';
 import { formatCount, formatDistance, formatNumber, useI18n } from '../../i18n';
 import { formatClock } from '../../shared/time';
 import { Button } from '../../shared/ui/Button';
 import { EmptyState } from '../../shared/ui/EmptyState';
 import { Notice } from '../../shared/ui/Notice';
+import { useStepFocus } from '../../shared/ui/useStepFocus';
 import { Page } from '../../shared/ui/Page';
 import { PageHeader } from '../../shared/ui/PageHeader';
 import { SpeciesRow } from '../../shared/ui/SpeciesRow';
@@ -30,6 +31,9 @@ function RenameForm({ walk, title, onDone }: { readonly walk: WalkDetailView; re
   const inputId = useId();
   const [value, setValue] = useState(walk.name ?? '');
   const [state, setState] = useState<'idle' | 'working' | 'failed'>('idle');
+  const inputRef = useRef<HTMLInputElement>(null);
+  // It replaces the button that opened it: focus goes to the field.
+  useEffect(() => { inputRef.current?.focus(); }, []);
   const save = async (name: string | null): Promise<void> => {
     setState('working');
     try {
@@ -42,7 +46,7 @@ function RenameForm({ walk, title, onDone }: { readonly walk: WalkDetailView; re
   return (
     <form className="bn-walk-page__rename" onSubmit={(event) => { event.preventDefault(); void save(cleanWalkName(value)); }}>
       <label htmlFor={inputId} className="label">{t.label}</label>
-      <input id={inputId} className="bn-walk-page__input" value={value} placeholder={title} maxLength={WALK_NAME_MAX_LENGTH}
+      <input ref={inputRef} id={inputId} className="bn-walk-page__input" value={value} placeholder={title} maxLength={WALK_NAME_MAX_LENGTH}
         autoComplete="off" onChange={(event) => { setValue(event.target.value); }} />
       <div className="bn-walk-page__row">
         <Button type="submit" disabled={state === 'working'}>{t.save}</Button>
@@ -69,6 +73,8 @@ export default function WalkPage({ id }: { readonly id: string }): React.JSX.Ele
   const [csv, setCsv] = useState<Task>({ kind: 'idle' });
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState<'idle' | 'working' | 'failed'>('idle');
+  const [, renameBackRef] = useStepFocus<HTMLElement, HTMLDivElement>(renaming);
+  const [deleteAskRef, deleteBackRef] = useStepFocus<HTMLParagraphElement, HTMLElement>(confirming);
   const back = { href: routeHash({ name: 'walks' }), label: t.back };
 
   if (detail.status !== 'ready') {
@@ -138,9 +144,9 @@ export default function WalkPage({ id }: { readonly id: string }): React.JSX.Ele
       {/* A walk without a name is already titled by its date; the date is repeated only under a name. */}
       <PageHeader back={back} title={title} subtitle={walk.name === null ? t.where[walk.where] : `${formatDayTime(walk.startedAt, now, locale)} · ${t.where[walk.where]}`}
       />
-      {renaming
-        ? null
-        : <Button variant="quiet" className="bn-walk-page__rename-button" disabled={accountOnly && needsConnection} onClick={() => { setRenaming(true); }}>{t.rename.action}</Button>}
+      <div ref={renameBackRef} className="bn-walk-page__rename-slot">
+        {!renaming && <Button variant="quiet" className="bn-walk-page__rename-button" disabled={accountOnly && needsConnection} onClick={() => { setRenaming(true); }}>{t.rename.action}</Button>}
+      </div>
       {renaming && <RenameForm walk={walk} title={title} onDone={() => { setRenaming(false); setReload((times) => times + 1); }} />}
       {renaming && accountOnly && needsConnection && <p className="bn-walk-page__hint">{t.rename.needsConnection}</p>}
 
@@ -189,10 +195,10 @@ export default function WalkPage({ id }: { readonly id: string }): React.JSX.Ele
         {feedback(csv)}
       </section>
 
-      <section className="bn-walk-page__section bn-walk-page__danger">
+      <section ref={deleteBackRef} className="bn-walk-page__section bn-walk-page__danger">
         {confirming ? (
           <div role="group" aria-label={t.delete.action}>
-            <p>{walk.where === 'both' || accountOnly ? t.delete.confirmAccount : t.delete.confirmPhone}</p>
+            <p ref={deleteAskRef} tabIndex={-1} className="bn-walk-page__ask">{walk.where === 'both' || accountOnly ? t.delete.confirmAccount : t.delete.confirmPhone}</p>
             <div className="bn-walk-page__row">
               <Button disabled={deleting === 'working'} onClick={() => { void remove(); }}>{t.delete.confirm}</Button>
               <Button variant="quiet" disabled={deleting === 'working'} onClick={() => { setConfirming(false); setDeleting('idle'); }}>{dict.common.actions.cancel}</Button>

@@ -4,6 +4,7 @@ import { formatCount, formatMeters, formatNumber, useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
 import { ListGroup, ListRow } from '../../shared/ui/ListGroup';
 import { Notice } from '../../shared/ui/Notice';
+import { useStepFocus } from '../../shared/ui/useStepFocus';
 import { Toggle } from '../../shared/ui/Toggle';
 import { useAccountContext } from '../account/accountContext';
 import { scheduleSynchronization } from '../offline/offlineClient';
@@ -54,6 +55,7 @@ export function WalkSettings({ offline }: { readonly offline: OfflineSettingsSta
   const [deleted, setDeleted] = useState(0);
   const account = useAccountWalkUsage(token, online, deleted);
   const [confirming, setConfirming] = useState(false);
+  const [askRef, backRef] = useStepFocus<HTMLParagraphElement, HTMLDivElement>(confirming);
   const [working, setWorking] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -87,7 +89,7 @@ export function WalkSettings({ offline }: { readonly offline: OfflineSettingsSta
         description={token ? texts.saveDetail(formatMeters(APPROX_CELL_METERS, locale), formatCount(texts.count, limit, locale)) : texts.saveNeedsAccount}
         trailing={<Toggle labelledBy={ids.save} describedBy={ids.saveDetail} checked={Boolean(token) && Boolean(settings && savesWalks(settings))} disabled={!settings || !token}
           onChange={(checked) => { void toggle(checked); }} />} />
-      <div className="bn-settings-walks">
+      <div className="bn-settings-walks" ref={backRef}>
         <p className="bn-settings-walks__line">
           <span>{texts.onPhone}</span>
           <span className="bn-settings-walks__value">{formatCount(texts.count, walks.length, locale)}</span>
@@ -101,7 +103,7 @@ export function WalkSettings({ offline }: { readonly offline: OfflineSettingsSta
         {full && <Notice tone="caution" icon="pending">{texts.accountFull}</Notice>}
         {confirming ? (
           <div className="bn-settings-walks__confirm" role="group" aria-label={texts.deleteAccount}>
-            <p>{texts.deleteAccountConfirm}</p>
+            <p ref={askRef} tabIndex={-1} className="bn-settings-step">{texts.deleteAccountConfirm}</p>
             <div className="bn-settings-walks__actions">
               <Button variant="primary" disabled={working} onClick={() => { void remove(); }}>{texts.confirm}</Button>
               <Button variant="quiet" disabled={working} onClick={() => { setConfirming(false); setFailed(false); }}>{texts.cancel}</Button>
