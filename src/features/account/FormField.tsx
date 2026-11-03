@@ -38,7 +38,8 @@ export function PasswordField(props: Omit<TextFieldProps, 'type'>): React.JSX.El
   return (
     <div className="bn-account-signin__password">
       <TextField {...props} type={visible ? 'text' : 'password'} required spellCheck={false} />
-      <button type="button" className="bn-account-signin__reveal" aria-pressed={visible} onClick={() => { setVisible((current) => !current); }}>
+      {/* The label says what pressing does; with aria-pressed as well a reader announced "Hide, pressed" (audit U7). */}
+      <button type="button" className="bn-account-signin__reveal" onClick={() => { setVisible((current) => !current); }}>
         {visible ? dict.account.signIn.hidePassword : dict.account.signIn.showPassword}
       </button>
     </div>
