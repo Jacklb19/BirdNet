@@ -75,6 +75,8 @@ export default function LogPage(): React.JSX.Element {
             <div className="bn-log__empty-actions">
               <Button href={routeHash({ name: 'listen' })} icon="listen">{dict.log.empty.action}</Button>
               <Button variant="secondary" href={routeHash({ name: 'map' })} icon="walk">{dict.log.empty.walk}</Button>
+              {/* A walk can be saved without any song, and the log is where walks are looked for. */}
+              <Button variant="quiet" href={routeHash({ name: 'walks' })}>{dict.log.empty.walks}</Button>
             </div>
           )}>
           {dict.log.empty.text}

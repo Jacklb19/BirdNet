@@ -106,6 +106,7 @@ export const logMessages = defineMessages({
       text: 'Lo que el teléfono identifique mientras escuchas aparecerá aquí, agrupado por día.',
       action: 'Empezar a escuchar',
       walk: 'Salir a caminar',
+      walks: 'Ver mis caminatas',
     },
     loadError: 'No se pudo leer la bitácora guardada en el teléfono.',
     detail: {
@@ -297,6 +298,7 @@ export const logMessages = defineMessages({
       text: 'What the phone identifies while you listen will appear here, grouped by day.',
       action: 'Start listening',
       walk: 'Go for a walk',
+      walks: 'See my walks',
     },
     loadError: 'The log kept on this phone could not be read.',
     detail: {
