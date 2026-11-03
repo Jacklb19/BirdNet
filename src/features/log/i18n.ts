@@ -165,6 +165,8 @@ export const logMessages = defineMessages({
         onPhone: 'Grabación guardada en este teléfono.',
         inAccount: 'Grabación guardada en este teléfono y en tu cuenta, donde solo tú puedes oírla.',
         delete: 'Borrar la grabación',
+        deleteAsk: { phone: 'Se borra de este teléfono. No se puede deshacer.', everywhere: 'Se borra de este teléfono y de tu cuenta. No se puede deshacer.' },
+        deleteConfirm: 'Borrar',
         deleteFailed: 'No se pudo borrar de tu cuenta. Inténtalo de nuevo con conexión y sesión iniciada.',
       },
       facts: {
@@ -370,6 +372,8 @@ export const logMessages = defineMessages({
         onPhone: 'Recording kept on this phone.',
         inAccount: 'Recording kept on this phone and in your account, where only you can listen to it.',
         delete: 'Delete the recording',
+        deleteAsk: { phone: 'It is deleted from this phone. This cannot be undone.', everywhere: 'It is deleted from this phone and from your account. This cannot be undone.' },
+        deleteConfirm: 'Delete',
         deleteFailed: 'It could not be deleted from your account. Try again online and signed in.',
       },
       facts: {
