@@ -35,7 +35,7 @@ export function RecoveryForm({ account }: { readonly account: AccountState }): R
         <PasswordField label={dict.account.signIn.confirmPassword} name="new-password-confirmation" autoComplete="new-password"
           minLength={PASSWORD_MIN_LENGTH} value={confirmation} error={mismatch ? dict.account.signIn.mismatch : undefined}
           onChange={(value) => { setConfirmation(value); setMismatch(false); }} />
-        {account.error && <Notice tone="error">{dict.account.errors[account.error]}</Notice>}
+        {account.error && account.errorScope === 'recovery' && <Notice tone="error">{dict.account.errors[account.error]}</Notice>}
         <Button type="submit" block aria-disabled={account.working} aria-busy={account.working}>{texts.submit}</Button>
       </form>
     </section>

@@ -1,4 +1,4 @@
-import { useId, useState, type SyntheticEvent } from 'react';
+import { useEffect, useId, useRef, useState, type SyntheticEvent } from 'react';
 import { useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
 import { Notice } from '../../shared/ui/Notice';
@@ -25,6 +25,20 @@ export function SecondStepCard({ account }: { readonly account: AccountState }):
   const [outcome, setOutcome] = useState<'on' | 'off' | null>(null);
   const titleId = useId();
   const complete = code.length === AUTHENTICATOR_CODE_LENGTH;
+  const formRef = useRef<HTMLFormElement>(null);
+  const actionRef = useRef<HTMLDivElement>(null);
+  const opened = useRef(false);
+
+  // Keyboard and screen reader users follow the step: into the form when it opens, back to the button when it closes.
+  useEffect(() => {
+    if (step.kind !== 'idle') {
+      opened.current = true;
+      formRef.current?.focus();
+    } else if (opened.current) {
+      opened.current = false;
+      actionRef.current?.querySelector('button')?.focus();
+    }
+  }, [step.kind]);
 
   const start = async (): Promise<void> => {
     setOutcome(null);
@@ -37,6 +51,7 @@ export function SecondStepCard({ account }: { readonly account: AccountState }):
     setStep({ kind: 'idle' });
     setCode('');
     setCopied(false);
+    account.clearError();
   };
 
   const submit = async (event: SyntheticEvent<HTMLFormElement>): Promise<void> => {
@@ -70,9 +85,9 @@ export function SecondStepCard({ account }: { readonly account: AccountState }):
             {account.secondStep === null ? texts.unknown : account.secondStep ? texts.onText : texts.offText}
           </p>
           {outcome && <Notice tone="success" icon="check" live>{outcome === 'on' ? texts.done : texts.turnedOff}</Notice>}
-          {account.error && <Notice tone="error" live>{dict.account.errors[account.error]}</Notice>}
+          {account.error && account.errorScope === 'secondStep' && <Notice tone="error" live>{dict.account.errors[account.error]}</Notice>}
           {account.secondStep !== null && (
-            <div className="bn-second-step__actions">
+            <div className="bn-second-step__actions" ref={actionRef}>
               <Button variant={account.secondStep ? 'secondary' : 'primary'} disabled={!online} aria-busy={account.working}
                 onClick={() => { if (account.secondStep) setStep({ kind: 'disabling' }); else void start(); }}>
                 {account.secondStep ? texts.turnOff : account.working ? texts.starting : texts.turnOn}
@@ -83,7 +98,7 @@ export function SecondStepCard({ account }: { readonly account: AccountState }):
         </>
       )}
       {step.kind !== 'idle' && (
-        <form className="bn-second-step__form" onSubmit={(event) => { void submit(event); }}>
+        <form className="bn-second-step__form" ref={formRef} tabIndex={-1} aria-labelledby={titleId} onSubmit={(event) => { void submit(event); }}>
           {step.kind === 'enrolling' && (
             <>
               <p className="bn-second-step__text">{texts.stepScan}</p>
@@ -102,7 +117,7 @@ export function SecondStepCard({ account }: { readonly account: AccountState }):
           )}
           {step.kind === 'disabling' && <p className="bn-second-step__text">{texts.offAsk}</p>}
           <CodeField label={texts.code} value={code} onChange={setCode} />
-          {account.error && <Notice tone="error" live>{dict.account.errors[account.error]}</Notice>}
+          {account.error && account.errorScope === 'secondStep' && <Notice tone="error" live>{dict.account.errors[account.error]}</Notice>}
           <div className="bn-second-step__actions">
             <Button type="submit" aria-disabled={!complete || account.working} aria-busy={account.working}>
               {account.working ? texts.checking : step.kind === 'enrolling' ? texts.confirm : texts.confirmOff}
