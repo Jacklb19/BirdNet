@@ -1,21 +1,16 @@
 import { randomUUID } from 'node:crypto';
-import fs from 'node:fs';
-import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
-import { API_PROXY_PREFIX, E2E_SUPABASE, OUT_DIR } from '../build.config.mjs';
+import { API_PROXY_PREFIX, E2E_SUPABASE } from '../build.config.mjs';
 import { routeHash } from '../src/app/routes';
 import { STORAGE_KEYS } from '../src/config/storage';
 import { DEFAULT_LOCALE } from '../src/i18n/locales';
 import { dictionaries } from '../src/i18n/allMessages';
+import { buildHasAccounts } from './builds';
 
 /** Labels come from the interface dictionaries, so copy changes do not break the suite. */
 const texts = dictionaries[DEFAULT_LOCALE];
 
-/** Only a build made with `npm run build:e2e` has accounts; the production build without them skips this spec. */
-const assets = path.join(OUT_DIR, 'assets');
-const hasAccounts = fs.existsSync(assets) && fs.readdirSync(assets).some((file) => file.endsWith('.js')
-  && fs.readFileSync(path.join(assets, file), 'utf8').includes(E2E_SUPABASE.url));
-test.skip(!hasAccounts, 'Build with `npm run build:e2e` to run the account checks.');
+test.skip(!buildHasAccounts, 'Build with `npm run build:e2e` to run the account checks.');
 // The Auth double answers the page's own requests; a service worker in between would hide them from the routes.
 test.use({ serviceWorkers: 'block' });
 
