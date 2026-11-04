@@ -97,6 +97,8 @@ Ajustes opcionales de la API (tiempos de espera, límites de resultados y export
 - Mapa → «De todos»: una especie amenazada de otra persona aparece en el centro de una zona de ~11 km y su ventana lo dice.
 - Con una cuenta que ya tiene cantos, en un navegador nuevo (ADR-44): la Bitácora muestra «En tu cuenta»; abrir uno, confirmarlo o corregirlo y escribir una nota; al volver a abrirlo siguen ahí. En «Mi mapa», un canto propio abre el mismo detalle.
 - Lugares → un lugar → «Este lugar»: cambiar el nombre y borrarlo (pide confirmación); sus cantos siguen en la Bitácora, sin lugar.
+- Cuenta → «Borrar mi cuenta» con una sesión de más de 10 minutos: pide «Confirma que eres tú» con la contraseña; tras confirmarla aparece el paso de escribir BORRAR (no hace falta borrar de verdad para comprobarlo).
+- Recuperar la contraseña abriendo el enlace en **otro** navegador: la pantalla de Cuenta explica que debe abrirse donde se pidió (PKCE). En el mismo navegador, pide la contraseña nueva.
 - Con *Confirm email* activo: Cuenta → «Crear cuenta» con un correo que reciba (sin SMTP propio, solo los del equipo del proyecto). Llega el código; un código errado muestra el aviso, «Enviar otro código» manda uno nuevo y el bueno inicia la sesión.
 - Menú del teléfono: aparecen «Lugares» y «Mis caminatas».
 
