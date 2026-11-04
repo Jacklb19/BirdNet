@@ -71,3 +71,7 @@
   background: var(--color-error);
   color: var(--color-on-record);
 }
+
+.bn-delete-account__step:focus {
+  outline: none;
+}

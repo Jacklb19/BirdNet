@@ -53,6 +53,14 @@ export const AUTHENTICATOR_CODE_LENGTH = 6;
  */
 export const EMAIL_CODE_LENGTH = 6;
 
+/**
+ * Deleting the account asks for a sign-in at most this old (owner's decision, 2026-11-04), as the API does
+ * (`RECENT_SIGN_IN_SECONDS`). The phone asks again a minute earlier, so a clock a little ahead never sends a deletion
+ * the API refuses.
+ */
+export const RECENT_SIGN_IN_MINUTES = 10;
+export const RECENT_SIGN_IN_MARGIN_MS = 60_000;
+
 /** Identity provider of the "Continue with Google" button (Supabase Auth, ADR-21). */
 export const GOOGLE_PROVIDER = 'google';
 
