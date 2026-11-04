@@ -665,6 +665,31 @@ Una auditoría de la versión desplegada encontró lo siguiente:
 
 ---
 
+## ADR-45. Trino solo se usa con cuenta (2026-11-04, decisión del dueño; modifica ADR-27 y ADR-22, completa ADR-21)
+
+### Contexto
+Hasta aquí la cuenta era opcional (ADR-27): sin ella la app funcionaba entera y guardaba todo en el teléfono, y la portada lo prometía. El 2026-11-04 el dueño decidió que Trino solo se use con cuenta, con la puerta bien delimitada y el aspecto de una página profesional. Las reglas de dominio de `AGENTS.md` siguen: el audio y el modelo en el teléfono, la cola local con sincronización idempotente y el funcionamiento sin conexión.
+
+### Decisión (respuestas del dueño el 2026-11-04)
+- **Lo público sin sesión**: la portada, la política de privacidad (`/privacy.html`), la pantalla de entrada (`#/signin` y `#/signup`) y la guía de aves (`#/guide` y cada ficha `#/species/…`). Todo lo demás es de la cuenta: Escuchar, Mapa (también el de todos), Bitácora y cada registro, Lugares, Caminatas, Cuenta y Ajustes.
+- **La puerta**: una pantalla de la cuenta pedida sin sesión muestra la entrada en su propia dirección, con el aviso «"Bitácora" es parte de tu cuenta». Al entrar se abre esa misma pantalla, así que un enlace a un registro sigue llevando a ese registro. `#/signin` y `#/signup` llevan a Escuchar con la sesión ya iniciada. Sin sesión la barra ofrece solo Inicio, Guía, «Iniciar sesión» y «Crear cuenta»: no aparecen la barra inferior, el reproductor ni los Ajustes. Mientras Auth no responde, si no hay sesión guardada, se muestra «Cargando…» y no la entrada.
+- **La entrada** (`EntrancePage`): título y promesa, el formulario de siempre (Google, correo y contraseña, código de 6 dígitos del correo, segundo factor y recuperación) y lo que guarda la cuenta. También dice con verdad qué sale del teléfono (solo lo que se elige, sin nombre y a unos 10 m) y enlaza la guía y la privacidad. En pantallas anchas, el formulario va a la derecha.
+- **El modelo** solo se descarga con la sesión iniciada. Sin cuenta no se abre nada que lo use, y una visita a la portada no gasta los 52 MB ni el egreso del plan gratuito.
+- **Sin conexión** (confirmado por el dueño): con la sesión ya iniciada, la app funciona como siempre. Solo entrar por primera vez necesita red. Supabase Auth arranca sin sesión cuando el token de una hora venció y no hay red para renovarlo, aunque la conserva guardada. Por eso la app lee de ahí quién entró (`readStoredIdentity`) y se abre para esa persona con lo que guarda el teléfono. La sesión de sincronización solo se suelta al cerrar sesión: lo que se graba entretanto sigue siendo de esa cuenta y se sube al volver la red. Cuenta lo dice («Sin conexión: tu sesión sigue abierta en este teléfono…») y deja cerrar la sesión también sin red. Las pantallas que llaman a la API esperan el token (el mapa de todos se muestra «sin conexión» o «cargando», ya no «inicia sesión»).
+- **Cada persona ve solo lo suyo en el teléfono**: la Bitácora, «Mi mapa», la Guía, las caminatas, los totales de Cuenta y el CSV del teléfono leen solo los registros y caminatas de la cuenta que entró (`ownedBy`). El historial de cantos subidos guarda ahora su dueño. Los del historial anterior, que no lo tenían, pasan a la primera cuenta que entra tras la actualización: los subió una cuenta y solo cambia quién los ve en este teléfono.
+- **Al cerrar sesión** (decisión del dueño), lo de esa cuenta se queda en el teléfono sin mostrarse a nadie hasta que vuelve a entrar; lo que no se subió no se pierde.
+- **Cantos sin dueño** (los grabados cuando aún se podía usar sin cuenta), decisión del dueño: se ofrecen a la cuenta que entra («Este teléfono guarda N cantos sin dueño»). Si los suma, pasan a su cuenta con las caminatas sin dueño y se suben. Si dice «No son míos», se quedan ocultos y se vuelven a ofrecer en el siguiente inicio de sesión. Una caminata sin dueño ya no se sube sola al activar «guardar caminatas».
+- **Lógica retirada**: los estados «se subirá cuando asocies…» y «…cuando inicies sesión» de la Bitácora; las pantallas «Inicia sesión para ver…» del mapa y de los lugares; el formulario de entrada dentro de Cuenta; los textos que prometían usar la app sin cuenta, y el aviso «Todo funciona en este teléfono» de la build sin cuentas.
+- **Build sin Supabase**: muestra la portada, la guía y una entrada que dice que esta instalación no tiene cuentas configuradas. Todas las E2E usan `npm run build:e2e` (decisión del dueño): las pantallas de la app se abren con una sesión guardada firmada por la API local, y las pruebas de la cola siguen sin sesión, con el puente.
+- **API**: sin cambios. Todo lo personal y el mapa de todos ya pedían sesión. Siguen públicas la salud, el manifiesto del modelo, la lectura de fichas y los cantos de referencia, que sirven a la guía pública.
+
+### Consecuencias
+- Quien abría la app sin cuenta encuentra la entrada. Lo que grabó sigue en el teléfono hasta que una cuenta lo acepta.
+- Un teléfono compartido ya no muestra los registros de otra persona. Borrarlos del teléfono exige borrar los datos del navegador o borrar la cuenta, y la política de privacidad lo dice.
+- Sin verificar con Supabase real: la entrada con Google y con el enlace del correo seguida de la pantalla pedida, y un teléfono que pasa más de una hora sin señal (`docs/pruebas.md`).
+
+---
+
 ## Paquete principal de la web (Sprint 11)
 
 Medido con los sourcemaps del build: `app` pasó de 602,6 kB (177,3 kB gzip) a 311,6 kB (100,4 kB gzip). Dos cambios: la app carga solo Supabase Auth (ADR-39) y los textos de las secciones viajan en su propio archivo (96 kB, 29 kB gzip), pedido al arrancar en paralelo con la primera sección; el armazón solo usa los suyos. Lo que queda es sobre todo react-dom (202 kB).

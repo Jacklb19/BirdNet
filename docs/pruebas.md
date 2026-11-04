@@ -44,6 +44,9 @@ Si el teléfono es demasiado lento para los dos modelos, la app vuelve sola al p
 | Cantos de referencia | Guía → una ficha → «Cómo canta» | Suena y dibuja la onda; muestra quién grabó y la licencia |
 | Especies amenazadas | Con dos cuentas que comparten: registrar o ver una especie VU, EN o CR | La otra cuenta la ve en una zona de ~11 km con la explicación; la propia, en su punto |
 | Borrar la cuenta | Con una cuenta de prueba: Cuenta → «Borrar mi cuenta» → escribir BORRAR | Se borra todo y Supabase ya no la muestra |
+| Solo con cuenta (ADR-45) | Sin sesión, abrir `#/log` y entrar con Google; repetir con correo y contraseña. Crear una cuenta y activarla con el enlace del correo en lugar del código | Tras entrar se abre la Bitácora en la misma dirección; con el enlace, la app queda con la sesión iniciada |
+| Sin señal más de una hora (ADR-45) | Con la sesión iniciada, poner el teléfono en modo avión una hora y media, abrir Trino y escuchar; volver a tener señal | La app se abre sin pedir entrar, Cuenta dice «Sin conexión», lo grabado sale en la Bitácora y se sube al volver la señal |
+| Teléfono compartido (ADR-45) | Entrar con una cuenta y grabar; cerrar sesión; entrar con otra | La segunda no ve nada de la primera; al volver la primera, ve lo suyo y lo pendiente se sube |
 
 ## 3. Pruebas manuales del teléfono y la accesibilidad
 

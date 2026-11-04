@@ -14,7 +14,7 @@ Aplicación web progresiva para el monitoreo continuo de aves por sonido. Identi
 - Política de confianza: ≥ 0,80 confirmada por el modelo local; 0,45–0,80 provisional; < 0,45 descartada. Toda detección muestra su confianza y estado.
 - Funcionamiento sin conexión: modelo en caché con verificación SHA-256 y cola local de detecciones que se sincroniza sola, sin duplicados. La descarga del modelo se reanuda si se interrumpe, y la del modelo de vista previa sigue en segundo plano donde el navegador lo permite.
 - Modo bolsillo: mientras escucha, la pantalla queda en negro y encendida y no responde a los toques, para llevar el teléfono guardado sin que deje de oír.
-- Cuenta con Supabase Auth y mapa colectivo (MapLibre + OpenFreeMap) con agrupamiento y filtros por especie y periodo.
+- Se usa con cuenta (Supabase Auth, ADR-45): sin sesión solo se ven la portada, la privacidad y la guía de aves. Con la sesión iniciada funciona sin conexión. Mapa colectivo (MapLibre + OpenFreeMap) con agrupamiento y filtros por especie y periodo.
 - Ubicación siempre aproximada (celdas de unos 10 m); cada persona decide si sus cantos se comparten en el mapa de todos.
 
 ## Tecnología
@@ -45,7 +45,7 @@ En desarrollo y en `npm run preview`, Vite reenvía `/api` a `API_PROXY_TARGET` 
 | `npm run test` | Pruebas unitarias (Vitest) |
 | `npm run build` | Build de producción y precaché sin conexión |
 | `npm run test:offline` | E2E sin conexión (Playwright; requiere el repositorio de la API) |
-| `npm run build:e2e` | Build para `e2e/account.spec.ts`: la de producción con cuentas apuntando a un Supabase ficticio que la prueba responde sola. Las E2E sin conexión necesitan la build normal (`npm run build`): cada grupo se salta, avisando, con la build del otro |
+| `npm run build:e2e` | Build para las E2E: la de producción con cuentas apuntando a un Supabase ficticio que las pruebas responden solas. Trino solo se usa con cuenta (ADR-45), así que todas las E2E la necesitan y se saltan, avisando, con la build normal |
 | `npm run data:species-names` | Regenera `public/models/species-names.json` desde la taxonomía de eBird (al cambiar el modelo) |
 | `python scripts/eval/score-models.py`, `node scripts/eval/report.mjs`, `python scripts/eval/explore.py` | Miden la detección contra grabaciones etiquetadas y prueban ideas sobre lo ya medido (ver `docs/evaluacion.md`) |
 | `python scripts/prepare-birdnet-plus.py` | Prepara para el navegador el filtro geográfico del V3 y el modelo BirdNET+ V3 (ver ADR-31 y `docs/despliegue.md`) |

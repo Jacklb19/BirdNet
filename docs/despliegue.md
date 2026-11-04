@@ -43,7 +43,7 @@ Ambos se despliegan solos en Vercel al fusionar en `main`. El trabajo diario va 
 
 | Variable | Valor |
 |---|---|
-| `VITE_SUPABASE_URL` | `https://tugzxyleoidiimhbnwde.supabase.co` |
+| `VITE_SUPABASE_URL` | `https://tugzxyleoidiimhbnwde.supabase.co`. Obligatoria: Trino solo se usa con cuenta (ADR-45) y sin ella la web solo muestra la portada y la guía |
 | `VITE_SUPABASE_ANON_KEY` | Clave `anon` / *publishable* (pública por diseño; todas las tablas tienen RLS) |
 | `VITE_GOOGLE_CLIENT_ID` | Opcional. ID de cliente OAuth de Google (termina en `.apps.googleusercontent.com`; es público). Sin él, Google funciona por redirección de Supabase |
 | `VITE_SENTRY_DSN` | Opcional (S11, ADR-43): DSN del proyecto de Sentry de la web (público por diseño). Sin él no se envía nada |
