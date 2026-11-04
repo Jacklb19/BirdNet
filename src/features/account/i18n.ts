@@ -6,12 +6,30 @@ export const accountMessages = defineMessages({
   es: {
     title: 'Cuenta',
     unavailable: {
-      title: 'Todo funciona en este teléfono',
-      text: 'Esta versión no tiene cuenta en la nube. Puedes escuchar, llevar tu bitácora y usar el modelo sin señal; lo que registres se queda en el teléfono.',
+      title: 'Las cuentas no están disponibles',
+      text: 'Esta instalación de Trino no tiene cuentas configuradas, y Trino solo se usa con una cuenta. La guía de aves sí se puede ver.',
+    },
+    entrance: {
+      kicker: 'Tu cuaderno de campo',
+      title: 'Las aves que oyes, guardadas en tu cuenta',
+      lede: 'Trino reconoce las aves por su canto en tu teléfono. Con tu cuenta, cada registro, lugar y caminata queda a salvo y te sigue a cualquier dispositivo.',
+      requested: (screen: string) => `«${screen}» es parte de tu cuenta. Inicia sesión o crea una para abrirla.`,
+      points: {
+        cloud: { title: 'Todo en tu cuenta', text: 'Tus cantos, lugares y caminatas se guardan en la nube y no se pierden si cambias de teléfono.' },
+        offline: { title: 'Escucha sin señal', text: 'Una vez dentro, Trino escucha y registra sin conexión, y sube lo pendiente cuando vuelve la señal.' },
+        privacy: { title: 'Tú decides qué se comparte', text: 'El audio se analiza en tu teléfono. Al mapa de todos solo va lo que eliges, sin tu nombre y a unos 10 m.' },
+      },
+      birds: 'Algunas aves de la guía',
+      guide: 'Explora la guía de aves',
+      guideLead: '¿Solo quieres mirar?',
+      privacy: 'Cómo tratamos tus datos',
     },
     signIn: {
-      title: 'Guarda tus cantos en tu cuenta',
-      intro: 'Con una cuenta, tus cantos se guardan en la nube y dan las estadísticas de tus lugares. Al mapa de todos solo van si eliges compartirlos, sin tu nombre y a unos 10 m. Sin cuenta, todo sigue funcionando en este teléfono.',
+      titles: { signIn: 'Inicia sesión', signUp: 'Crea tu cuenta' },
+      intros: {
+        signIn: 'Entra con Google o con el correo de tu cuenta.',
+        signUp: 'Es gratis. Te enviaremos un código al correo para activarla.',
+      },
       modeLabel: 'Qué quieres hacer',
       modes: { signIn: 'Iniciar sesión', signUp: 'Crear cuenta' },
       email: 'Correo electrónico',
@@ -132,13 +150,13 @@ export const accountMessages = defineMessages({
     },
     claim: {
       title: {
-        one: (count: string) => `Tienes ${count} canto sin cuenta`,
-        other: (count: string) => `Tienes ${count} cantos sin cuenta`,
+        one: (count: string) => `Este teléfono guarda ${count} canto sin dueño`,
+        other: (count: string) => `Este teléfono guarda ${count} cantos sin dueño`,
       },
-      text: 'Los guardaste antes de iniciar sesión. ¿Los sumamos a tus aportes?',
-      accept: 'Sumarlos',
-      decline: 'Ahora no',
-      done: 'Listo: se sumaron a tus aportes.',
+      text: 'Se grabaron aquí cuando Trino aún se usaba sin cuenta, con las caminatas de entonces. Si son tuyos, súmalos a tu cuenta; si no, déjalos: nadie los ve.',
+      accept: 'Sumarlos a mi cuenta',
+      decline: 'No son míos',
+      done: 'Listo: se sumaron a tu cuenta y se subirán con lo demás.',
     },
     share: {
       title: '¿Compartir tus cantos en el mapa de todos?',
@@ -189,13 +207,13 @@ export const accountMessages = defineMessages({
       ],
       phoneTitle: 'En este teléfono',
       phone: [
-        'Los registros de esta cuenta y los que no tenían cuenta, subidos o por subir.',
+        'Los registros de esta cuenta, subidos o por subir, y los que el teléfono guardaba sin dueño.',
         'Las grabaciones, las revisiones y las caminatas guardadas aquí.',
         'La sesión, tus lugares y tus elecciones sobre qué guardar en la cuenta.',
       ],
       keptTitle: 'Se conserva',
       kept: [
-        'Los modelos descargados, para seguir escuchando sin cuenta.',
+        'Los modelos descargados, para que otra cuenta pueda escuchar en este teléfono sin bajarlos de nuevo.',
         'Las fotos y las fichas de las especies, que son datos públicos.',
         'El tema y el idioma.',
       ],
@@ -218,16 +236,38 @@ export const accountMessages = defineMessages({
       phoneKept: 'Tu cuenta se borró, pero algo de lo que guardaba este teléfono no se pudo borrar. Puedes borrarlo en los ajustes del navegador, en los datos de este sitio.',
     },
     signOut: 'Cerrar sesión',
+    offline: {
+      title: 'Sin conexión',
+      text: (email: string) => `Tu sesión${email ? ` (${email})` : ''} sigue abierta en este teléfono y lo que grabes se guarda aquí. Tu perfil y lo de la nube se ven, y lo pendiente se sube, cuando vuelva la señal.`,
+    },
   },
   en: {
     title: 'Account',
     unavailable: {
-      title: 'Everything works on this phone',
-      text: 'This version has no cloud account. You can listen, keep your log and use the model offline; what you record stays on the phone.',
+      title: 'Accounts are not available',
+      text: 'This installation of Trino has no accounts configured, and Trino is used only with an account. The guide of birds can still be seen.',
+    },
+    entrance: {
+      kicker: 'Your field notebook',
+      title: 'The birds you hear, kept in your account',
+      lede: 'Trino recognizes birds by their song on your phone. With your account, every record, place and walk is safe and follows you to any device.',
+      requested: (screen: string) => `“${screen}” is part of your account. Sign in or create one to open it.`,
+      points: {
+        cloud: { title: 'All in your account', text: 'Your songs, places and walks are kept in the cloud and are not lost if you change phones.' },
+        offline: { title: 'Listen without signal', text: 'Once signed in, Trino listens and records offline, and uploads what is pending when the signal returns.' },
+        privacy: { title: 'You decide what is shared', text: 'Audio is analysed on your phone. Only what you choose reaches the map of everyone, without your name and to about 10 m.' },
+      },
+      birds: 'Some birds of the guide',
+      guide: 'Explore the guide of birds',
+      guideLead: 'Just want to look around?',
+      privacy: 'How we handle your data',
     },
     signIn: {
-      title: 'Keep your songs in your account',
-      intro: 'With an account, your songs are kept in the cloud and feed your places’ statistics. They reach the map of everyone only if you choose to share them, without your name and to about 10 m. Without an account, everything keeps working on this phone.',
+      titles: { signIn: 'Sign in', signUp: 'Create your account' },
+      intros: {
+        signIn: 'Continue with Google or with your account’s e-mail.',
+        signUp: 'It is free. We will e-mail you a code to activate it.',
+      },
       modeLabel: 'What do you want to do',
       modes: { signIn: 'Sign in', signUp: 'Create account' },
       email: 'Email',
@@ -346,13 +386,13 @@ export const accountMessages = defineMessages({
     },
     claim: {
       title: {
-        one: (count: string) => `You have ${count} song without an account`,
-        other: (count: string) => `You have ${count} songs without an account`,
+        one: (count: string) => `This phone keeps ${count} song with no owner`,
+        other: (count: string) => `This phone keeps ${count} songs with no owner`,
       },
-      text: 'You saved them before signing in. Shall we add them to your contributions?',
-      accept: 'Add them',
-      decline: 'Not now',
-      done: 'Done: they were added to your contributions.',
+      text: 'They were recorded here when Trino could still be used without an account, with the walks of that time. If they are yours, add them to your account; if not, leave them: nobody sees them.',
+      accept: 'Add them to my account',
+      decline: 'They are not mine',
+      done: 'Done: they were added to your account and will upload with the rest.',
     },
     share: {
       title: 'Share your songs on everyone’s map?',
@@ -403,13 +443,13 @@ export const accountMessages = defineMessages({
       ],
       phoneTitle: 'On this phone',
       phone: [
-        'The records of this account and those that had no account, uploaded or waiting.',
+        'The records of this account, uploaded or waiting, and those the phone kept with no owner.',
         'The recordings, reviews and walks kept here.',
         'The session, your places and your choices about what to save in the account.',
       ],
       keptTitle: 'Kept',
       kept: [
-        'The downloaded models, so you can keep listening without an account.',
+        'The downloaded models, so another account can listen on this phone without downloading them again.',
         'The photos and cards of the species, which are public data.',
         'The theme and the language.',
       ],
@@ -432,5 +472,9 @@ export const accountMessages = defineMessages({
       phoneKept: 'Your account was deleted, but some of what this phone kept could not be deleted. You can delete it in the browser settings, under this site’s data.',
     },
     signOut: 'Sign out',
+    offline: {
+      title: 'Offline',
+      text: (email: string) => `Your session${email ? ` (${email})` : ''} stays open on this phone and what you record is kept here. Your profile and what is in the cloud show, and what is pending uploads, when the signal returns.`,
+    },
   },
 });

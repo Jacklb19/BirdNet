@@ -2,10 +2,10 @@ import { randomUUID } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
 import { API_PROXY_PREFIX, E2E_SUPABASE } from '../build.config.mjs';
 import { routeHash } from '../src/app/routes';
-import { STORAGE_KEYS } from '../src/config/storage';
 import { DEFAULT_LOCALE } from '../src/i18n/locales';
 import { dictionaries } from '../src/i18n/allMessages';
 import { buildHasAccounts } from './builds';
+import { storeSession, testSession, testUser, type TestSession } from './session';
 
 /** Labels come from the interface dictionaries, so copy changes do not break the suite. */
 const texts = dictionaries[DEFAULT_LOCALE];
@@ -14,48 +14,35 @@ test.skip(!buildHasAccounts, 'Build with `npm run build:e2e` to run the account 
 // The Auth double answers the page's own requests; a service worker in between would hide them from the routes.
 test.use({ serviceWorkers: 'block' });
 
-/** Where Supabase Auth keeps the session of this project (as `sessionStorageKey` in the app, which reads Vite's env). */
-const SESSION_KEY = `sb-${new URL(E2E_SUPABASE.url).hostname.split('.')[0] ?? ''}-auth-token`;
-
-interface TestSession { readonly userId: string; readonly accessToken: string; readonly expiresAt: number }
-
 /**
  * Signs the page in without Supabase: the local API signs a session it accepts, the page finds it where Supabase Auth
  * keeps it, and the few Auth calls the app makes are answered here.
  */
 async function signIn(page: Page, signedInAgo = 0): Promise<TestSession> {
-  const fresh = async (secondsAgo: number): Promise<TestSession> =>
-    await (await page.request.get(`${API_PROXY_PREFIX}/test/session?signed_in_ago=${String(secondsAgo)}`)).json() as TestSession;
-  const session = await fresh(signedInAgo);
-  const user = { id: session.userId, aud: 'authenticated', role: 'authenticated', email: 'sprint4@example.invalid', app_metadata: { provider: 'email' },
-    user_metadata: {}, identities: [{ id: session.userId, provider: 'email' }], factors: [], created_at: '2026-10-01T00:00:00Z' };
+  const session = await testSession(page, signedInAgo);
+  const user = testUser(session);
   await page.route(`${E2E_SUPABASE.url}/auth/v1/**`, async (route) => {
     const url = new URL(route.request().url());
     if (url.pathname.endsWith('/user')) await route.fulfill({ json: user });
     else if (url.pathname.endsWith('/token')) {
       // The password typed again: a session signed in just now.
-      const renewed = await fresh(0);
+      const renewed = await testSession(page);
       await route.fulfill({ json: { access_token: renewed.accessToken, refresh_token: 'e2e-refresh', token_type: 'bearer', expires_in: 3600, expires_at: renewed.expiresAt, user } });
     }
     else if (url.pathname.endsWith('/factors')) await route.fulfill({ json: { totp: [], phone: [], all: [] } });
     else await route.fulfill({ status: 404, json: { message: 'Not part of the e2e double' } });
   });
-  const stored = { access_token: session.accessToken, refresh_token: 'e2e-refresh', token_type: 'bearer', expires_in: 3600, expires_at: session.expiresAt, user };
-  await page.addInitScript(([sessionKey, value, preferencesKey, preferences]) => {
-    localStorage.setItem(sessionKey, value);
-    localStorage.setItem(preferencesKey, preferences);
-  }, [SESSION_KEY, JSON.stringify(stored), STORAGE_KEYS.preferences, JSON.stringify({ welcomed: true })] as const);
+  await storeSession(page, session);
   return session;
 }
 
 const bearer = (session: TestSession): Record<string, string> => ({ Authorization: `Bearer ${session.accessToken}` });
 
 test('a new account is activated with the code of its e-mail, after a wrong code and a resend', async ({ page }) => {
-  const session = await (await page.request.get(`${API_PROXY_PREFIX}/test/session`)).json() as TestSession;
+  const session = await testSession(page);
   const email = 'nueva@example.invalid';
   const code = '246810';
-  const user = { id: session.userId, aud: 'authenticated', role: 'authenticated', email, app_metadata: { provider: 'email' }, user_metadata: {},
-    identities: [{ id: session.userId, provider: 'email' }], factors: [], created_at: '2026-11-04T00:00:00Z' };
+  const user = testUser(session, email);
   const resent: unknown[] = [];
   // Supabase with "Confirm email" on: the sign-up gives no session, and only the mailed code (here 246810) opens one.
   await page.route(`${E2E_SUPABASE.url}/auth/v1/**`, async (route) => {
@@ -72,11 +59,9 @@ test('a new account is activated with the code of its e-mail, after a wrong code
     else if (path.endsWith('/factors')) await route.fulfill({ json: { totp: [], phone: [], all: [] } });
     else await route.fulfill({ status: 404, json: { message: 'Not part of the e2e double' } });
   });
-  await page.addInitScript(([key, value]) => { localStorage.setItem(key, value); }, [STORAGE_KEYS.preferences, JSON.stringify({ welcomed: true })] as const);
   const signIn = texts.account.signIn;
-  await page.goto(`/${routeHash({ name: 'account' })}`);
+  await page.goto(`/${routeHash({ name: 'signUp' })}`);
 
-  await page.getByRole('radio', { name: signIn.modes.signUp }).click();
   await page.getByLabel(signIn.email).fill(email);
   await page.getByLabel(signIn.password, { exact: true }).fill('canto-del-valle');
   await page.getByLabel(signIn.confirmPassword).fill('canto-del-valle');
@@ -95,6 +80,59 @@ test('a new account is activated with the code of its e-mail, after a wrong code
 
   await field.fill(code);
   await page.getByRole('button', { name: signIn.code.submit }).click();
+  // Activated, the account is signed in and the way in leads to the app.
+  await expect(page).toHaveURL(new RegExp(`${routeHash({ name: 'listen' })}$`));
+});
+
+test('without a session every screen of the app shows the way in, and signing in opens the one asked for (ADR-45)', async ({ page }) => {
+  const session = await testSession(page);
+  const user = testUser(session);
+  const entrance = texts.account.entrance;
+  await page.route(`${E2E_SUPABASE.url}/auth/v1/**`, async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (path.endsWith('/token')) {
+      const body = request.postDataJSON() as { email?: string; password?: string };
+      await route.fulfill(body.password === 'canto-del-valle'
+        ? { json: { access_token: session.accessToken, refresh_token: 'e2e-refresh', token_type: 'bearer', expires_in: 3600, expires_at: session.expiresAt, user } }
+        : { status: 400, json: { code: 400, error_code: 'invalid_credentials', msg: 'Invalid login credentials' } });
+    } else if (path.endsWith('/user')) await route.fulfill({ json: user });
+    else if (path.endsWith('/factors')) await route.fulfill({ json: { totp: [], phone: [], all: [] } });
+    else await route.fulfill({ status: 404, json: { message: 'Not part of the e2e double' } });
+  });
+
+  for (const route of [{ name: 'listen' }, { name: 'map' }, { name: 'log' }, { name: 'settings' }, { name: 'account' }, { name: 'walks' }] as const) {
+    await page.goto(`/${routeHash(route)}`);
+    await expect(page.getByRole('heading', { level: 1, name: entrance.title })).toBeVisible();
+    await expect(page.getByText(entrance.requested(texts.app.screens[route.name]))).toBeVisible();
+    // Nothing of the app is offered: no tab bar, no settings, no live player.
+    await expect(page.getByRole('link', { name: texts.app.nav.log })).toHaveCount(0);
+  }
+  await expect(page).toHaveTitle(texts.app.pageTitle(texts.app.screens.signIn));
+
+  // The guide stays open to everyone, with nothing of anyone's records.
+  await page.goto(`/${routeHash({ name: 'album' })}`);
+  await expect(page.getByRole('heading', { level: 1, name: texts.species.publicGuide.title })).toBeVisible();
+
+  await page.goto(`/${routeHash({ name: 'log' })}`);
+  const form = texts.account.signIn;
+  await page.getByLabel(form.email).fill('sprint4@example.invalid');
+  await page.getByLabel(form.password, { exact: true }).fill('canto-del-valle');
+  await page.locator('form').getByRole('button', { name: form.modes.signIn }).click();
+  // Same address, now the log.
+  await expect(page.getByRole('heading', { level: 1, name: texts.log.title })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`${routeHash({ name: 'log' })}$`));
+});
+
+test('offline with an expired token, the person stays signed in and the app opens (ADR-45)', async ({ page }) => {
+  const session = await testSession(page);
+  // An hour offline: the token ran out and Auth cannot renew it.
+  await page.route(`${E2E_SUPABASE.url}/auth/v1/**`, async (route) => { await route.abort('internetdisconnected'); });
+  await storeSession(page, session, Math.floor(Date.now() / 1000) - 60);
+  await page.goto(`/${routeHash({ name: 'log' })}`);
+  await expect(page.getByRole('heading', { level: 1, name: texts.log.title })).toBeVisible();
+  await page.goto(`/${routeHash({ name: 'account' })}`);
+  await expect(page.getByText(texts.account.offline.title)).toBeVisible();
   await expect(page.getByRole('button', { name: texts.account.signOut })).toBeVisible();
 });
 

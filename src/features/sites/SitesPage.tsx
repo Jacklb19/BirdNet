@@ -5,12 +5,10 @@ import { EmptyState } from '../../shared/ui/EmptyState';
 import { Notice } from '../../shared/ui/Notice';
 import { Page } from '../../shared/ui/Page';
 import { PageHeader } from '../../shared/ui/PageHeader';
-import { useAccountContext } from '../account/accountContext';
 import type { CachedSite } from '../offline/types';
 import { useOnline } from '../offline/useQueueStatus';
 import { NewSiteForm } from './NewSiteForm';
 import { SiteCard } from './SiteCard';
-import { SitesAccessState } from './SitesAccessState';
 import { CARD_PERIOD } from './sites.config';
 import { useSites } from './useSites';
 import './SitesPage.css';
@@ -19,7 +17,7 @@ import './SitesPage.css';
 export default function SitesPage(): React.JSX.Element {
   const { dict } = useI18n();
   const t = dict.sites;
-  const { configured, session } = useAccountContext();
+
   const online = useOnline();
   // A failed creation is explained by the form itself; only a failed refresh is reported on the page.
   const { sites, active, ready, canEdit, loading, refreshError, select, refresh, create } = useSites();
@@ -57,7 +55,7 @@ export default function SitesPage(): React.JSX.Element {
   };
 
   const header = (
-    <PageHeader title={t.title} actions={configured && (
+    <PageHeader title={t.title} actions={(
       <Button id={ids.newButton} variant="quiet" icon="plus" className="bn-sites__new" disabled={!canEdit}
         aria-expanded={formOpen && canEdit} aria-controls={formOpen && canEdit ? ids.form : undefined}
         aria-describedby={canEdit ? undefined : ids.why} aria-label={t.newSiteTitle} onClick={formOpen ? closeForm : openForm}>
@@ -66,22 +64,7 @@ export default function SitesPage(): React.JSX.Element {
     )} />
   );
   // A disabled button cannot be focused or explain itself, so the reason is visible and also its description.
-  const why = configured && !canEdit && (
-    <p id={ids.why} className="bn-sites__why">{session ? t.editNeedsConnection : t.editNeedsAccount}</p>
-  );
-
-  if (!configured || !session) {
-    return (
-      <Page className="bn-sites">
-        {header}
-        <div className="bn-sites__intro">
-          <p>{t.intro}</p>
-          {why}
-        </div>
-        <SitesAccessState reason={configured ? 'signedOut' : 'unconfigured'} />
-      </Page>
-    );
-  }
+  const why = !canEdit && <p id={ids.why} className="bn-sites__why">{t.editNeedsConnection}</p>;
 
   const empty = ready && !loading && sites.length === 0 && (checked || !canEdit);
 

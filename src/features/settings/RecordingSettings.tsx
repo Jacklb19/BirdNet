@@ -69,7 +69,7 @@ export function RecordingSettings({ offline }: { readonly offline: OfflineSettin
         trailing={<Toggle labelledBy={ids.keep} describedBy={ids.keepDetail} checked={compresses && settings?.keepRecordings !== false} disabled={!settings || !compresses}
           onChange={(checked) => { void update({ keepRecordings: checked }); }} />} />
       <ListRow labelId={ids.save} descriptionId={ids.saveDetail} label={texts.save}
-        description={token ? texts.saveDetail(accountLimit ?? formatDataSize(ACCOUNT_RECORDINGS_DEFAULT_LIMIT_BYTES, locale)) : texts.saveNeedsAccount}
+        description={token ? texts.saveDetail(accountLimit ?? formatDataSize(ACCOUNT_RECORDINGS_DEFAULT_LIMIT_BYTES, locale)) : texts.saveNeedsConnection}
         trailing={<Toggle labelledBy={ids.save} describedBy={ids.saveDetail} checked={Boolean(token) && Boolean(settings && savesRecordings(settings))} disabled={!settings || !token}
           onChange={(checked) => { void update({ saveRecordings: checked }); }} />} />
       <div className="bn-settings-recordings" ref={backRef}>

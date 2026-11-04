@@ -106,6 +106,18 @@ export async function forgetAccountCopies(): Promise<void> {
   announceQueueChange(['walks']);
 }
 
+/**
+ * Walks recorded before accounts were required (ADR-45) go to the account that accepts the phone's songs without an
+ * owner, with them: they are the same outings.
+ */
+export async function claimWalks(userId: string): Promise<void> {
+  await transact('readwrite', async (store) => {
+    const all = await request(store.getAll() as IDBRequest<StoredWalk[]>);
+    for (const walk of all) if (!walk.owner) await request(store.put({ ...walk, owner: userId }));
+  });
+  announceQueueChange(['walks']);
+}
+
 /** After the account was deleted (ADR-38): its walks and those without an owner; another account's stay. */
 export async function deleteWalksOf(userId: string): Promise<void> {
   await transact('readwrite', async (store) => {

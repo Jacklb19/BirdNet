@@ -89,6 +89,20 @@ function loadPhotoIndex(): Promise<ReadonlyMap<string, SpeciesPhoto>> {
   return photoIndex;
 }
 
+/**
+ * The birds of the deployment region, as the bundled index lists them; null while it loads, empty when it could not
+ * be read. It is the catalogue of the public guide (ADR-45): a fixed list that needs neither the model nor an account.
+ */
+export function useRegionCatalog(): readonly string[] | null {
+  const [species, setSpecies] = useState<readonly string[] | null>(null);
+  useEffect(() => {
+    let active = true;
+    void loadPhotoIndex().then((index) => { if (active) setSpecies([...index.keys()]); });
+    return () => { active = false; };
+  }, []);
+  return species;
+}
+
 function stripHtml(value: unknown): string {
   return typeof value === 'string' ? value.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim() : '';
 }

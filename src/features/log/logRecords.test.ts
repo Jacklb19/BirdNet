@@ -34,28 +34,19 @@ function record(recordedAt: number, changes: Partial<LogRecord> = {}): LogRecord
 }
 
 describe('upload state', () => {
-  it('keeps records without a cell on the phone even when they have an owner', () => {
-    expect(uploadStateOf({ location: null, owner: ids.c }, ids.c)).toBe('noLocation');
-    expect(uploadStateOf({ location: cell, owner: null }, ids.c)).toBe('needsAccount');
-    expect(uploadStateOf({ location: cell, owner: ids.c }, ids.c)).toBe('waiting');
-  });
-
-  it('does not promise an upload for records of an account that is not signed in', () => {
-    expect(uploadStateOf({ location: cell, owner: ids.c }, null)).toBe('needsSignIn');
-    expect(uploadStateOf({ location: cell, owner: ids.c }, ids.a)).toBe('needsSignIn');
-    // While the session is still being read, an owned record is taken to be waiting.
-    expect(uploadStateOf({ location: cell, owner: ids.c }, undefined)).toBe('waiting');
+  it('keeps records without a cell on the phone and sends the rest', () => {
+    expect(uploadStateOf({ location: null })).toBe('noLocation');
+    expect(uploadStateOf({ location: cell })).toBe('waiting');
   });
 });
 
 describe('merging pending and synchronized records', () => {
   it('lists each record once, newest first, preferring the synchronized copy', () => {
     const merged = mergeRecords(
-      [pending(ids.a, at(10, 7, 6, 12)), pending(ids.b, at(10, 6, 17, 48), { owner: null })],
+      [pending(ids.a, at(10, 7, 6, 12)), pending(ids.b, at(10, 6, 17, 48))],
       [history(ids.a, at(10, 7, 6, 12)), history(ids.c, at(10, 7, 7, 30))],
-      ids.c,
     );
-    expect(merged.map((row) => [row.id, row.upload])).toEqual([[ids.c, 'cloud'], [ids.a, 'cloud'], [ids.b, 'needsAccount']]);
+    expect(merged.map((row) => [row.id, row.upload])).toEqual([[ids.c, 'cloud'], [ids.a, 'cloud'], [ids.b, 'waiting']]);
     expect(merged[1]).toMatchObject({ species: 'Turdus fuscater', status: 'provisional', located: true });
   });
 
@@ -63,7 +54,6 @@ describe('merging pending and synchronized records', () => {
     const merged = mergeRecords(
       [pending(ids.a, at(10, 7, 6)), { ...pending(ids.b, at(10, 7, 7)), recorded_at: 'not a date' }],
       [history(ids.c, at(10, 7, 8), { confidence: 1.5 })],
-      ids.c,
     );
     expect(merged.map((row) => row.id)).toEqual([ids.a]);
   });
@@ -114,23 +104,18 @@ describe('local days', () => {
 });
 
 describe('sync notice', () => {
-  const counts = syncCounts([record(0, { upload: 'waiting' }), record(0, { upload: 'waiting' }), record(0, { upload: 'needsAccount' }), record(0, { upload: 'cloud' })]);
+  const counts = syncCounts([record(0, { upload: 'waiting' }), record(0, { upload: 'waiting' }), record(0, { upload: 'noLocation' }), record(0, { upload: 'cloud' })]);
 
   it('counts records by what keeps them on the phone', () => {
-    expect(counts).toEqual({ waiting: 2, needsAccount: 1, needsSignIn: 0, noLocation: 0 });
-  });
-
-  it('sends records of a signed-out account to the account screen', () => {
-    expect(syncNotice({ waiting: 0, needsAccount: 0, needsSignIn: 2, noLocation: 0 }, { online: true, syncFailed: false }))
-      .toEqual({ lines: [{ kind: 'needsSignIn', count: 2 }], retry: false, account: true });
+    expect(counts).toEqual({ waiting: 2, noLocation: 1 });
   });
 
   it('mentions waiting records only offline or after a failed attempt, which can be retried', () => {
-    expect(syncNotice(counts, { online: false, syncFailed: false })).toEqual({ lines: [{ kind: 'waitingOffline', count: 2 }, { kind: 'needsAccount', count: 1 }], retry: false, account: true });
+    expect(syncNotice(counts, { online: false, syncFailed: false })).toEqual({ lines: [{ kind: 'waitingOffline', count: 2 }, { kind: 'noLocation', count: 1 }], retry: false });
     expect(syncNotice(counts, { online: true, syncFailed: true })?.lines[0]).toEqual({ kind: 'failed', count: 2 });
     expect(syncNotice(counts, { online: true, syncFailed: true })?.retry).toBe(true);
-    expect(syncNotice({ ...counts, needsAccount: 0 }, { online: true, syncFailed: false })).toBeNull();
-    expect(syncNotice({ waiting: 0, needsAccount: 0, needsSignIn: 0, noLocation: 3 }, { online: true, syncFailed: true })).toEqual({ lines: [{ kind: 'noLocation', count: 3 }], retry: false, account: false });
+    expect(syncNotice({ ...counts, noLocation: 0 }, { online: true, syncFailed: false })).toBeNull();
+    expect(syncNotice({ waiting: 0, noLocation: 3 }, { online: true, syncFailed: true })).toEqual({ lines: [{ kind: 'noLocation', count: 3 }], retry: false });
   });
 });
 
@@ -165,7 +150,7 @@ describe('species of a day', () => {
       record('d', 'Turdus fuscater', 40, { confidence: 0.93 }),
       record('c', 'Colibri coruscans', 30, { status: 'provisional', confidence: 0.6 }),
       record('b', 'Turdus fuscater', 20, { upload: 'waiting' }),
-      record('a', 'Turdus fuscater', 10, { status: 'provisional', upload: 'needsAccount' }),
+      record('a', 'Turdus fuscater', 10, { status: 'provisional', upload: 'noLocation' }),
     ]);
     expect(groups.map((group) => group.species)).toEqual(['Turdus fuscater', 'Colibri coruscans']);
     expect(groups[0]).toMatchObject({

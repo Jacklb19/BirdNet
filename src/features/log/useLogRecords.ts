@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { listDetections, listHistory } from '../offline/queueStore';
 import type { HistoryEntry, StoredDetection } from '../offline/types';
-import { useOfflineSettings } from '../offline/useOfflineSettings';
+import { ownedBy } from '../offline/ownership';
 import { useQueueVersion } from '../offline/useQueueVersion';
+import { useAccountContext } from '../account/accountContext';
 import { useReviews } from '../review/useReviews';
-import { isPresence, mergeRecords, msUntilNextLocalDay, type LogRecord, type SyncUser } from './logRecords';
+import { isPresence, mergeRecords, msUntilNextLocalDay, type LogRecord } from './logRecords';
 
 export interface LogRecordsState {
   /** The records that count as presence of a bird: everything but what the person discarded. Null while the first read is in progress. */
@@ -34,15 +35,12 @@ const initialSnapshot = (): Snapshot => ({
 });
 
 /**
- * Every record kept on this phone, pending or synchronized. The stores are read again after every change to the
+ * Every record of the signed-in person kept on this phone, pending or synchronized. The stores are read again after every change to the
  * records (added, acknowledged or claimed by an account), so records move from "waiting" to "uploaded" while the screen is open.
  */
 export function useLogRecords(): LogRecordsState {
   const version = useQueueVersion('records');
-  // Read again after every settings change, so signing in or out elsewhere updates the upload state here.
-  const { settings } = useOfflineSettings();
-  // The session synchronization actually uses, not the auth state: it decides which owned records can upload.
-  const syncUser: SyncUser = settings ? settings.session?.userId ?? null : undefined;
+  const userId = useAccountContext().identity?.userId ?? null;
   const [snapshot, setSnapshot] = useState<Snapshot>(initialSnapshot);
   const [attempt, setAttempt] = useState(0);
   const reload = useCallback((): void => { setAttempt((value) => value + 1); }, []);
@@ -52,11 +50,11 @@ export function useLogRecords(): LogRecordsState {
     let active = true;
     // Pending first, then history: a record acknowledged between both reads is then seen twice (and merged), never missed.
     listDetections()
-      .then(async (pending) => ({ pending, history: await listHistory() }))
+      .then(async (pending) => ({ pending: ownedBy(pending, userId), history: ownedBy(await listHistory(), userId) }))
       .then((stores) => { if (active) setSnapshot({ stores, readAt: new Date(), error: false }); })
       .catch(() => { if (active) setSnapshot((previous) => ({ ...previous, error: true })); });
     return () => { active = false; };
-  }, [version, attempt]);
+  }, [version, attempt, userId]);
 
   // A screen left open overnight would keep calling yesterday "today": read again when the local day changes.
   useEffect(() => {
@@ -66,8 +64,8 @@ export function useLogRecords(): LogRecordsState {
 
   const reviews = useReviews();
   const everything = useMemo(
-    () => (snapshot.stores && reviews ? mergeRecords(snapshot.stores.pending, snapshot.stores.history, syncUser, reviews) : null),
-    [snapshot.stores, syncUser, reviews],
+    () => (snapshot.stores && reviews ? mergeRecords(snapshot.stores.pending, snapshot.stores.history, reviews) : null),
+    [snapshot.stores, reviews],
   );
   const records = useMemo(() => everything?.filter(isPresence) ?? null, [everything]);
   return { records, everything, readAt: snapshot.readAt, error: snapshot.error, reload };

@@ -31,11 +31,12 @@ function referenceRecording(): { url: string; startSample: number } {
 /** Routes of the backend's local e2e server (tests/local_server.py), behind the same API base as the app. */
 const TEST_ROUTES = Object.freeze({ session: '/test/session', invalidManifest: '/test/invalid-manifest' });
 
-/** A finished walk of an hour with a timed path of three cells, kept on the phone. */
+/** A finished walk of an hour with a timed path of three cells, kept on the phone, of the bound account as the app records it. */
 async function seedWalk(): Promise<string> {
   const id = crypto.randomUUID();
+  const owner = (await getSettings()).session?.userId ?? null;
   await saveWalk({
-    id, startedAt: '2026-10-06T11:30:00.000Z', endedAt: '2026-10-06T12:30:00.000Z', lastAt: '2026-10-06T12:30:00.000Z', owner: null,
+    id, startedAt: '2026-10-06T11:30:00.000Z', endedAt: '2026-10-06T12:30:00.000Z', lastAt: '2026-10-06T12:30:00.000Z', owner,
     track: [[4.679, -74.123, 0], [4.6791, -74.123, 60], [4.6791, -74.1231, 120]],
   }, 60);
   return id;

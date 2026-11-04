@@ -16,9 +16,7 @@ import { localTotals } from './localTotals';
 import { ProfileCard } from './ProfileCard';
 import { RecoveryForm } from './RecoveryForm';
 import { SecondStepCard } from './SecondStepCard';
-import { SecondStepForm } from './SecondStepForm';
 import { ShareChoiceCard } from './ShareChoiceCard';
-import { SignInForm } from './SignInForm';
 import { SyncRow } from './SyncRow';
 import { pendingSync } from './syncStatus';
 import { useAccountSummary } from './useAccountSummary';
@@ -26,7 +24,11 @@ import { applyReviews } from '../review/reviewPolicy';
 import { useReviews } from '../review/useReviews';
 import { useLocalRecords } from './useLocalRecords';
 
-/** Account screen: the cloud account when this build has one, and what this phone holds in every case. */
+/**
+ * Account screen: the profile, what the account and this phone hold, and the account's own settings. It only opens
+ * signed in (ADR-45); offline, with a session that could not be renewed, it shows what the phone holds and says the rest
+ * comes back with the signal.
+ */
 export default function AccountPage(): React.JSX.Element {
   const { dict } = useI18n();
   const texts = dict.account;
@@ -52,18 +54,9 @@ export default function AccountPage(): React.JSX.Element {
     <Page width="narrow">
       <PageHeader title={texts.title} />
 
-      {!account.configured && (
-        <Notice tone="info" icon="privacy" title={texts.unavailable.title}>{texts.unavailable.text}</Notice>
+      {!session && account.identity && (
+        <Notice tone="caution" icon="offline" title={texts.offline.title}>{texts.offline.text(account.identity.email ?? '')}</Notice>
       )}
-
-      {!session && account.deleted && (
-        <Notice tone={account.deleted === 'done' ? 'success' : 'caution'} icon={account.deleted === 'done' ? 'check' : 'pending'} live>
-          {texts.deletion[account.deleted]}
-        </Notice>
-      )}
-
-      {account.awaitingCode && <SecondStepForm account={account} />}
-      {account.configured && !session && !account.awaitingCode && <SignInForm account={account} />}
 
       {session && account.recovering && <RecoveryForm account={account} />}
       <ShareChoiceCard />
@@ -90,7 +83,8 @@ export default function AccountPage(): React.JSX.Element {
         <ListRow icon="settings" label={texts.links.settings} href={routeHash({ name: 'settings' })} />
       </ListGroup>
 
-      {session && (
+      {/* Offline too: signing out of this phone needs no server, and the person may need to hand the phone over. */}
+      {account.identity && (
         <ListGroup>
           {/* Acts here instead of opening another screen, so it has no chevron. */}
           <ListRow label={texts.signOut} tone="danger" chevron={false} busy={account.working}

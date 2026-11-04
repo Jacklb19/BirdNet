@@ -1,0 +1,154 @@
+/*
+ * The way in: on a phone, the promise, the form and then what the account keeps; on wide screens the field notebook's
+ * page on the left (promise, stickers, notes) and the form on the right, where the eye lands after the title.
+ */
+.bn-entrance {
+  display: grid;
+  width: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  grid-template-areas: 'head' 'panel' 'aside';
+  gap: var(--space-6);
+  padding: var(--space-4) var(--space-4) var(--space-8);
+}
+
+.bn-entrance__head {
+  display: grid;
+  grid-area: head;
+  gap: var(--space-2);
+}
+
+.bn-entrance__kicker {
+  color: var(--color-brand);
+}
+
+.bn-entrance__title {
+  max-width: 30rem;
+  font-size: var(--text-l);
+  line-height: var(--leading-l);
+}
+
+.bn-entrance__lede {
+  max-width: 34rem;
+  color: var(--color-text-secondary);
+}
+
+.bn-entrance__panel {
+  display: grid;
+  grid-area: panel;
+  align-content: start;
+  gap: var(--space-4);
+}
+
+.bn-entrance__guide {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+  text-align: center;
+}
+
+.bn-entrance__link {
+  color: var(--color-brand);
+  font-weight: var(--font-weight-semibold);
+}
+
+.bn-entrance__aside {
+  display: grid;
+  grid-area: aside;
+  align-content: start;
+  gap: var(--space-6);
+}
+
+.bn-entrance__birds {
+  display: grid;
+  margin: 0;
+  gap: var(--space-3);
+}
+
+/* Smaller stickers on a phone, so the three fit side by side at 360 px with their tilt. */
+.bn-entrance__stickers {
+  --sticker-m: 5.5rem;
+
+  display: flex;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+}
+
+.bn-entrance__sticker:nth-child(2) {
+  margin-top: var(--space-4);
+}
+
+.bn-entrance__caption {
+  display: grid;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+  text-align: center;
+}
+
+.bn-entrance__points {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  gap: var(--space-4);
+  list-style: none;
+}
+
+.bn-entrance__point {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.bn-entrance__point-icon {
+  display: inline-flex;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-m);
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+}
+
+.bn-entrance__point-title {
+  display: block;
+  font-weight: var(--font-weight-semibold);
+}
+
+.bn-entrance__point-text {
+  display: block;
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+@media (min-width: 64rem) {
+  .bn-entrance {
+    grid-template-areas: 'head panel' 'aside panel';
+    grid-template-columns: minmax(0, 1fr) minmax(0, 28rem);
+    grid-template-rows: auto 1fr;
+    column-gap: var(--space-9);
+    row-gap: var(--space-6);
+    padding-top: var(--space-8);
+  }
+
+  .bn-entrance__title {
+    font-size: var(--text-xl);
+    line-height: var(--leading-xl);
+  }
+
+  .bn-entrance__stickers {
+    --sticker-m: 8.5rem;
+
+    justify-content: flex-start;
+  }
+
+  .bn-entrance__caption {
+    text-align: start;
+  }
+}

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { isAuthCallback, isSiteRoot, parseRoute, routeHash, sectionOf, type Route } from './routes';
+import { isAuthCallback, isPublicRoute, isSiteRoot, parseRoute, routeHash, sectionOf, type Route } from './routes';
 import { TRUNCATED_HEADER } from '../config/api';
 import { HOURS_PER_DAY } from '../config/contract';
 import { applyDetectionPolicy } from '../features/inference/detectionPolicy';
@@ -14,7 +14,7 @@ describe('routes', () => {
   it('round-trips every route and says so on an unknown address', () => {
     const routes: Route[] = [{ name: 'listen' }, { name: 'log' }, { name: 'detection', id }, { name: 'map' }, { name: 'sites' }, { name: 'site', id }, { name: 'account' }, { name: 'settings' }, { name: 'home' },
       { name: 'album' }, { name: 'species', species: 'Turdus fuscater' }, { name: 'map', species: 'Colibri coruscans' }, { name: 'walks' }, { name: 'walk', id },
-      { name: 'notFound' }];
+      { name: 'signIn' }, { name: 'signUp' }, { name: 'notFound' }];
     for (const route of routes) expect(parseRoute(routeHash(route))).toEqual(route);
     expect(parseRoute('#/log/not-a-uuid')).toEqual({ name: 'log' });
     // 36 characters is not enough: the identifier must have the UUID layout the API issues.
@@ -23,6 +23,7 @@ describe('routes', () => {
     expect(parseRoute('')).toEqual({ name: 'home' });
     expect(parseRoute('#/')).toEqual({ name: 'home' });
     expect(parseRoute('#/nowhere')).toEqual({ name: 'notFound' });
+    expect(routeHash({ name: 'signUp' })).toBe('#/signup');
     expect(sectionOf({ name: 'notFound' })).toBeNull();
     expect([isSiteRoot(''), isSiteRoot('#'), isSiteRoot('#/'), isSiteRoot('#/home')]).toEqual([true, true, true, false]);
     expect(sectionOf({ name: 'site', id })).toBe('map');
@@ -34,6 +35,14 @@ describe('routes', () => {
     expect(parseRoute('#/welcome')).toEqual({ name: 'home' });
     expect(parseRoute('#/species/%E0%A4%A')).toEqual({ name: 'album' });
     expect(parseRoute(`#/species/${'a'.repeat(201)}`)).toEqual({ name: 'album' });
+  });
+
+  it('opens only the home page, the way in and the guide without an account (ADR-45)', () => {
+    const open: Route[] = [{ name: 'home' }, { name: 'signIn' }, { name: 'signUp' }, { name: 'album' }, { name: 'species', species: 'Turdus fuscater' }, { name: 'notFound' }];
+    const own: Route[] = [{ name: 'listen' }, { name: 'log' }, { name: 'detection', id }, { name: 'map' }, { name: 'map', species: 'Turdus fuscater' },
+      { name: 'sites' }, { name: 'site', id }, { name: 'account' }, { name: 'settings' }, { name: 'walks' }, { name: 'walk', id }];
+    expect(open.every(isPublicRoute)).toBe(true);
+    expect(own.some(isPublicRoute)).toBe(false);
   });
 
   it('ignores the tokens Supabase returns in the hash after Google or a reset link', () => {

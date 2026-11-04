@@ -98,8 +98,19 @@ export async function updateSettings(changes: EditableSettings): Promise<void> {
 /** S5 must call this only after an explicit account association; never silently reassign owners. */
 export async function bindSyncSession(session: SyncSession | null, claimUnowned = false): Promise<void> {
   if (session && (!isUuid(session.userId) || !session.accessToken || !Number.isFinite(session.expiresAt))) throw new Error('Invalid session.');
-  await transact([STORES.settings, STORES.detections], 'readwrite', async (tx) => {
+  const outcome = { stamped: false };
+  await transact([STORES.settings, STORES.detections, STORES.history], 'readwrite', async (tx) => {
     const settings = await readSettings(tx);
+    if (session) {
+      // Uploaded songs kept no owner before ADR-45. They were uploaded by an account, so they are not offered as the
+      // ones recorded without one: the first account that signs in after the update takes them, once.
+      const history = tx.objectStore(STORES.history);
+      for (const entry of await request(history.getAll()) as HistoryEntry[]) {
+        if (entry.owner) continue;
+        await request(history.put({ ...entry, owner: session.userId } satisfies HistoryEntry));
+        outcome.stamped = true;
+      }
+    }
     if (session && claimUnowned) {
       const records = await request(tx.objectStore(STORES.detections).getAll()) as StoredDetection[];
       const next = records.map((row) => {
@@ -114,7 +125,7 @@ export async function bindSyncSession(session: SyncSession | null, claimUnowned 
     await writeSettings(tx, { ...settings, session });
   });
   // Claiming gives records an owner, which changes what the log and the account show as uploadable.
-  announceQueueChange(session && claimUnowned ? ['settings', 'records'] : ['settings']);
+  announceQueueChange(session && (claimUnowned || outcome.stamped) ? ['settings', 'records'] : ['settings']);
 }
 /**
  * Replaces the offline copy of `ownerId`'s sites; the active site is cleared if it no longer exists. The owner is
@@ -271,7 +282,7 @@ export async function acknowledge(ids: readonly string[]): Promise<void> {
     for (const id of ids) {
       const row = await request(store.get(id)) as StoredDetection | undefined;
       if (!row) continue;
-      await request(history.put({ id: row.id, species: row.species, confidence: row.confidence, status: row.status, recorded_at: row.recorded_at, siteId: row.siteId ?? null, syncedAt, location: row.location } satisfies HistoryEntry));
+      await request(history.put({ id: row.id, species: row.species, confidence: row.confidence, status: row.status, recorded_at: row.recorded_at, siteId: row.siteId ?? null, syncedAt, location: row.location, owner: row.owner } satisfies HistoryEntry));
       await request(store.delete(id));
     }
   });

@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type SyntheticEvent } from 'react';
+import { useId, useState, type SyntheticEvent } from 'react';
 import { formatNumber, useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
 import { Notice } from '../../shared/ui/Notice';
@@ -9,12 +9,11 @@ import { AUTH_ERROR_CODES, EMAIL_CODE_LENGTH, PASSWORD_MIN_LENGTH, passwordsMatc
 import { PasswordField, TextField } from './FormField';
 import { GoogleMark } from './GoogleMark';
 import { CodeField } from './SecondStepForm';
-import { subscribeSignInMode, takeRequestedSignInMode } from './signInIntent';
 import type { AccountState } from './useAccount';
 import './SignInForm.css';
 
 const MODES = ['signIn', 'signUp'] as const;
-type PasswordMode = (typeof MODES)[number];
+export type PasswordMode = (typeof MODES)[number];
 /** `confirm`: the code of the e-mail that activates a new account. */
 type Mode = PasswordMode | 'reset' | 'confirm';
 
@@ -27,12 +26,15 @@ const isPasswordMode = (mode: Mode): mode is PasswordMode => mode === 'signIn' |
  * Sign in with Google or with e-mail and password, create an account (the password is typed twice) and activate it
  * with the code mailed to it, or ask for a password-reset e-mail. The server reports problems through `account.error`.
  */
-export function SignInForm({ account }: { readonly account: AccountState }): React.JSX.Element {
+export function SignInForm({ account, requestedMode = 'signIn' }: {
+  readonly account: AccountState;
+  /** The side the address asked for (`#/signin` or `#/signup`); following the other link switches the form in place. */
+  readonly requestedMode?: PasswordMode;
+}): React.JSX.Element {
   const { dict, locale } = useI18n();
   const texts = dict.account.signIn;
   const online = useOnline();
-  // A link that asked for "Create account" opens the form on that side.
-  const [mode, setMode] = useState<Mode>(() => takeRequestedSignInMode() ?? 'signIn');
+  const [mode, setMode] = useState<Mode>(requestedMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
@@ -58,16 +60,16 @@ export function SignInForm({ account }: { readonly account: AccountState }): Rea
     setConfirmation('');
   };
 
-  // A link followed while the form is already on screen ("Create account" in the menu) switches it in place.
-  useEffect(() => subscribeSignInMode(() => {
-    const asked = takeRequestedSignInMode();
-    if (!asked) return;
-    setMode(asked);
+  // A link followed while the form is already on screen ("Create account" in the bar) switches it in place.
+  const [shownRequest, setShownRequest] = useState(requestedMode);
+  if (shownRequest !== requestedMode) {
+    setShownRequest(requestedMode);
+    setMode(requestedMode);
     setMismatch(false);
     setResetSentTo(null);
     setPassword('');
     setConfirmation('');
-  }), []);
+  }
 
   const submit = async (event: SyntheticEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
@@ -99,9 +101,9 @@ export function SignInForm({ account }: { readonly account: AccountState }): Rea
     setCodeResent(await account.resendSignUpCode(address));
   };
 
-  const title = mode === 'reset' ? texts.reset.title : mode === 'confirm' ? texts.code.title : texts.title;
+  const title = mode === 'reset' ? texts.reset.title : mode === 'confirm' ? texts.code.title : texts.titles[mode];
   const intro = mode === 'reset' ? texts.reset.intro
-    : mode === 'confirm' ? texts.code.intro(address, formatNumber(EMAIL_CODE_LENGTH, locale)) : texts.intro;
+    : mode === 'confirm' ? texts.code.intro(address, formatNumber(EMAIL_CODE_LENGTH, locale)) : texts.intros[mode];
   // An account created before (or on another device) that was never activated can still be activated here.
   const unconfirmed = mode === 'signIn' && account.error === AUTH_ERROR_CODES.email_not_confirmed && address.length > 0;
 

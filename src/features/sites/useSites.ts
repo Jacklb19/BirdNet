@@ -37,12 +37,12 @@ const NO_SITES: readonly CachedSite[] = Object.freeze([]);
 /**
  * The saved list belongs to the account that fetched it. Signing out or another account signing in clears it
  * (`keepSitesOf`, called by the account hook); until that write lands, a list owned by someone else is hidden.
- * Without a known session (signed out, or a stored session that could not be renewed offline) the saved list is
- * shown, so a site can still be chosen in the field.
+ * Offline with a session that could not be renewed, the person signed in on the phone still sees theirs, so a site
+ * can still be chosen in the field (ADR-45).
  */
 function visibleSites(settings: OfflineSettings | null, userId: string | null): readonly CachedSite[] {
-  if (!settings?.sites) return NO_SITES;
-  return userId !== null && settings.sitesOwner !== userId ? NO_SITES : settings.sites;
+  if (!settings?.sites || userId === null) return NO_SITES;
+  return settings.sitesOwner === userId ? settings.sites : NO_SITES;
 }
 
 /** The request in flight, shared by every screen so the automatic refresh and a page's own never fetch twice. */
@@ -62,7 +62,7 @@ function fetchSites(token: string, userId: string): Promise<void> {
 
 /** Monitoring sites of the signed-in person, with the device cache and the active-site choice. */
 export function useSites(): SitesState {
-  const { session } = useAccountContext();
+  const { session, identity } = useAccountContext();
   const online = useOnline();
   const { settings, error: settingsError, update } = useOfflineSettings();
   const [loading, setLoading] = useState(false);
@@ -70,7 +70,9 @@ export function useSites(): SitesState {
   const token = session?.access_token ?? null;
   const userId = session?.user.id ?? null;
   const ready = settings !== null || settingsError || typeof indexedDB === 'undefined';
-  const sites = useMemo(() => visibleSites(settings, userId), [settings, userId]);
+  // Offline the session may not be renewed, but the phone still knows whose list it holds.
+  const viewer = identity?.userId ?? null;
+  const sites = useMemo(() => visibleSites(settings, viewer), [settings, viewer]);
   const activeSiteId = settings?.activeSiteId ?? null;
   const active = useMemo(() => sites.find((site) => site.id === activeSiteId) ?? null, [sites, activeSiteId]);
 

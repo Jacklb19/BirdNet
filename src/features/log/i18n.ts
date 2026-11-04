@@ -43,20 +43,11 @@ export const logMessages = defineMessages({
         one: (count: string) => `${count} no se pudo subir.`,
         other: (count: string) => `${count} no se pudieron subir.`,
       },
-      needsAccount: {
-        one: (count: string) => `${count} se guarda solo en el teléfono hasta que la asocies a tu cuenta.`,
-        other: (count: string) => `${count} se guardan solo en el teléfono hasta que las asocies a tu cuenta.`,
-      },
-      needsSignIn: {
-        one: (count: string) => `${count} se subirá cuando inicies sesión con la cuenta con que se guardó.`,
-        other: (count: string) => `${count} se subirán cuando inicies sesión con la cuenta con que se guardaron.`,
-      },
       noLocation: {
         one: (count: string) => `${count} no tiene ubicación y se queda en el teléfono.`,
         other: (count: string) => `${count} no tienen ubicación y se quedan en el teléfono.`,
       },
       retrying: 'Reintentando…',
-      goToAccount: 'Ir a Cuenta',
     },
     filters: {
       label: 'Filtrar la bitácora',
@@ -191,8 +182,6 @@ export const logMessages = defineMessages({
         phoneOnly: 'Guardada solo en el teléfono',
       },
       uploadReason: {
-        needsAccount: 'Se subirá cuando asocies los registros del teléfono a tu cuenta.',
-        needsSignIn: 'Se subirá cuando inicies sesión con la cuenta con que se guardó.',
         noLocation: 'Se registró sin ubicación: se queda en este teléfono y no sale en ningún mapa.',
       },
       notFound: {
@@ -250,20 +239,11 @@ export const logMessages = defineMessages({
         one: (count: string) => `${count} could not be uploaded.`,
         other: (count: string) => `${count} could not be uploaded.`,
       },
-      needsAccount: {
-        one: (count: string) => `${count} stays on this phone until you link it to your account.`,
-        other: (count: string) => `${count} stay on this phone until you link them to your account.`,
-      },
-      needsSignIn: {
-        one: (count: string) => `${count} will upload when you sign in to the account it was saved with.`,
-        other: (count: string) => `${count} will upload when you sign in to the account they were saved with.`,
-      },
       noLocation: {
         one: (count: string) => `${count} has no location and stays on this phone.`,
         other: (count: string) => `${count} have no location and stay on this phone.`,
       },
       retrying: 'Trying again…',
-      goToAccount: 'Go to Account',
     },
     filters: {
       label: 'Filter the log',
@@ -398,8 +378,6 @@ export const logMessages = defineMessages({
         phoneOnly: 'Kept only on this phone',
       },
       uploadReason: {
-        needsAccount: 'It will upload once you link this phone’s records to your account.',
-        needsSignIn: 'It will upload when you sign in to the account it was saved with.',
         noLocation: 'It was recorded without a location: it stays on this phone and appears on no map.',
       },
       notFound: {

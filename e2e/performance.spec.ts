@@ -3,6 +3,8 @@ import { STORAGE_KEYS } from '../src/config/storage';
 import { routeHash } from '../src/app/routes';
 import { DEFAULT_LOCALE } from '../src/i18n/locales';
 import { dictionaries } from '../src/i18n/allMessages';
+import { buildHasAccounts } from './builds';
+import { storeSession, testSession } from './session';
 
 /**
  * Evidence for RNF-03 (no main-thread task over 50 ms while listening) and RNF-01 (time per window), measured with the
@@ -19,11 +21,13 @@ const LISTENING_MS = 60_000;
 
 interface Summary { readonly analysed: number; readonly dropped: number; readonly medianMs: number; readonly p90Ms: number; readonly maxMs: number }
 
+test.skip(!buildHasAccounts, 'Build with `npm run build:e2e` to run the e2e checks.');
 test.use({ launchOptions: { args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] }, permissions: ['microphone'] });
 test.setTimeout(MODEL_READY_TIMEOUT_MS + LISTENING_MS + 60_000);
 
 test('a minute of listening reports its main-thread long tasks and time per window (RNF-01, RNF-03)', async ({ page }) => {
-  await page.addInitScript(([key, value]) => { localStorage.setItem(key, value); }, [STORAGE_KEYS.preferences, JSON.stringify({ welcomed: true })] as const);
+  // Listening is part of the account (ADR-45).
+  await storeSession(page, await testSession(page));
   await page.goto(`/${routeHash({ name: 'listen' })}`);
   const start = page.getByRole('button', { name: texts.listen.record.start });
   await expect(start).toBeEnabled({ timeout: MODEL_READY_TIMEOUT_MS });

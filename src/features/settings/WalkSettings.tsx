@@ -86,7 +86,7 @@ export function WalkSettings({ offline }: { readonly offline: OfflineSettingsSta
   return (
     <ListGroup title={texts.title}>
       <ListRow labelId={ids.save} descriptionId={ids.saveDetail} label={texts.save}
-        description={token ? texts.saveDetail(formatMeters(APPROX_CELL_METERS, locale), formatCount(texts.count, limit, locale)) : texts.saveNeedsAccount}
+        description={token ? texts.saveDetail(formatMeters(APPROX_CELL_METERS, locale), formatCount(texts.count, limit, locale)) : texts.saveNeedsConnection}
         trailing={<Toggle labelledBy={ids.save} describedBy={ids.saveDetail} checked={Boolean(token) && Boolean(settings && savesWalks(settings))} disabled={!settings || !token}
           onChange={(checked) => { void toggle(checked); }} />} />
       <div className="bn-settings-walks" ref={backRef}>

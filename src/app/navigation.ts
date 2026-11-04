@@ -26,7 +26,4 @@ export const NAV_ITEMS: readonly NavItem[] = Object.freeze([
 /** The sections written in the bar; the account is reached from the session's corner of it, not from these links. */
 export const TOP_BAR_ITEMS: readonly NavItem[] = NAV_ITEMS.filter((entry) => entry.section !== 'account');
 
-/** Tabs of the phone's bottom bar. Without a session there is no account to show, so its tab is left out (ADR-27). */
-export function tabItems(signedIn: boolean): readonly NavItem[] {
-  return signedIn ? NAV_ITEMS : TOP_BAR_ITEMS;
-}
+

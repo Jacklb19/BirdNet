@@ -8,7 +8,7 @@ Documento de definición técnica del proyecto
 
 26 de septiembre de 2026
 
-> **Estado al cierre (29 de octubre de 2026).** Este documento es la definición con la que empezó el proyecto y se conserva como tal. Lo construido se llama **Trino** y se apartó de ella en los puntos de la tabla siguiente, cada uno con su decisión registrada en `docs/decisiones.md`; donde este documento y una decisión no coinciden, manda la decisión.
+> **Estado al cierre (29 de octubre de 2026; actualizado el 4 de noviembre).** Este documento es la definición con la que empezó el proyecto y se conserva como tal. Lo construido se llama **Trino** y se apartó de ella en los puntos de la tabla siguiente, cada uno con su decisión registrada en `docs/decisiones.md`; donde este documento y una decisión no coinciden, manda la decisión.
 >
 > | Punto de esta definición | Lo construido | Decisión |
 > |---|---|---|
@@ -17,6 +17,7 @@ Documento de definición técnica del proyecto
 > | Cuadrícula de unos cien metros (ADR-04 y tabla 19) | Celda de unos 10 m, nunca la coordenada cruda; compartir en el mapa de todos es una elección explícita; las especies amenazadas de otras personas se ven en una zona de unos 11 km | ADR-22, ADR-41 |
 > | RNF-05: 25 MB en la primera carga | Una descarga obligatoria del modelo (52,4 MB) aparte de la aplicación, y un segundo modelo de 80,6 MB que llega en segundo plano | ADR-07, ADR-19, ADR-36 |
 > | RF-15: informes periódicos | Informes redactados solo cuando la persona los pide, a partir de cifras ya calculadas | ADR-37 |
+> | Uso de la aplicación: la definición no lo restringe y hasta S11 la cuenta fue opcional | Solo se usa con cuenta. Sin ella se ven la portada, la privacidad y la guía de aves. Con la sesión iniciada sigue funcionando sin conexión | ADR-45 |
 > | Plan de sprints (tabla 22) | Once sprints; S8 a S11 añadieron caminatas, grabaciones, revisión, segundo modelo, cuentas completas, verificación en dos pasos, notas y cantos de referencia | `PROGRESS.md` |
 >
 > Pendiente de la definición de terminado: las dos pruebas de campo de una hora (RNF-01, RNF-02, RNF-04) y las pruebas manuales con dispositivos y cuentas reales, que se guían con `docs/pruebas.md`.

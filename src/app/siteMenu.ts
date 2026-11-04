@@ -1,5 +1,4 @@
 import type { Messages } from '../i18n';
-import { requestSignInMode } from '../features/account/signInIntent';
 import { TOP_BAR_ITEMS, type Section } from './navigation';
 import { routeHash, type Route } from './routes';
 import type { SiteBarGroup, SiteBarLink } from './SiteBar';
@@ -31,27 +30,32 @@ export function homeLink(dict: Messages): SiteBarLink {
 }
 
 /**
- * The account block of the phone menu. Without a session there is no profile to show: only the ways in, always
- * offered (a build without accounts explains itself on the account screen instead of hiding the door). Settings
- * stay reachable either way, because permissions, theme and language need no account.
+ * The account block of the phone menu. Signed in: the profile and the settings. Signed out there is no profile and
+ * nothing to set: only the ways in, always offered (ADR-45).
  */
 export function accountGroup(dict: Messages, signedIn: boolean, place: MenuPlace): SiteBarGroup {
-  const settings: SiteBarLink = {
-    key: 'settings', label: dict.app.menuLinks.settings, href: routeHash({ name: 'settings' }), icon: 'settings', current: place === 'settings',
-  };
-  const account = routeHash({ name: 'account' });
   if (signedIn) {
     return {
       key: 'account', label: dict.app.menuGroups.account,
-      links: [{ key: 'profile', label: dict.app.menuLinks.profile, href: account, icon: 'account', current: place === 'account' }, settings],
+      links: [
+        { key: 'profile', label: dict.app.menuLinks.profile, href: routeHash({ name: 'account' }), icon: 'account', current: place === 'account' },
+        { key: 'settings', label: dict.app.menuLinks.settings, href: routeHash({ name: 'settings' }), icon: 'settings', current: place === 'settings' },
+      ],
     };
   }
   return {
     key: 'account', label: dict.app.menuGroups.account,
     links: [
-      { key: 'signIn', label: dict.app.signIn, href: account, icon: 'account', current: place === 'account', onSelect: () => { requestSignInMode('signIn'); } },
-      { key: 'signUp', label: dict.app.signUp, href: account, icon: 'plus', onSelect: () => { requestSignInMode('signUp'); } },
-      settings,
+      { key: 'signIn', label: dict.app.signIn, href: routeHash({ name: 'signIn' }), icon: 'account', current: place === 'signIn' },
+      { key: 'signUp', label: dict.app.signUp, href: routeHash({ name: 'signUp' }), icon: 'plus', current: place === 'signUp' },
     ],
   };
+}
+
+/** What the bar offers without a session (ADR-45): the home page and the guide of birds, the only screens open to all. */
+export function publicLinks(dict: Messages, place: MenuPlace): SiteBarLink[] {
+  return [
+    homeLink(dict),
+    { key: 'guide', label: dict.app.nav.guide, href: routeHash({ name: 'album' }), icon: 'book', current: place === 'album' || place === 'species' },
+  ];
 }

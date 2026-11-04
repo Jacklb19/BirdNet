@@ -23,7 +23,7 @@ type CardState =
 export function WrittenCardSection({ species }: { readonly species: string }): React.JSX.Element {
   const { dict, locale } = useI18n();
   const t = dict.species.card.written;
-  const { session } = useAccountContext();
+  const { session, identity } = useAccountContext();
   const online = useOnline();
   const token = session?.access_token ?? null;
   const headingId = useId();
@@ -83,9 +83,10 @@ export function WrittenCardSection({ species }: { readonly species: string }): R
       {(current.status === 'none' || (current.status === 'failed' && !shown)) && (
         <>
           {current.status === 'none' && <p className="bn-species-page__muted">{t.none}</p>}
-          {token ? current.status === 'failed' && current.failure === 'unknownSpecies' ? null : writeButton(t.write) : (
+          {token ? current.status === 'failed' && current.failure === 'unknownSpecies' ? null : writeButton(t.write) : !identity && (
+            // The guide is public (ADR-45); asking for a card needs an account. Signed in, the token is only being renewed.
             <p className="bn-species-page__muted">
-              {t.needsAccount} <a href={routeHash({ name: 'account' })}>{t.signIn}</a>
+              {t.needsAccount} <a href={routeHash({ name: 'signIn' })}>{t.signIn}</a>
             </p>
           )}
         </>

@@ -1,4 +1,3 @@
-import { routeHash } from '../../app/routes';
 import { formatCount, useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
 import { Notice } from '../../shared/ui/Notice';
@@ -19,15 +18,12 @@ export function LogSyncNotice({ records, online, syncFailed, syncing, onRetry }:
   // Records without a location have their own card (AssignSiteCard), which also says how to upload them.
   const notice = syncNotice({ ...syncCounts(records), noLocation: 0 }, { online, syncFailed });
   if (!notice) return null;
-  const actions = notice.retry || notice.account ? (
+  const actions = notice.retry ? (
     <span className="bn-log-sync__actions">
       {/* aria-disabled while it runs: `disabled` would drop the keyboard focus to the page. */}
-      {notice.retry && (
-        <Button variant="quiet" aria-disabled={syncing} aria-busy={syncing} onClick={() => { if (!syncing) onRetry(); }}>
-          {syncing ? dict.log.sync.retrying : dict.common.actions.retry}
-        </Button>
-      )}
-      {notice.account && <Button variant="quiet" href={routeHash({ name: 'account' })}>{dict.log.sync.goToAccount}</Button>}
+      <Button variant="quiet" aria-disabled={syncing} aria-busy={syncing} onClick={() => { if (!syncing) onRetry(); }}>
+        {syncing ? dict.log.sync.retrying : dict.common.actions.retry}
+      </Button>
     </span>
   ) : undefined;
   return (

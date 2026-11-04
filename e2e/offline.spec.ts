@@ -3,12 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { API_PROXY_PREFIX, OFFLINE_CHECK_BUNDLE, OUT_DIR, TMP_DIR } from '../build.config.mjs';
 import { MIN_QUEUE_BYTES, OFFLINE_OPERATIONS, SERVICE_WORKER_URL, type OfflineRequestMessage } from '../src/features/offline/offline.constants';
-import { STORAGE_KEYS } from '../src/config/storage';
 import { routeHash } from '../src/app/routes';
 import { DEFAULT_LOCALE } from '../src/i18n/locales';
 import { dictionaries } from '../src/i18n/allMessages';
 import productionManifest from '../public/models/manifest.json' with { type: 'json' };
 import { buildHasAccounts } from './builds';
+import { storeSession, testSession } from './session';
 
 /** Labels come from the interface dictionaries, so copy changes do not break the suite. */
 const texts = dictionaries[DEFAULT_LOCALE];
@@ -29,12 +29,15 @@ const FIXTURE_ROUTES = {
   loseNoteAck: `${API_PROXY_PREFIX}/test/lose-note-ack`,
 } as const;
 
-test.skip(buildHasAccounts, 'Build with `npm run build` to run the offline checks; `npm run build:e2e` is for e2e/account.spec.ts.');
+test.skip(!buildHasAccounts, 'Build with `npm run build:e2e` to run the e2e checks.');
 
 const bridge = fs.readFileSync(OFFLINE_CHECK_BUNDLE, 'utf8');
-async function ready(page: Page, hash = ''): Promise<void> {
-  // These checks start from an installation that has already opened the app, so the model manages itself.
-  await page.addInitScript(([key, value]) => { localStorage.setItem(key, value); }, [STORAGE_KEYS.preferences, JSON.stringify({ welcomed: true })] as const);
+/**
+ * Opens the app with the bridge. Signed in (ADR-45), the screens of the app open and the model manages itself; checks
+ * of the queue alone stay signed out, so the bridge alone decides which session the phone has.
+ */
+async function ready(page: Page, hash = '', signedIn = false): Promise<void> {
+  if (signedIn) await storeSession(page, await testSession(page));
   await page.goto(`/${hash}`);
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
@@ -151,12 +154,10 @@ test('fragments left by the removed doubtful-audio upload are deleted and their 
   await ready(page);
   const before = await (await page.request.get(FIXTURE_ROUTES.counts)).json() as { detections: number };
   await page.evaluate(async () => { await window.offlineChecks.bind(); await window.offlineChecks.seed(1, 0.6); });
-  const queued = await page.evaluate(() => window.offlineChecks.queueStats());
   await page.evaluate(() => window.offlineChecks.leaveLegacyFragment());
-  // The next time the app is opened.
+  // The next time the app is opened the fragment goes; the session stays bound, so the record may upload by itself.
   await ready(page);
-  expect(await page.evaluate(() => window.offlineChecks.queueStats())).toEqual(queued);
-  expect(await page.evaluate(() => window.offlineChecks.legacyFragments())).toBe(0);
+  await expect.poll(() => page.evaluate(() => window.offlineChecks.legacyFragments())).toBe(0);
   await page.evaluate(() => window.offlineChecks.synchronizeQueue());
   expect((await page.evaluate(() => window.offlineChecks.queueStats())).count).toBe(0);
   const after = await (await page.request.get(FIXTURE_ROUTES.counts)).json() as { detections: number };
@@ -168,7 +169,7 @@ test('deleting an account forgets its records on the phone and keeps those of an
   const other = '00000000-0000-4000-8000-0000000000ff';
   const foreign = await page.evaluate(async (owner) => {
     const kept = await window.offlineChecks.seedForeign(owner);
-    // Records of the account, records that had none, and a walk without owner: all of them go.
+    // Records of the account, records that had none, and the account's walk: all of them go.
     await window.offlineChecks.seed(1);
     await window.offlineChecks.bind(false);
     await window.offlineChecks.seed(2);
@@ -204,7 +205,7 @@ test('unassociated records and records without location stay local', async ({ pa
 });
 
 test('real model survives closing, identifies recorded audio offline and detects corrupt cache', async ({ context, page }) => {
-  await ready(page, routeHash({ name: 'settings' }));
+  await ready(page, routeHash({ name: 'settings' }), true);
   // Once the person has entered the app the model installs itself (ADR-19): no button has to be pressed. Its
   // details live under the technical options.
   await page.locator('details').evaluate((group: HTMLDetailsElement) => { group.open = true; });
@@ -230,7 +231,7 @@ test('the preview model arrives by itself after the first, both listen by defaul
   // The queue is read in the order of its random identifiers, so what a listen stored is told apart by what was there before.
   const versions = async (target: Page): Promise<Map<string, string>> =>
     new Map((await target.evaluate(() => window.offlineChecks.listDetections())).map((record) => [record.id, record.model_version]));
-  await ready(page, routeHash({ name: 'settings' }));
+  await ready(page, routeHash({ name: 'settings' }), true);
   await page.locator('details').evaluate((group: HTMLDetailsElement) => { group.open = true; });
   await expect(page.getByRole('button', { name: texts.settings.model.checkUpdate })).toBeVisible({ timeout: MODEL_DOWNLOAD_TIMEOUT_MS });
   // Once the first model is in, the second downloads in the background without being asked (ADR-36), and both listen.
@@ -243,7 +244,7 @@ test('the preview model arrives by itself after the first, both listen by defaul
   await page.close();
   await context.setOffline(true);
   const reopened = await context.newPage();
-  await ready(reopened, routeHash({ name: 'settings' }));
+  await ready(reopened, routeHash({ name: 'settings' }), true);
   // The preview model takes the window at its own rate and still hears the reference bird, without a connection.
   expect(await reopened.evaluate(() => window.offlineChecks.inferReference())).toContain('Turdus fuscater');
   const withPreview = await versions(reopened);
@@ -279,7 +280,7 @@ test('a new version takes over while the app is open and is offered, not forced 
   const loads: string[] = [];
   page.on('load', () => { loads.push(page.url()); });
   try {
-    await ready(page, routeHash({ name: 'settings' }));
+    await ready(page, routeHash({ name: 'settings' }), true);
     await expect(offer).toHaveCount(0);
     const loadsBefore = loads.length;
     await publish('second version');
@@ -308,7 +309,7 @@ for (const width of REVIEW_WIDTHS) {
     test(`offline controls remain usable at ${String(width)}px in ${theme} theme`, async ({ page }) => {
       await page.setViewportSize({ width, height: REVIEW_HEIGHT });
       await page.emulateMedia({ colorScheme: theme });
-      await ready(page, routeHash({ name: 'settings' }));
+      await ready(page, routeHash({ name: 'settings' }), true);
       await expect(page.getByRole('switch', { name: texts.settings.permissions.location })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await page.screenshot({ path: `${TMP_DIR}/offline-${String(width)}-${theme}.png`, fullPage: true });
