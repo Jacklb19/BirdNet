@@ -124,14 +124,14 @@ describe('CSV of a walk', () => {
 describe('walks sent to the account', () => {
   const now = START + 3 * 60 * MINUTE;
 
-  it('sends finished walks of this account or of none, once', () => {
+  it('sends finished walks of this account only, once (ADR-45)', () => {
     const candidates = walksToUpload([
       walk({ id: 'mine' }), walk({ id: 'no-owner', owner: null }), walk({ id: 'legacy', owner: undefined }),
       walk({ id: 'saved', account: 'saved' }), walk({ id: 'phone-only', account: 'phoneOnly' }), walk({ id: 'renamed', account: 'pending' }),
       walk({ id: 'theirs', owner: OTHER }), walk({ id: 'empty', track: [] }),
       walk({ id: 'under-way', endedAt: null, lastAt: iso(now - MINUTE) }),
     ], USER, [], now);
-    expect(candidates.map((candidate) => candidate.walk.id)).toEqual(['mine', 'no-owner', 'legacy', 'renamed']);
+    expect(candidates.map((candidate) => candidate.walk.id)).toEqual(['mine', 'renamed']);
   });
 
   it('sends the times of the path only when every point has one, and never ends before its last point', () => {

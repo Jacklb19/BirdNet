@@ -27,6 +27,11 @@ export interface HistoryEntry {
   syncedAt: string;
   /** Cell the song was filed under, kept so the person's own map works without the server; absent on entries from before S8. */
   location?: ApproximateLocation | null;
+  /**
+   * Account that uploaded it, so a shared phone shows each person only their own (ADR-45). Entries from before it was
+   * kept get the first account that signs in after the update.
+   */
+  owner?: string | null;
 }
 /**
  * Cell of a walk's path as [latitude, longitude], with the whole seconds since the walk started on walks recorded

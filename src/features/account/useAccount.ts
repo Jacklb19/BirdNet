@@ -16,6 +16,8 @@ import {
   type Enrollment,
 } from './secondFactor';
 import { accountFailure, accountsConfigured, authClient, sessionStorageKey, toSyncSession } from './supabaseClient';
+import { identityOf, readStoredIdentity, type Identity } from './storedIdentity';
+import { claimWalks } from '../walk/walkStore';
 
 export type AccountError = AccountFailure | null;
 
@@ -28,6 +30,13 @@ export type AccountErrorScope = 'session' | 'profile' | 'recovery' | 'secondStep
 
 export interface AccountState {
   readonly configured: boolean;
+  /**
+   * Who is signed in on this phone: the live session's account or, offline with a token that could not be renewed,
+   * the account of the session Auth keeps (ADR-45). The app opens only with one; screens that call the API use `session`.
+   */
+  readonly identity: Identity | null;
+  /** Whether Auth has said, at least once, whether a session exists; until then a missing identity is not yet an answer. */
+  readonly ready: boolean;
   /** The signed-in session; null too while an account with the second step on waits for the authenticator's code. */
   readonly session: Session | null;
   /** Signed in with the password (or Google) of an account that asks for the authenticator's code (ADR-39). */
@@ -47,7 +56,7 @@ export interface AccountState {
   readonly profile: Profile | null;
   /** A password-reset link was opened: the account screen asks for the new password. */
   readonly recovering: boolean;
-  /** Local detections saved before any sign-in; they are never reassigned without consent. */
+  /** Local detections saved before accounts were required; they are never reassigned without consent. */
   readonly unownedCount: number;
   readonly claimed: boolean;
   readonly error: AccountError;
@@ -110,6 +119,12 @@ async function requireClient(): Promise<GoTrueClient> {
 // Asked for as soon as the app starts, not when a screen first needs it (see authClient).
 if (typeof window !== 'undefined') void authClient();
 
+/** The identity of the session this phone keeps, read again after every change Auth reports. */
+function storedIdentity(): Identity | null {
+  if (!config.supabase || typeof localStorage === 'undefined') return null;
+  try { return readStoredIdentity(localStorage, sessionStorageKey(config.supabase.url)); } catch { return null; }
+}
+
 async function countUnowned(): Promise<number> {
   if (typeof indexedDB === 'undefined') return 0;
   return (await listDetections()).filter((row) => !row.owner).length;
@@ -118,6 +133,9 @@ async function countUnowned(): Promise<number> {
 /** One instance per app: keeps the service worker's sync session in step with Supabase Auth. */
 export function useAccount(): AccountState {
   const [signedIn, setSignedIn] = useState<Session | null>(null);
+  // Read at once, so an app opened offline (or before Auth answers) shows the person's screens without waiting.
+  const [stored, setStored] = useState<Identity | null>(storedIdentity);
+  const [ready, setReady] = useState(!accountsConfigured);
   const [secondStepState, setSecondStepState] = useState<{ readonly userId: string; readonly enabled: boolean } | null>(null);
   const [loadedProfile, setLoadedProfile] = useState<{ readonly userId: string; readonly profile: Profile } | null>(null);
   const [recovering, setRecovering] = useState(false);
@@ -144,6 +162,9 @@ export function useAccount(): AccountState {
       const { data } = auth.onAuthStateChange((event, signedInNow) => {
         if (!subscription.active) return;
         setSignedIn(signedInNow);
+        const keeps = storedIdentity();
+        setStored(keeps);
+        setReady(true);
         if (event === PASSWORD_RECOVERY_EVENT) {
           setRecovering(true);
           navigateTo({ name: 'account' });
@@ -154,12 +175,18 @@ export function useAccount(): AccountState {
         follow(event, waiting ? null : signedInNow);
       });
       subscription.unsubscribe = () => { data.subscription.unsubscribe(); };
+    }, () => {
+      // Auth's code could not load (offline before it was ever cached): the stored session, if any, is all there is.
+      if (subscription.active) setReady(true);
     });
     const follow = (event: string, next: Session | null): void => {
       // Token refreshes must reach IndexedDB too, or background sync stops when the hour-long token expires.
       void (async () => {
         if (typeof indexedDB !== 'undefined') {
-          await bindSyncSession(toSyncSession(next));
+          // Only a sign-out lets go of the bound session. A session kept but not renewable offline starts without one:
+          // the bound one (expired, so it sends nothing) stays, and what is recorded meanwhile still belongs to the
+          // person (ADR-45). Renewed, it is bound again.
+          if (next || event === SIGNED_OUT_EVENT) await bindSyncSession(toSyncSession(next));
           // The cached sites belong to one account (privacy on a shared phone): forgotten on sign-out or when another
           // account signs in. A missing session alone is not a sign-out: a stored session that cannot be renewed
           // offline also starts without one, and the field still needs the saved sites. The answers about what leaves
@@ -183,6 +210,8 @@ export function useAccount(): AccountState {
 
   const awaitingCode = needsSecondStep(signedIn);
   const session = awaitingCode ? null : signedIn;
+  const live = identityOf(session);
+  const identity = live ?? (awaitingCode || signedIn ? null : stored);
   const token = session?.access_token ?? null;
   const userId = session?.user.id ?? null;
 
@@ -331,6 +360,7 @@ export function useAccount(): AccountState {
     const sync = toSyncSession(session);
     if (!sync) return;
     await bindSyncSession(sync, true);
+    await claimWalks(sync.userId);
     setUnownedCount(0);
     setClaimed(true);
     await scheduleSynchronization();
@@ -363,7 +393,7 @@ export function useAccount(): AccountState {
   }, false, 'secondStep'), [run, userId]);
 
   return {
-    configured: accountsConfigured, session, awaitingCode, secondStep, verifySecondStep, startSecondStep, confirmSecondStep, cancelSecondStep,
+    configured: accountsConfigured, identity, ready, session, awaitingCode, secondStep, verifySecondStep, startSecondStep, confirmSecondStep, cancelSecondStep,
     turnOffSecondStep, profile, recovering, unownedCount: dismissed ? 0 : unownedCount, claimed, error, errorScope, errorDetail, clearError, working,
     signIn, signInWithGoogle, signUp, confirmSignUp, resendSignUpCode, confirmIdentity, requestPasswordReset, updatePassword, signOut, deleteAccount, deleted, saveAlias, saveAvatar, claimLocal, declineClaim,
   };

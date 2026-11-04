@@ -9,17 +9,11 @@ import type { ReviewIndex } from '../review/reviewPolicy';
 import type { ReviewAction } from '../review/types';
 
 /**
- * Where a record stands on its way to the shared map: in the cloud, waiting for the next synchronization, or kept
- * on the phone because it has no account, belongs to an account that is not signed in, or has no location
- * (synchronization skips all three).
+ * Where a record stands on its way to the account: in the cloud, waiting for the next synchronization, or kept on
+ * the phone because it has no location (synchronization skips it). The log shows only the signed-in person's records
+ * (ADR-45), and synchronization runs for that account, so every record shown has an account to go to.
  */
-export type UploadState = 'cloud' | 'waiting' | 'needsAccount' | 'needsSignIn' | 'noLocation';
-
-/**
- * Account that synchronization currently runs for: its user id, null when signed out, or undefined while it is not
- * known yet (then an owned record counts as waiting rather than flashing a sign-in notice).
- */
-export type SyncUser = string | null | undefined;
+export type UploadState = 'cloud' | 'waiting' | 'noLocation';
 
 export interface LogRecord {
   readonly id: string;
@@ -65,19 +59,15 @@ function isValid(record: LogRecord): boolean {
     Number.isFinite(record.confidence) && record.confidence >= 0 && record.confidence <= 1;
 }
 
-export function uploadStateOf(row: Pick<StoredDetection, 'location' | 'owner'>, syncUser: SyncUser): UploadState {
-  // Checked before the account: a record without a cell is never sent, even after signing in.
-  if (!row.location) return 'noLocation';
-  if (!row.owner) return 'needsAccount';
-  // Synchronization only sends the records of the account that is signed in.
-  if (syncUser !== undefined && row.owner !== syncUser) return 'needsSignIn';
-  return 'waiting';
+export function uploadStateOf(row: Pick<StoredDetection, 'location'>): UploadState {
+  // A record without a cell is never sent.
+  return row.location ? 'waiting' : 'noLocation';
 }
 
-function fromPending(row: StoredDetection, syncUser: SyncUser): LogRecord {
+function fromPending(row: StoredDetection): LogRecord {
   return {
     id: row.id, species: row.species, confidence: row.confidence, status: row.status, recordedAt: Date.parse(row.recorded_at),
-    siteId: row.siteId ?? null, upload: uploadStateOf(row, syncUser), located: Boolean(row.location),
+    siteId: row.siteId ?? null, upload: uploadStateOf(row), located: Boolean(row.location),
     review: null, modelSpecies: null,
   };
 }
@@ -99,9 +89,9 @@ function newestFirst(a: LogRecord, b: LogRecord): number {
  * both; the history copy is the newer state, so it wins. Each record carries the verdict the person gave on it:
  * a corrected one shows the species they heard and remembers the one the model gave.
  */
-export function mergeRecords(pending: readonly StoredDetection[], history: readonly HistoryEntry[], syncUser: SyncUser, reviews: ReviewIndex = new Map()): LogRecord[] {
+export function mergeRecords(pending: readonly StoredDetection[], history: readonly HistoryEntry[], reviews: ReviewIndex = new Map()): LogRecord[] {
   const byId = new Map<string, LogRecord>();
-  for (const record of [...pending.map((row) => fromPending(row, syncUser)), ...history.map(fromHistory)]) {
+  for (const record of [...pending.map(fromPending), ...history.map(fromHistory)]) {
     if (!isValid(record)) continue;
     const review = reviews.get(record.id);
     const corrected = review?.action === 'correct' && review.species ? review.species : null;
@@ -213,24 +203,20 @@ export function todaySummary(records: readonly LogRecord[], now: Date): DaySumma
 
 export interface SyncCounts {
   readonly waiting: number;
-  readonly needsAccount: number;
-  readonly needsSignIn: number;
   readonly noLocation: number;
 }
 
 export function syncCounts(records: readonly LogRecord[]): SyncCounts {
   const count = (state: UploadState): number => records.filter((record) => record.upload === state).length;
-  return { waiting: count('waiting'), needsAccount: count('needsAccount'), needsSignIn: count('needsSignIn'), noLocation: count('noLocation') };
+  return { waiting: count('waiting'), noLocation: count('noLocation') };
 }
 
-export type SyncLineKind = 'waitingOffline' | 'failed' | 'needsAccount' | 'needsSignIn' | 'noLocation';
+export type SyncLineKind = 'waitingOffline' | 'failed' | 'noLocation';
 
 export interface SyncNotice {
   readonly lines: readonly { readonly kind: SyncLineKind; readonly count: number }[];
   /** A failed attempt can be retried by hand while there is a connection. */
   readonly retry: boolean;
-  /** Records without an account, or of an account that is not signed in, upload once the person signs in. */
-  readonly account: boolean;
 }
 
 /**
@@ -242,10 +228,8 @@ export function syncNotice(counts: SyncCounts, connection: { readonly online: bo
   const retry = counts.waiting > 0 && connection.online && connection.syncFailed;
   if (counts.waiting > 0 && !connection.online) lines.push({ kind: 'waitingOffline', count: counts.waiting });
   if (retry) lines.push({ kind: 'failed', count: counts.waiting });
-  if (counts.needsAccount > 0) lines.push({ kind: 'needsAccount', count: counts.needsAccount });
-  if (counts.needsSignIn > 0) lines.push({ kind: 'needsSignIn', count: counts.needsSignIn });
   if (counts.noLocation > 0) lines.push({ kind: 'noLocation', count: counts.noLocation });
-  return lines.length ? { lines, retry, account: counts.needsAccount > 0 || counts.needsSignIn > 0 } : null;
+  return lines.length ? { lines, retry } : null;
 }
 
 export interface Explanation {

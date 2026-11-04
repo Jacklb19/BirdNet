@@ -15,8 +15,8 @@ type ExportState =
 
 /**
  * The whole record as CSV (RF-16). With a session, from the account: every detection uploaded, the discarded ones
- * included with their state. Always, from this phone: built here with the same columns, so a person without an
- * account (or without a connection) can take their record away too.
+ * included with their state. Always, from this phone: built here with the same columns, so the person can take their
+ * record away without a connection too.
  */
 export function ExportAllCard(): React.JSX.Element {
   const { dict, locale } = useI18n();

@@ -30,12 +30,12 @@ function uploadSession(settings: OfflineSettings, userId: string): SyncSession |
 
 /**
  * Walks that may go to the account of `userId`, with the moment each ended: not sent yet, finished, with a path,
- * and started with that account. Walks started without an account, or before walks recorded one, go to the account
- * that turns the permission on, as songs without an owner do when they are claimed.
+ * and of that account. Walks recorded without an account go only once an account accepts them with the phone's songs
+ * without an owner (ADR-45), never by themselves.
  */
 export function walksToUpload(walks: readonly StoredWalk[], userId: string, pins: readonly Pick<Pin, 'recordedAt'>[], now: number): { walk: StoredWalk; endedAt: number }[] {
   return walks.flatMap((walk) => {
-    if ((walk.account ?? 'pending') !== 'pending' || walk.track.length === 0 || (walk.owner && walk.owner !== userId)) return [];
+    if ((walk.account ?? 'pending') !== 'pending' || walk.track.length === 0 || walk.owner !== userId) return [];
     const endedAt = walkEnd(walk, pins, now);
     return endedAt === null ? [] : [{ walk, endedAt }];
   });

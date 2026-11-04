@@ -6,6 +6,7 @@ import { saveFile } from '../../shared/download';
 import { scheduleSynchronization } from '../offline/offlineClient';
 import { getSettings, listDetections, listHistory } from '../offline/queueStore';
 import { listNotes } from '../notes/noteStore';
+import { ownedBy } from '../offline/ownership';
 import { listReviews } from '../review/reviewStore';
 import { ALL_TIME, CSV_MIME_TYPE, recordsCsv, walkRecords, type CsvRecord } from './walkCsv';
 import { GPX_MIME_TYPE, walkGpx, type GpxWaypoint } from './walkGpx';
@@ -67,12 +68,14 @@ async function phoneRecords(from: number, until: number): Promise<CsvRecord[]> {
   const [pending, history, reviews, notes, settings] = await Promise.all([listDetections(), listHistory(), listReviews(), listNotes(), getSettings()]);
   const verdicts = new Map(reviews.map((review) => [review.id, review]));
   const written = new Map(notes.map((note) => [note.id, note]));
-  return walkRecords(pending, history, verdicts, written, settings.sites ?? [], from, until);
+  // Only the signed-in person's: the session synchronization uses is the account of the person using the phone.
+  const owner = settings.session?.userId ?? null;
+  return walkRecords(ownedBy(pending, owner), ownedBy(history, owner), verdicts, written, settings.sites ?? [], from, until);
 }
 
 /**
- * Saves the CSV of every record kept on this phone, built here: the export of a person without an account, with the
- * same columns as the account's. Resolves how many records it holds.
+ * Saves the CSV of every record of the signed-in person kept on this phone, built here: the export that works without
+ * a connection, with the same columns as the account's. Resolves how many records it holds.
  */
 export async function downloadPhoneCsv(fileName: string): Promise<number> {
   const records = await phoneRecords(ALL_TIME.from, ALL_TIME.until);

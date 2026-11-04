@@ -33,7 +33,8 @@ export function WalkDoneCard({ id, onDismiss }: { readonly id: string; readonly 
   if (detail.status !== 'ready') return null;
   const walk = detail.walk;
   const asks = Boolean(session) && settings !== null && settings.saveWalks === undefined;
-  const phoneWalks = walks.filter((entry) => !entry.owner || entry.owner === session?.user.id).length;
+  // The walks read here are already only this account's.
+  const phoneWalks = walks.length;
   const duration = walk.endedAt === null ? t.interrupted : formatClock(walk.endedAt - walk.startedAt);
   return (
     <section className="bn-walk-done" aria-labelledby={titleId}>
