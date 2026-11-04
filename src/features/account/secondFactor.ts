@@ -36,9 +36,9 @@ export function needsSecondStep(session: Session | null): boolean {
   return verified && claimsOf(session.access_token)?.aal !== SECOND_FACTOR_LEVEL;
 }
 
-/** Digits only, as authenticator apps show them with a space in the middle. */
-export function normalizeCode(typed: string): string {
-  return typed.replace(/\D/g, '').slice(0, AUTHENTICATOR_CODE_LENGTH);
+/** Digits only (authenticator apps show them with a space in the middle), at most `length` of them. */
+export function normalizeCode(typed: string, length = AUTHENTICATOR_CODE_LENGTH): string {
+  return typed.replace(/\D/g, '').slice(0, length);
 }
 
 async function verifiedFactor(auth: GoTrueClient): Promise<string> {

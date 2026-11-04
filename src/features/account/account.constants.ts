@@ -34,6 +34,8 @@ export const AUTH_ERROR_CODES = Object.freeze({
   // A code of the authenticator app that is wrong, already used or too old (ADR-39).
   mfa_verification_failed: 'wrongCode',
   mfa_challenge_expired: 'wrongCode',
+  // A code of the confirmation e-mail that is wrong or too old: Supabase answers both alike.
+  otp_expired: 'wrongEmailCode',
 } as const);
 
 /** Name of the authenticator-app factor in Supabase Auth; the person never sees it. */
@@ -41,6 +43,12 @@ export const AUTHENTICATOR_FACTOR_NAME = 'Trino';
 
 /** Digits of a code of an authenticator app (TOTP, RFC 6238). */
 export const AUTHENTICATOR_CODE_LENGTH = 6;
+
+/**
+ * Digits of the code in the confirmation e-mail of a new account. Keep it equal to "Email OTP Length" in the Supabase
+ * Auth settings (6 by default), or the form would never accept the code that arrives.
+ */
+export const EMAIL_CODE_LENGTH = 6;
 
 /** Identity provider of the "Continue with Google" button (Supabase Auth, ADR-21). */
 export const GOOGLE_PROVIDER = 'google';

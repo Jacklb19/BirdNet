@@ -26,6 +26,14 @@ Ambos se despliegan solos en Vercel al fusionar en `main`. El trabajo diario va 
    El hash y el tamaño de cada archivo están en `public/models/manifest.json` y en el manifiesto de la API (`birdnet_api/model_manifest.json`), que deben ser iguales; si se vuelve a ejecutar el script, se actualizan los dos con lo que imprime. `birdnet_geo_model.onnx` (el filtro del v2.4, ADR-18) se deja en el bucket mientras haya versiones anteriores de la app instaladas; sigue generándose con `python scripts/prepare-geo-model.py` porque la evaluación y el script anterior lo usan. Cada instalación nueva descarga 52,4 MB y quien elige el V3, 80,6 MB más: con los 5 GB de egreso al mes de Supabase Free alcanza para unas 95 instalaciones al mes sin el V3.
 5. **Audio dudoso**: retirado en S9 (ADR-32). Si existía el bucket privado de fragmentos, se puede borrar.
 6. **Correo** (S7, ADR-21; cambiado por ADR-44): en *Authentication → Sign In / Providers → Email* **activar** *Confirm email*, para que nadie cree una cuenta con un correo ajeno ni sepa qué correos tienen cuenta. El correo integrado de Supabase solo entrega a los miembros del equipo del proyecto; para recuperar contraseñas de cualquier persona hace falta un SMTP propio (*Authentication → Emails → SMTP Settings*; por ejemplo Gmail con contraseña de aplicación: `smtp.gmail.com`, puerto 587) y subir el límite en *Authentication → Rate Limits*.
+   - **Código en el correo** (decisión del 2026-11-04). En *Authentication → Emails → Templates → Confirm signup*, la plantilla debe llevar `{{ .Token }}`: la app pide ese código al crear la cuenta. Puede llevar además el enlace `{{ .ConfirmationURL }}`, que también sirve. *Email OTP Length* (en el proveedor Email) debe quedar en 6, igual que `EMAIL_CODE_LENGTH` de la web. Asunto sugerido: `Tu código de Trino: {{ .Token }}`. Cuerpo sugerido:
+     ```html
+     <h2>Activa tu cuenta de Trino</h2>
+     <p>Escribe este código en Trino:</p>
+     <p style="font-size:28px;letter-spacing:6px"><strong>{{ .Token }}</strong></p>
+     <p>O abre este enlace en el mismo dispositivo: <a href="{{ .ConfirmationURL }}">activar la cuenta</a>.</p>
+     <p>Si no creaste una cuenta en Trino, ignora este correo.</p>
+     ```
 7. **Verificación en dos pasos** (S11, ADR-39): en *Authentication → Multi-Factor* debe estar activo *TOTP (App Authenticator)*, que viene activo por defecto y es gratuito. Si alguien pierde su app, se le quita el factor en *Authentication → Users → la persona → MFA factors*.
 8. **Google** (S7, ADR-21): en Google Cloud, *Google Auth Platform* → cliente OAuth de tipo *Aplicación web* con origen `https://birdnet-nu.vercel.app` y URI de redirección `https://<proyecto>.supabase.co/auth/v1/callback` (la *Callback URL* que muestra Supabase en *Sign In / Providers → Google*). El ID y el secreto se pegan en ese mismo panel de Supabase. Desde S8 el mismo ID (público) va también en `VITE_GOOGLE_CLIENT_ID` de la web: el botón usa entonces el selector de cuentas del navegador y el aviso nombra a Trino en lugar del dominio de Supabase; en el cliente de Google, `https://birdnet-nu.vercel.app` debe figurar en *Orígenes de JavaScript autorizados*. Para publicar la app en Google hacen falta página principal y política de privacidad: `https://birdnet-nu.vercel.app` y `https://birdnet-nu.vercel.app/privacy.html`. Mientras tanto, en modo de prueba solo entran los usuarios de prueba agregados.
 
@@ -89,6 +97,7 @@ Ajustes opcionales de la API (tiempos de espera, límites de resultados y export
 - Mapa → «De todos»: una especie amenazada de otra persona aparece en el centro de una zona de ~11 km y su ventana lo dice.
 - Con una cuenta que ya tiene cantos, en un navegador nuevo (ADR-44): la Bitácora muestra «En tu cuenta»; abrir uno, confirmarlo o corregirlo y escribir una nota; al volver a abrirlo siguen ahí. En «Mi mapa», un canto propio abre el mismo detalle.
 - Lugares → un lugar → «Este lugar»: cambiar el nombre y borrarlo (pide confirmación); sus cantos siguen en la Bitácora, sin lugar.
+- Con *Confirm email* activo: Cuenta → «Crear cuenta» con un correo que reciba (sin SMTP propio, solo los del equipo del proyecto). Llega el código; un código errado muestra el aviso, «Enviar otro código» manda uno nuevo y el bueno inicia la sesión.
 - Menú del teléfono: aparecen «Lugares» y «Mis caminatas».
 
 ## Desarrollo local
