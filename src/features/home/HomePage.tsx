@@ -2,14 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { routeHash } from '../../app/routes';
 import { SessionEntry } from '../../app/SessionEntry';
 import { SiteBar, type SiteBarLink } from '../../app/SiteBar';
-import { accountGroup, appLinks } from '../../app/siteMenu';
+import { accountGroup, appLinks, publicLinks } from '../../app/siteMenu';
 import { APPROX_CELL_METERS } from '../../config/contract';
 import { PRIVACY_PAGE_URL } from '../../config/staticPages';
 import { formatBytes, formatCount, formatMeters, formatNumber, formatPercent, useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
 import { Icon } from '../../shared/ui/Icon';
 import { useAccountContext } from '../account/accountContext';
-import { requestSignInMode } from '../account/signInIntent';
 import { downloadBytes } from '../inference/modelManifest';
 import { formatTime } from '../log/logFormat';
 import { useModel } from '../offline/useModel';
@@ -55,8 +54,9 @@ function useCurrentSection(sections: SectionRefs): HomeSection | null {
 const exampleHour = new Date(2026, 0, 1, HOME_CARD_EXAMPLE.hour).getTime();
 
 /**
- * Home page (ADR-15, ADR-24, ADR-27): the front of the one site Trino is. Its bar is the app's bar with this
- * page's sections in it, and the app is always one link away. It shows what the app does rather than announcing
+ * Home page (ADR-15, ADR-24, ADR-27, ADR-45): the front of the one site Trino is, open to everyone. Its bar is the
+ * app's bar with this page's sections in it. Signed in, the app is one link away; signed out, the way in is, and
+ * the guide of birds, which is public. It shows what the app does rather than announcing
  * it: a walk on which birds are pinned, the album they fill and a half-explored neighbourhood.
  */
 export default function HomePage(): React.JSX.Element {
@@ -74,14 +74,16 @@ export default function HomePage(): React.JSX.Element {
   const current = useCurrentSection(sections);
   // A failed attempt (never with a usable model on the phone) is retried on entering, so it reads like a missing model.
   const needsDownload = model.state === 'missing' || model.state === 'error';
-  const signedIn = account.session !== null;
+  const signedIn = account.identity !== null;
   const listen = routeHash({ name: 'listen' });
-  const accountHref = routeHash({ name: 'account' });
-  // Someone signed in comes back to their app; a newcomer is invited to look around first.
-  const enter = signedIn ? texts.open : texts.discover;
+  // The download runs in the service worker and its state is shared, so Listen shows its progress. Nothing of the
+  // model is downloaded without an account, since nothing of the app opens.
+  const prepare = (): void => { if (signedIn && needsDownload) void model.download(); };
+  // Someone signed in comes back to their app; a newcomer is invited to create an account (ADR-45).
+  const enter = signedIn
+    ? <Button variant="accent" icon="walk" href={listen} onClick={() => { prepare(); }}>{texts.open}</Button>
+    : <Button variant="accent" icon="account" href={routeHash({ name: 'signUp' })}>{texts.createAccount}</Button>;
 
-  // The download runs in the service worker and its state is shared, so Listen shows its progress.
-  const prepare = (): void => { if (needsDownload) void model.download(); };
   const goTo = (section: HomeSection): void => { sections[section].current?.scrollIntoView({ block: 'start' }); };
   const toTop = (): void => { window.scrollTo({ top: 0 }); };
 
@@ -96,13 +98,17 @@ export default function HomePage(): React.JSX.Element {
       <SiteBar navLabel={texts.navLabel} brandHref={routeHash({ name: 'home' })} onBrand={toTop} links={pageLinks}
         menu={[
           { key: 'page', label: dict.app.menuGroups.site, links: pageLinks },
-          { key: 'app', label: dict.app.menuGroups.app, links: appLinks(dict, null).map((link) => ({ ...link, onSelect: prepare })) },
+          signedIn
+            ? { key: 'app', label: dict.app.menuGroups.app, links: appLinks(dict, null).map((link) => ({ ...link, onSelect: prepare })) }
+            : { key: 'app', label: dict.app.menuGroups.app, links: publicLinks(dict, 'home').filter((link) => link.key !== 'home') },
           accountGroup(dict, signedIn, 'home'),
         ]}
         end={(
           <>
             <SessionEntry />
-            <Button href={listen} onClick={prepare}>{texts.open}</Button>
+            {signedIn
+              ? <Button href={listen} onClick={prepare}>{texts.open}</Button>
+              : <Button href={routeHash({ name: 'signUp' })}>{dict.app.signUp}</Button>}
           </>
         )} />
 
@@ -112,19 +118,16 @@ export default function HomePage(): React.JSX.Element {
             <h1 className="bn-home__title display">{texts.title}</h1>
             <p className="bn-home__lede">{texts.lede}</p>
             <div className="bn-home__actions">
-              <Button variant="accent" icon="walk" href={listen} onClick={prepare}>{enter}</Button>
-              {!signedIn && (
-                <Button variant="secondary" href={accountHref} onClick={() => { requestSignInMode('signIn'); }}>{dict.app.signIn}</Button>
-              )}
+              {enter}
+              {!signedIn && <Button variant="secondary" href={routeHash({ name: 'signIn' })}>{dict.app.signIn}</Button>}
             </div>
             {!signedIn && (
               <p className="bn-home__note">
-                {texts.noAccountYet}{' '}
-                <a className="bn-home__link" href={accountHref} onClick={() => { requestSignInMode('signUp'); }}>{texts.createIt}</a>
-                {' '}{texts.noAccountNeeded}
+                {texts.guideLead}{' '}
+                <a className="bn-home__link" href={routeHash({ name: 'album' })}>{texts.guide}</a>
               </p>
             )}
-            {needsDownload && model.available && (
+            {signedIn && needsDownload && model.available && (
               <p className="bn-home__note">{texts.firstDownload(formatBytes(downloadBytes(model.available), locale))}</p>
             )}
           </div>
@@ -201,7 +204,7 @@ export default function HomePage(): React.JSX.Element {
         </section>
 
         <footer className="bn-home__footer">
-          <Button variant="accent" icon="walk" href={listen} onClick={prepare}>{enter}</Button>
+          {enter}
           <p>{texts.caveat}</p>
           <p className="bn-home__credits">{texts.credits}</p>
         </footer>

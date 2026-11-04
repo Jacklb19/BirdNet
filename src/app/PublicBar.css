@@ -1,0 +1,6 @@
+/* On a phone the bar keeps one way in beside the menu, which lists both; wide screens show both. */
+@media (max-width: 63.99rem) {
+  .bn-publicbar__secondary:not(:only-child) {
+    display: none;
+  }
+}

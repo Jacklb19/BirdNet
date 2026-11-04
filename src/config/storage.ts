@@ -15,7 +15,6 @@ export const STORAGE_KEYS = Object.freeze({
 export interface StoredPreferences {
   readonly theme?: unknown;
   readonly locale?: unknown;
-  readonly welcomed?: unknown;
 }
 
 /** Values are `unknown` on purpose: whatever was stored is validated by its owner before use. */

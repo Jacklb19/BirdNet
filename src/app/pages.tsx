@@ -19,8 +19,8 @@ const WalksPage = lazy(() => import('../features/walk/WalksPage'));
 const WalkPage = lazy(() => import('../features/walk/WalkPage'));
 const NotFoundPage = lazy(() => import('./NotFoundPage'));
 
-/** The screen for a route; the home page is handled by the shell because it has no navigation. */
-export function RoutePage({ route }: { readonly route: Exclude<Route, { name: 'home' }> }): React.JSX.Element {
+/** The screen for a route; the home page and the way in are handled by the shell, which decides when they show. */
+export function RoutePage({ route }: { readonly route: Exclude<Route, { name: 'home' | 'signIn' | 'signUp' }> }): React.JSX.Element {
   switch (route.name) {
     case 'listen': return <ListenPage />;
     case 'log': return <LogPage />;

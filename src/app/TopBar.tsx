@@ -28,7 +28,7 @@ export function TopBar({ current, route }: TopBarProps): React.JSX.Element {
       menu={[
         { key: 'app', label: dict.app.menuGroups.app, links: [...sections, ...collectionLinks(dict, route)] },
         { key: 'site', label: dict.app.menuGroups.site, links: [home] },
-        accountGroup(dict, account.session !== null, route),
+        accountGroup(dict, account.identity !== null, route),
       ]}
       end={(
         <>

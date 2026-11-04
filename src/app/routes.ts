@@ -5,7 +5,18 @@ export type Route =
   | { name: 'listen' } | { name: 'log' } | { name: 'album' } | { name: 'detection'; id: string }
   | { name: 'map'; species?: string } | { name: 'sites' } | { name: 'site'; id: string }
   | { name: 'species'; species: string } | { name: 'account' } | { name: 'settings' } | { name: 'home' }
-  | { name: 'walks' } | { name: 'walk'; id: string } | { name: 'notFound' };
+  | { name: 'walks' } | { name: 'walk'; id: string } | { name: 'signIn' } | { name: 'signUp' } | { name: 'notFound' };
+
+/**
+ * Screens anyone can open without signing in (ADR-45): the home page, the way in and the guide of birds, which holds
+ * only public facts. Every other screen is the person's own and opens only with an account.
+ */
+export function isPublicRoute(route: Route): boolean {
+  switch (route.name) {
+    case 'home': case 'signIn': case 'signUp': case 'album': case 'species': case 'notFound': return true;
+    default: return false;
+  }
+}
 
 /** Path of the guide: the album of recorded species and the birds still to find (`#/guide`). */
 const GUIDE_PATH = 'guide';
@@ -45,6 +56,8 @@ export function parseRoute(hash: string): Route {
     case 'listen': return { name: 'listen' };
     case 'account': return { name: 'account' };
     case 'settings': return { name: 'settings' };
+    case 'signin': return { name: 'signIn' };
+    case 'signup': return { name: 'signUp' };
     // The bare address is the home page (ADR-27). "welcome" was the first-run screen until S6; old links land here too.
     case '': case 'home': case 'welcome': return { name: 'home' };
     // A mistyped or outdated address says so, instead of opening a screen the person did not ask for (audit U6).
@@ -61,6 +74,8 @@ export function routeHash(route: Route): string {
     case 'species': return `#/species/${encodeURIComponent(route.species)}`;
     case 'map': return route.species ? `#/map?${new URLSearchParams({ [MAP_SPECIES_PARAM]: route.species }).toString()}` : '#/map';
     case 'listen': return '#/listen';
+    case 'signIn': return '#/signin';
+    case 'signUp': return '#/signup';
     default: return `#/${route.name}`;
   }
 }
@@ -72,8 +87,8 @@ export function sectionOf(route: Route): 'listen' | 'map' | 'guide' | 'log' | 'a
     case 'detection': case 'walks': case 'walk': return 'log';
     case 'sites': case 'site': return 'map';
     case 'settings': case 'home': return 'account';
-    // Belongs to no section, so none is marked.
-    case 'notFound': return null;
+    // Belong to no section, so none is marked.
+    case 'notFound': case 'signIn': case 'signUp': return null;
     default: return route.name;
   }
 }

@@ -35,6 +35,7 @@ export const appMessages = defineMessages({
     screens: {
       listen: 'Escuchar', log: 'Bitácora', detection: 'Registro', map: 'Mapa', sites: 'Lugares', site: 'Lugar', species: 'Ficha de especie',
       account: 'Cuenta', settings: 'Ajustes', album: 'Guía', walks: 'Caminatas', walk: 'Caminata', notFound: 'Pantalla no encontrada',
+      signIn: 'Iniciar sesión', signUp: 'Crear cuenta',
     },
     notFound: {
       title: 'No encontramos esta pantalla',
@@ -74,6 +75,7 @@ export const appMessages = defineMessages({
     screens: {
       listen: 'Listen', log: 'Log', detection: 'Record', map: 'Map', sites: 'Places', site: 'Place', species: 'Species card',
       account: 'Account', settings: 'Settings', album: 'Guide', walks: 'Walks', walk: 'Walk', notFound: 'Screen not found',
+      signIn: 'Sign in', signUp: 'Create account',
     },
     notFound: {
       title: 'We could not find this screen',

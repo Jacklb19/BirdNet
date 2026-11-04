@@ -1,5 +1,4 @@
 import { Suspense, lazy, useEffect, useRef } from 'react';
-import { readPreferences, writePreference } from '../config/storage';
 import { useI18n } from '../i18n';
 import { useAccountContext } from '../features/account/accountContext';
 import { useListening } from '../features/listen/listeningContext';
@@ -13,12 +12,14 @@ import { Notice } from '../shared/ui/Notice';
 import { LivePlayer } from './LivePlayer';
 import { PageErrorBoundary } from './PageErrorBoundary';
 import { RoutePage } from './pages';
-import { isAuthCallback, isSiteRoot, routeHash, sectionOf, useRoute } from './routes';
+import { PublicBar } from './PublicBar';
+import { isAuthCallback, isPublicRoute, isSiteRoot, routeHash, sectionOf, useRoute, type Route } from './routes';
 import { TabBar } from './TabBar';
 import { TopBar } from './TopBar';
 import './AppShell.css';
 
 const HomePage = lazy(() => import('../features/home/HomePage'));
+const EntrancePage = lazy(() => import('../features/account/EntrancePage'));
 
 function useDocumentMetadata(title: string, description: string): void {
   useEffect(() => {
@@ -28,26 +29,32 @@ function useDocumentMetadata(title: string, description: string): void {
 }
 
 /**
- * Layout of every screen (ADR-27). The home page and the app are one site under one bar: the bare address opens
- * the home page, any section is one link away, and the bar always leads back. Inside the app the shell adds the
- * skip link, the phone's tab bar and the live player.
+ * Layout of every screen (ADR-27, ADR-45). The home page and the app are one site under one bar: the bare address
+ * opens the home page and the bar always leads back. The app opens only with an account: without one, every screen
+ * of it shows the way in at its own address, and the person lands on what they asked for once signed in. Without a
+ * session the site is the home page, the way in and the guide of birds, under a bar that offers nothing else.
+ * Inside the app the shell adds the skip link, the phone's tab bar and the live player.
  */
 export function AppShell(): React.JSX.Element {
   const { dict, sections } = useI18n();
   const [route] = useRoute();
   const { active, walking } = useListening();
-  const { session } = useAccountContext();
+  const { identity, ready } = useAccountContext();
+  const signedIn = identity !== null;
   const mainRef = useRef<HTMLElement>(null);
   const update = useAppUpdate();
   // Pocket mode covers the app only while a session listens, and does not outlive it.
   const pocket = usePocketMode() && active;
   useEffect(() => { if (!active) leavePocketMode(); }, [active]);
-  const inApp = route.name !== 'home';
-  useDocumentMetadata(route.name === 'home' ? dict.app.documentTitle : dict.app.pageTitle(dict.app.screens[route.name]), dict.app.description);
+  // A screen of the account asked for without one shows the way in, titled as such.
+  const gated = !signedIn && !isPublicRoute(route);
+  const titled: Route['name'] = gated ? 'signIn' : route.name;
+  useDocumentMetadata(titled === 'home' ? dict.app.documentTitle : dict.app.pageTitle(dict.app.screens[titled]), dict.app.description);
 
   // A new screen takes the focus to its heading, so the keyboard and screen readers start there instead of in the
   // bar (audit F08). Not on the first screen of a visit, nor when only the query of the same screen changes.
-  const screenKey = 'id' in route ? `${route.name}:${route.id}` : route.name;
+  // Signing in replaces the way in with the screen that was asked for, at the same address: that is a new screen too.
+  const screenKey = `${'id' in route ? `${route.name}:${route.id}` : route.name}:${signedIn ? 'in' : 'out'}`;
   const firstScreen = useRef(true);
   useEffect(() => {
     if (firstScreen.current) { firstScreen.current = false; return; }
@@ -67,21 +74,21 @@ export function AppShell(): React.JSX.Element {
     return () => { cancelAnimationFrame(request); };
   }, [screenKey]);
 
-  // Once the person has opened the app, the model keeps itself installed and up to date without asking (ADR-19).
+  // Once signed in, the model keeps itself installed and up to date without asking (ADR-19); without an account
+  // nothing of it is downloaded, since nothing of the app opens (ADR-45).
   useEffect(() => {
-    if (inApp) writePreference('welcomed', true);
-    if (inApp || readPreferences().welcomed === true) enableAutomaticModel();
-  }, [inApp]);
+    if (signedIn) enableAutomaticModel();
+  }, [signedIn]);
   // And, once it is installed, the second model that listens with it by default comes in the background (ADR-36).
-  useAutomaticAlternate(inApp || readPreferences().welcomed === true, dict.app.secondModelDownload);
+  useAutomaticAlternate(signedIn, dict.app.secondModelDownload);
 
-  // Someone with a session who opens the bare address comes to use the app, not to read about it. The home page
-  // stays one link away, and its own address (`#/home`) is never redirected.
-  const signedIn = session !== null;
+  // Someone with a session who opens the bare address, or the way in, comes to use the app, not to read about it.
+  // The home page stays one link away, and its own address (`#/home`) is never redirected.
+  const atWayIn = route.name === 'signIn' || route.name === 'signUp';
   useEffect(() => {
     const { hash } = window.location;
-    if (signedIn && isSiteRoot(hash) && !isAuthCallback(hash)) window.location.replace(routeHash({ name: 'listen' }));
-  }, [signedIn]);
+    if (signedIn && (atWayIn || isSiteRoot(hash)) && !isAuthCallback(hash)) window.location.replace(routeHash({ name: 'listen' }));
+  }, [signedIn, atWayIn]);
 
   const loading = <p className="bn-shell__loading" role="status">{dict.common.loading}</p>;
   // A section draws only with its texts, which arrive in their own file with the section's code.
@@ -101,6 +108,27 @@ export function AppShell(): React.JSX.Element {
       <main id="main" className="bn-shell__home">
         {withTexts(<Suspense fallback={loading}><HomePage /></Suspense>)}
       </main>
+    );
+  }
+
+  if (!signedIn) {
+    // Until Auth answers there is no telling whether the person is signed in: a brief wait, not the way in.
+    const waiting = !ready && (gated || atWayIn);
+    const page = waiting ? loading
+      : gated || route.name === 'signIn' || route.name === 'signUp' ? <EntrancePage mode={route.name === 'signUp' ? 'signUp' : 'signIn'} requested={gated ? dict.app.screens[route.name] : null} />
+      : <RoutePage route={route} />;
+    return (
+      <div className="bn-shell bn-shell--public">
+        <a className="bn-shell__skip" href="#main" onClick={(event) => { event.preventDefault(); mainRef.current?.focus(); }}>
+          {dict.app.skipToContent}
+        </a>
+        <PublicBar route={titled} />
+        <main id="main" ref={mainRef} tabIndex={-1} className="bn-shell__main">
+          <PageErrorBoundary key={titled} message={dict.app.pageError} actionLabel={dict.app.reload}>
+            {withTexts(<Suspense fallback={loading}>{page}</Suspense>)}
+          </PageErrorBoundary>
+        </main>
+      </div>
     );
   }
 
@@ -124,7 +152,8 @@ export function AppShell(): React.JSX.Element {
             </div>
           )}
           <PageErrorBoundary key={route.name} message={dict.app.pageError} actionLabel={dict.app.reload}>
-            {withTexts(<Suspense fallback={loading}><RoutePage route={route} /></Suspense>)}
+            {/* The way in leads to Listen once signed in (above); until the address changes there is nothing to show. */}
+            {route.name === 'signIn' || route.name === 'signUp' ? loading : withTexts(<Suspense fallback={loading}><RoutePage route={route} /></Suspense>)}
           </PageErrorBoundary>
         </main>
         {player && <LivePlayer variant="bar" />}

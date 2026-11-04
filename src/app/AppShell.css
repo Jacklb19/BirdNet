@@ -55,3 +55,8 @@
     padding-bottom: var(--space-8);
   }
 }
+
+/* Without a session there is no tab bar to keep clear of. */
+.bn-shell--public .bn-shell__main {
+  padding-bottom: var(--space-8);
+}
