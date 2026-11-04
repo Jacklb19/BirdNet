@@ -4,8 +4,8 @@ import { E2E_SUPABASE, OUT_DIR } from '../build.config.mjs';
 
 /**
  * Whether the build under test was made with `npm run build:e2e` (accounts pointed at the e2e Supabase project).
- * The offline specs bind a test session through the bridge, which a configured account client replaces with its own
- * (signed out) on start, so they need the plain build; the account spec needs this one. Each skips on the other.
+ * Trino opens only with an account (ADR-45), so every e2e spec needs it; a build without accounts shows only the
+ * home page, the guide and the way in, and the specs skip on it, saying so.
  */
 const assets = path.join(OUT_DIR, 'assets');
 export const buildHasAccounts = fs.existsSync(assets) && fs.readdirSync(assets).some((file) => file.endsWith('.js')
