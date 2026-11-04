@@ -1,5 +1,4 @@
 import { useMemo, type Ref } from 'react';
-import { routeHash } from '../../app/routes';
 import { APPROX_CELL_METERS, THREATENED_CELL_METERS } from '../../config/contract';
 import { formatCount, formatDistance, formatMeters, formatNumber, useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
@@ -16,7 +15,7 @@ import { SheetShell } from './SheetShell';
  * What the sheet can show, in order of precedence: a build without accounts, no session, no network, a failed
  * load, the first load, data.
  */
-export type SheetMode = 'unavailable' | 'signedOut' | 'offline' | 'error' | 'loading' | 'ready';
+export type SheetMode = 'offline' | 'error' | 'loading' | 'ready';
 
 export interface MapSheetProps {
   readonly ref?: Ref<HTMLElement>;
@@ -52,13 +51,6 @@ export function MapSheet({ ref, mode, result, updating, failure, expanded, onExp
   return (
     <SheetShell ref={ref} title={m.title} summary={live} busy={updating} expandable={expandable} expanded={expanded} onExpandedChange={onExpandedChange}
       aside={updating && <span className="bn-map-sheet__updating" aria-hidden="true">{m.updating}</span>}>
-      {mode === 'unavailable' && <Notice icon="map" title={m.unavailableTitle}>{m.unavailable}</Notice>}
-      {mode === 'signedOut' && (
-        <Notice icon="account" title={m.signedOutTitle}
-          action={<Button href={routeHash({ name: 'account' })}>{m.signIn}</Button>}>
-          {m.signedOut}
-        </Notice>
-      )}
       {mode === 'offline' && <Notice tone="caution" icon="offline" title={m.offlineTitle} live>{m.offline}</Notice>}
       {mode === 'error' && (
         <Notice tone="error" title={m.error} action={<Button variant="quiet" onClick={onRetry}>{dict.common.actions.retry}</Button>}>

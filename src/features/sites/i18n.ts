@@ -17,7 +17,6 @@ export const sitesMessages = defineMessages({
 
     newSite: 'Nuevo',
     newSiteTitle: 'Nuevo lugar',
-    editNeedsAccount: 'Para crear lugares necesitas iniciar sesión y tener conexión.',
     editNeedsConnection: 'Para crear un lugar necesitas conexión.',
     offline: 'Sin conexión. Ves los lugares guardados en el teléfono y puedes elegir el lugar activo; las estadísticas se cargan al volver a conectarte.',
     loadError: 'No pudimos actualizar tus lugares. Revisa la conexión e inténtalo de nuevo.',
@@ -27,12 +26,6 @@ export const sitesMessages = defineMessages({
     emptyText: 'Crea uno para el lugar donde escuchas: verás qué especies cantan allí y cómo cambian con el tiempo.',
     offlineEmptyTitle: 'Sin lugares guardados en el teléfono',
     offlineEmptyText: 'Conéctate para ver tus lugares o crear uno.',
-    signedOutTitle: 'Tus lugares viven en tu cuenta',
-    signedOutText: 'Inicia sesión para ver tus lugares y cómo cambian con el tiempo.',
-    goToAccount: 'Ir a Cuenta',
-    unconfiguredTitle: 'Los lugares no están disponibles en esta versión',
-    unconfiguredText: 'Los lugares necesitan una cuenta y esta versión no tiene cuentas. Puedes seguir escuchando y registrando aves en el teléfono.',
-    goToListen: 'Ir a Escuchar',
 
     visits: { one: (count: string) => `${count} visita`, other: (count: string) => `${count} visitas` },
     songs: { one: (count: string) => `${count} canto`, other: (count: string) => `${count} cantos` },
@@ -159,7 +152,6 @@ export const sitesMessages = defineMessages({
 
     newSite: 'New',
     newSiteTitle: 'New place',
-    editNeedsAccount: 'To create places you need to be signed in and online.',
     editNeedsConnection: 'To create a place you need a connection.',
     offline: 'Offline. You see the places saved on this phone and can choose the active place; statistics load when you reconnect.',
     loadError: 'We could not update your places. Check the connection and try again.',
@@ -169,12 +161,6 @@ export const sitesMessages = defineMessages({
     emptyText: 'Create one for the place where you listen: you will see which species sing there and how that changes over time.',
     offlineEmptyTitle: 'No places saved on this phone',
     offlineEmptyText: 'Connect to see your places or create one.',
-    signedOutTitle: 'Your places live in your account',
-    signedOutText: 'Sign in to see your places and how they change over time.',
-    goToAccount: 'Go to Account',
-    unconfiguredTitle: 'Places are not available in this version',
-    unconfiguredText: 'Places need an account and this version has no accounts. You can keep listening and logging birds on this phone.',
-    goToListen: 'Go to Listen',
 
     visits: { one: (count: string) => `${count} visit`, other: (count: string) => `${count} visits` },
     songs: { one: (count: string) => `${count} song`, other: (count: string) => `${count} songs` },

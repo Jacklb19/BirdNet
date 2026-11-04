@@ -9,7 +9,6 @@ import { Sticker } from '../../shared/ui/Sticker';
 import { formatClock } from '../../shared/time';
 import { useElapsed } from '../../shared/useElapsed';
 import { useNow } from '../../shared/useNow';
-import { useAccountContext } from '../account/accountContext';
 import { useListening } from '../listen/listeningContext';
 import { enterPocketMode } from '../listen/pocketMode';
 import { showsSessionError, startBlocker } from '../listen/listenState';
@@ -86,7 +85,7 @@ export function WalkPanel({ ref, result, totals, territoriesShown, loadError, ex
   const session = useListening();
   const model = useModel();
   const { settings } = useOfflineSettings();
-  const { session: account } = useAccountContext();
+
   const now = useNow(MAP_CLOCK_TICK_MS);
   const elapsed = useElapsed(walk.startedAt);
   const [startFailed, setStartFailed] = useState(false);
@@ -128,7 +127,7 @@ export function WalkPanel({ ref, result, totals, territoriesShown, loadError, ex
   const totalsLine = totals.walks > 0
     ? t.totals(formatCount(t.walks, totals.walks, locale), formatDistance(totals.meters, locale), formatCount(dict.map.sheet.species, totals.species, locale))
     : totals.songs > 0 ? heardLine : t.noWalks;
-  const sharing = !account ? t.sharing.local : sharesMap(settings ?? {}) ? t.sharing.shared : t.sharing.own;
+  const sharing = sharesMap(settings ?? {}) ? t.sharing.shared : t.sharing.own;
 
   return (
     <SheetShell ref={ref} title={t.title} summary={result === null && !loadError ? dict.common.loading : totalsLine}
@@ -165,9 +164,7 @@ export function WalkPanel({ ref, result, totals, territoriesShown, loadError, ex
       )}
       <p className="bn-map-sheet__note">
         {sharing}{' '}
-        {account && (
-          <a className="bn-walk-link" href={routeHash({ name: 'settings' })} onClick={() => { requestSettingsSection('permissions'); }}>{t.sharing.change}</a>
-        )}
+        <a className="bn-walk-link" href={routeHash({ name: 'settings' })} onClick={() => { requestSettingsSection('permissions'); }}>{t.sharing.change}</a>
       </p>
       <p className="bn-map-sheet__note">{dict.common.absenceCaveat}</p>
     </SheetShell>

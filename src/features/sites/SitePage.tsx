@@ -15,7 +15,6 @@ import { MissingSpecies } from './MissingSpecies';
 import { SiteChorusCard } from './SiteChorusCard';
 import { SiteManageCard } from './SiteManageCard';
 import { SiteReportCard } from './SiteReportCard';
-import { SitesAccessState } from './SitesAccessState';
 import { SiteSpeciesList } from './SiteSpeciesList';
 import { SiteStatsRow } from './SiteStatsRow';
 import { useCsvExport } from './useCsvExport';
@@ -27,7 +26,7 @@ import './SitePage.css';
 export default function SitePage({ id }: { readonly id: string }): React.JSX.Element {
   const { dict, locale } = useI18n();
   const t = dict.sites;
-  const { configured, session } = useAccountContext();
+  const { session } = useAccountContext();
   const online = useOnline();
   const isDesktop = useIsDesktop();
   const { sites, ready, refresh, rename, remove } = useSites();
@@ -46,16 +45,6 @@ export default function SitePage({ id }: { readonly id: string }): React.JSX.Ele
 
   const back = { href: routeHash({ name: 'sites' }), label: t.title };
   const title = site?.name ?? t.siteFallbackTitle;
-
-  if (!configured || !session) {
-    return (
-      <Page className="bn-site">
-        {/* The saved list may hold another person's sites on a shared phone: no name without a session. */}
-        <PageHeader back={back} title={t.siteFallbackTitle} />
-        <SitesAccessState reason={configured ? 'signedOut' : 'unconfigured'} />
-      </Page>
-    );
-  }
 
   if (status === 'notFound') {
     return (

@@ -58,7 +58,7 @@ function supportsWebGL(): boolean {
 function MapScreen({ initialSpecies }: { readonly initialSpecies: string | null }): React.JSX.Element {
   const { dict } = useI18n();
   const m = dict.map;
-  const { configured, session } = useAccountContext();
+  const { session } = useAccountContext();
   const token = session?.access_token ?? null;
   const online = useOnline();
   const { active: listening, walking } = useListening();
@@ -155,9 +155,9 @@ function MapScreen({ initialSpecies }: { readonly initialSpecies: string | null 
   const centre = useCallback((): void => { setFollowing(true); locate.locate(); }, [locate]);
 
   let mode: SheetMode = 'ready';
-  if (!configured) mode = 'unavailable';
-  else if (!token) mode = 'signedOut';
-  else if (!online) mode = 'offline';
+  // Without a token the account is signed in but its session is not renewed yet: offline, or about to be.
+  if (!online) mode = 'offline';
+  else if (!token) mode = 'loading';
   else if (status === 'error') mode = 'error';
   else if (!shown) mode = 'loading';
 
