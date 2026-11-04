@@ -43,6 +43,54 @@ async function signIn(page: Page): Promise<TestSession> {
 
 const bearer = (session: TestSession): Record<string, string> => ({ Authorization: `Bearer ${session.accessToken}` });
 
+test('a new account is activated with the code of its e-mail, after a wrong code and a resend', async ({ page }) => {
+  const session = await (await page.request.get(`${API_PROXY_PREFIX}/test/session`)).json() as TestSession;
+  const email = 'nueva@example.invalid';
+  const code = '246810';
+  const user = { id: session.userId, aud: 'authenticated', role: 'authenticated', email, app_metadata: { provider: 'email' }, user_metadata: {},
+    identities: [{ id: session.userId, provider: 'email' }], factors: [], created_at: '2026-11-04T00:00:00Z' };
+  const resent: unknown[] = [];
+  // Supabase with "Confirm email" on: the sign-up gives no session, and only the mailed code (here 246810) opens one.
+  await page.route(`${E2E_SUPABASE.url}/auth/v1/**`, async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (path.endsWith('/signup')) await route.fulfill({ json: { ...user, email_confirmed_at: null } });
+    else if (path.endsWith('/resend')) { resent.push(request.postDataJSON()); await route.fulfill({ json: {} }); }
+    else if (path.endsWith('/verify')) {
+      const body = request.postDataJSON() as { token?: string; email?: string; type?: string };
+      await route.fulfill(body.token === code && body.email === email && body.type === 'email'
+        ? { json: { access_token: session.accessToken, refresh_token: 'e2e-refresh', token_type: 'bearer', expires_in: 3600, expires_at: session.expiresAt, user } }
+        : { status: 403, json: { code: 403, error_code: 'otp_expired', msg: 'Token has expired or is invalid' } });
+    } else if (path.endsWith('/user')) await route.fulfill({ json: user });
+    else if (path.endsWith('/factors')) await route.fulfill({ json: { totp: [], phone: [], all: [] } });
+    else await route.fulfill({ status: 404, json: { message: 'Not part of the e2e double' } });
+  });
+  await page.addInitScript(([key, value]) => { localStorage.setItem(key, value); }, [STORAGE_KEYS.preferences, JSON.stringify({ welcomed: true })] as const);
+  const signIn = texts.account.signIn;
+  await page.goto(`/${routeHash({ name: 'account' })}`);
+
+  await page.getByRole('radio', { name: signIn.modes.signUp }).click();
+  await page.getByLabel(signIn.email).fill(email);
+  await page.getByLabel(signIn.password, { exact: true }).fill('canto-del-valle');
+  await page.getByLabel(signIn.confirmPassword).fill('canto-del-valle');
+  await page.locator('form').getByRole('button', { name: signIn.modes.signUp }).click();
+  await expect(page.getByRole('heading', { name: signIn.code.title })).toBeFocused();
+
+  const field = page.getByLabel(signIn.code.label);
+  await field.fill('000 000');
+  await page.getByRole('button', { name: signIn.code.submit }).click();
+  await expect(page.getByText(texts.account.errors.wrongEmailCode)).toBeVisible();
+  await expect(field).toHaveValue('');
+
+  await page.getByRole('button', { name: signIn.code.resend }).click();
+  await expect(page.getByText(signIn.code.resentTitle)).toBeVisible();
+  expect(resent).toEqual([expect.objectContaining({ type: 'signup', email })]);
+
+  await field.fill(code);
+  await page.getByRole('button', { name: signIn.code.submit }).click();
+  await expect(page.getByRole('button', { name: texts.account.signOut })).toBeVisible();
+});
+
 test('a song kept only in the account is reviewed and annotated from the log (ADR-44)', async ({ page }) => {
   const session = await signIn(page);
   const id = randomUUID();

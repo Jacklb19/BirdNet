@@ -20,6 +20,8 @@ describe('sessionStorageKey', () => {
 describe('accountFailure', () => {
   it('relies on the Supabase error code, not on the message text', () => {
     expect(accountFailure(new AuthApiError('Credenciales no válidas', 400, 'invalid_credentials'))).toBe(AUTH_ERROR_CODES.invalid_credentials);
+    // A wrong or expired code of the confirmation e-mail.
+    expect(accountFailure(new AuthApiError('Token has expired or is invalid', 403, 'otp_expired'))).toBe('wrongEmailCode');
     expect(accountFailure(new AuthApiError('Invalid login credentials', 400, undefined))).toBe(GENERIC_ACCOUNT_FAILURE);
     expect(accountFailure(new AuthApiError('Prototype key', 400, 'constructor'))).toBe(GENERIC_ACCOUNT_FAILURE);
     expect(accountFailure(new Error('Invalid login credentials'))).toBe(GENERIC_ACCOUNT_FAILURE);
