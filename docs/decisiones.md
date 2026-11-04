@@ -655,9 +655,13 @@ Una auditoría de la versión desplegada encontró lo siguiente:
 - Arreglo de paso: el campo de código cortaba en 6 caracteres un «123 456» pegado, antes de quitar el espacio. Pasaba también con el autenticador.
 
 ### Pendiente
-- Un límite de peticiones: Vercel Hobby admite una regla de límite por proyecto (verificado el 2026-11-02). La recomendación es ponerla en el proyecto de la web, sobre `/api/v1/`, por IP. La configura el dueño.
-- Volver a generar `species-names.json` traería los nombres de eBird en su nueva forma, solo con la primera palabra en mayúscula (7.288 nombres). Se dejó la forma actual y solo se añadió la garcilla bueyera occidental.
-- Decisiones del dueño aún abiertas: identificación reciente para borrar la cuenta, `flowType: 'pkce'` y la forma de los nombres de eBird.
+- `species-names.json` se regeneró el 2026-11-04 con los nombres actuales de eBird, solo con la primera palabra en mayúscula (decisión del dueño): cambiaron 7.281 nombres. Las especies que eBird pasó a otro género conservan su nombre por sinónimo y las dos que eBird ya no lista (Apus nipalensis, Tyto rosenbergii) conservan el nombre anterior.
+- Límite de peticiones: regla de Vercel en el proyecto de la web (`/api/v1/`, 60 s, 120 por IP), puesta por el dueño el 2026-11-04 en modo *Log*. Pasa a 429 si en unos días nadie normal llega al límite.
+
+### Decisiones del dueño (2026-11-04)
+- **Sesión reciente para borrar la cuenta**: `DELETE /v1/me` exige que la última autenticación de la sesión (claim `amr`: contraseña, Google, código del correo o autenticador) tenga como mucho 10 minutos. Si no, responde 403 sin borrar nada. Si la sesión es más vieja, la web pide antes la contraseña, o Google en las cuentas hechas con Google, y solo entonces muestra el paso de escribir BORRAR. La web exige un minuto menos que la API, por si el reloj del teléfono va adelantado. Así no basta una sesión olvidada abierta ni un token robado.
+- **PKCE** (`flowType: 'pkce'`): las vueltas de Google y de los enlaces de correo traen un código de un solo uso que solo este navegador puede canjear, no los tokens en la dirección. Si un enlace se abre en otro navegador, la pantalla de Cuenta lo explica. Una cuenta confirmada así ya quedó activa en el servidor; para cambiar la contraseña, el enlace debe abrirse donde se pidió. El registro no depende del enlace gracias al código del correo.
+- **Nombres de eBird en su forma actual**: ver arriba.
 
 ---
 

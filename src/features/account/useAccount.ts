@@ -8,22 +8,23 @@ import {
   GENERIC_ACCOUNT_FAILURE, GOOGLE_PROVIDER, PASSWORD_RECOVERY_EVENT, SIGNED_IN_EVENT, SIGNED_OUT_EVENT, type AccountFailure,
 } from './account.constants';
 import { deleteAccount as deleteAccountEverywhere, type DeletionOutcome } from './accountDeletion';
-import { readAuthCallbackError } from './authCallback';
+import { readAuthCallbackError, readStrandedCode } from './authCallback';
 import { requestGoogleIdToken, supportsFederatedSignIn, wasDismissed } from './googleSignIn';
 import { encodeAvatar, fetchProfile, normalizeAlias, updateProfile, uploadAvatar, type Profile } from './profileApi';
 import {
   cancelEnrollment, completeSecondStep, confirmEnrollment, disableSecondStep, needsSecondStep, secondStepEnabled, startEnrollment,
   type Enrollment,
 } from './secondFactor';
-import { accountFailure, accountsConfigured, authClient, toSyncSession } from './supabaseClient';
+import { accountFailure, accountsConfigured, authClient, sessionStorageKey, toSyncSession } from './supabaseClient';
 
 export type AccountError = AccountFailure | null;
 
 /**
  * Part of the account screen an error belongs to, so each failure is shown once, beside what failed: signing in or
- * the background work after it, the name and photo, the new password, or the authenticator app.
+ * the background work after it, the name and photo, the new password, the authenticator app, or the password typed
+ * again before deleting the account.
  */
-export type AccountErrorScope = 'session' | 'profile' | 'recovery' | 'secondStep';
+export type AccountErrorScope = 'session' | 'profile' | 'recovery' | 'secondStep' | 'identity';
 
 export interface AccountState {
   readonly configured: boolean;
@@ -65,6 +66,8 @@ export interface AccountState {
   confirmSignUp(email: string, code: string): Promise<boolean>;
   /** Resolves true when a new confirmation e-mail was requested. */
   resendSignUpCode(email: string): Promise<boolean>;
+  /** Resolves true when the password, typed again, renewed the sign-in (deleting the account asks for a recent one). */
+  confirmIdentity(password: string): Promise<boolean>;
   /** Resolves true when the reset e-mail was requested. */
   requestPasswordReset(email: string): Promise<boolean>;
   /** Resolves true when the new password was saved. */
@@ -95,7 +98,8 @@ function authRedirectUrl(): string {
  * Read once, when the app loads: the address the browser arrived at. A return that failed is then shown on the
  * account screen and taken out of the address, so reloading or sharing the page does not repeat it.
  */
-const returnError = typeof window === 'undefined' ? null : readAuthCallbackError(window.location.href);
+const returnError = typeof window === 'undefined' ? null
+  : readAuthCallbackError(window.location.href) ?? (config.supabase ? readStrandedCode(window.location.href, localStorage, sessionStorageKey(config.supabase.url)) : null);
 
 async function requireClient(): Promise<GoTrueClient> {
   const auth = await authClient();
@@ -258,6 +262,14 @@ export function useAccount(): AccountState {
     return true;
   }, false), [run]);
 
+  const email = session?.user.email ?? null;
+  const confirmIdentity = useCallback((password: string) => run(async () => {
+    if (!email) return false;
+    const { error: failure } = await (await requireClient()).signInWithPassword({ email, password });
+    if (failure) throw failure;
+    return true;
+  }, false, 'identity'), [run, email]);
+
   const requestPasswordReset = useCallback((email: string) => run(async () => {
     const { error: failure } = await (await requireClient()).resetPasswordForEmail(email, { redirectTo: authRedirectUrl() });
     if (failure) throw failure;
@@ -353,6 +365,6 @@ export function useAccount(): AccountState {
   return {
     configured: accountsConfigured, session, awaitingCode, secondStep, verifySecondStep, startSecondStep, confirmSecondStep, cancelSecondStep,
     turnOffSecondStep, profile, recovering, unownedCount: dismissed ? 0 : unownedCount, claimed, error, errorScope, errorDetail, clearError, working,
-    signIn, signInWithGoogle, signUp, confirmSignUp, resendSignUpCode, requestPasswordReset, updatePassword, signOut, deleteAccount, deleted, saveAlias, saveAvatar, claimLocal, declineClaim,
+    signIn, signInWithGoogle, signUp, confirmSignUp, resendSignUpCode, confirmIdentity, requestPasswordReset, updatePassword, signOut, deleteAccount, deleted, saveAlias, saveAvatar, claimLocal, declineClaim,
   };
 }

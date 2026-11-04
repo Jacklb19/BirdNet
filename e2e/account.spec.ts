@@ -23,13 +23,20 @@ interface TestSession { readonly userId: string; readonly accessToken: string; r
  * Signs the page in without Supabase: the local API signs a session it accepts, the page finds it where Supabase Auth
  * keeps it, and the few Auth calls the app makes are answered here.
  */
-async function signIn(page: Page): Promise<TestSession> {
-  const session = await (await page.request.get(`${API_PROXY_PREFIX}/test/session`)).json() as TestSession;
+async function signIn(page: Page, signedInAgo = 0): Promise<TestSession> {
+  const fresh = async (secondsAgo: number): Promise<TestSession> =>
+    await (await page.request.get(`${API_PROXY_PREFIX}/test/session?signed_in_ago=${String(secondsAgo)}`)).json() as TestSession;
+  const session = await fresh(signedInAgo);
   const user = { id: session.userId, aud: 'authenticated', role: 'authenticated', email: 'sprint4@example.invalid', app_metadata: { provider: 'email' },
-    user_metadata: {}, factors: [], created_at: '2026-10-01T00:00:00Z' };
+    user_metadata: {}, identities: [{ id: session.userId, provider: 'email' }], factors: [], created_at: '2026-10-01T00:00:00Z' };
   await page.route(`${E2E_SUPABASE.url}/auth/v1/**`, async (route) => {
     const url = new URL(route.request().url());
     if (url.pathname.endsWith('/user')) await route.fulfill({ json: user });
+    else if (url.pathname.endsWith('/token')) {
+      // The password typed again: a session signed in just now.
+      const renewed = await fresh(0);
+      await route.fulfill({ json: { access_token: renewed.accessToken, refresh_token: 'e2e-refresh', token_type: 'bearer', expires_in: 3600, expires_at: renewed.expiresAt, user } });
+    }
     else if (url.pathname.endsWith('/factors')) await route.fulfill({ json: { totp: [], phone: [], all: [] } });
     else await route.fulfill({ status: 404, json: { message: 'Not part of the e2e double' } });
   });
@@ -147,4 +154,23 @@ test('a place is renamed and deleted from its panel, with the focus following ea
 
   const left = await (await page.request.get(`${API_PROXY_PREFIX}/v1/sites`, { headers: bearer(session) })).json() as { sites: { id: string }[] };
   expect(left.sites.some((entry) => entry.id === site.id)).toBe(false);
+});
+
+test('deleting the account asks for the password again when the sign-in is old', async ({ page }) => {
+  const stale = await signIn(page, 15 * 60);
+  // The API refuses it on its own, whatever the phone shows.
+  const refused = await page.request.delete(`${API_PROXY_PREFIX}/v1/me`, { headers: bearer(stale), data: { confirmation: 'DELETE' } });
+  expect(refused.status()).toBe(403);
+  const deletion = texts.account.deletion;
+  await page.goto(`/${routeHash({ name: 'account' })}`);
+  await page.getByRole('button', { name: deletion.open }).click();
+  await expect(page.getByRole('heading', { name: deletion.identity.title })).toBeVisible();
+  await expect(page.getByLabel(deletion.typeLabel(deletion.word))).toHaveCount(0);
+
+  const renewed = page.waitForRequest((request) => request.url().includes('/auth/v1/token') && request.method() === 'POST');
+  await page.getByLabel(deletion.identity.passwordLabel).fill('canto-del-valle');
+  await page.getByRole('button', { name: deletion.identity.confirm }).click();
+  expect((await renewed).postDataJSON()).toMatchObject({ email: 'sprint4@example.invalid', password: 'canto-del-valle' });
+  // With the sign-in renewed, the step with the word to type appears in its place.
+  await expect(page.getByLabel(deletion.typeLabel(deletion.word))).toBeVisible();
 });

@@ -1,5 +1,6 @@
 import type { GoTrueClient, Session } from '@supabase/auth-js';
 import { AUTHENTICATOR_CODE_LENGTH, AUTHENTICATOR_FACTOR_NAME } from './account.constants';
+import { claimsOf } from './sessionClaims';
 
 /** Assurance level of a session that gave the code of an authenticator app (Supabase Auth). */
 const SECOND_FACTOR_LEVEL = 'aal2';
@@ -10,19 +11,6 @@ export interface Enrollment {
   readonly factorId: string;
   readonly qrCode: string;
   readonly secret: string;
-}
-
-/** Claims of an access token, read without checking its signature: the server does, this only decides what to show. */
-function claimsOf(token: string): Record<string, unknown> | null {
-  const payload = token.split('.')[1];
-  if (!payload) return null;
-  try {
-    const binary = atob(payload.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(payload.length / 4) * 4, '='));
-    const claims: unknown = JSON.parse(new TextDecoder().decode(Uint8Array.from(binary, (character) => character.charCodeAt(0))));
-    return typeof claims === 'object' && claims !== null ? claims as Record<string, unknown> : null;
-  } catch {
-    return null;
-  }
 }
 
 /**
