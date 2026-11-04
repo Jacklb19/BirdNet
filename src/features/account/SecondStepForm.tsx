@@ -8,11 +8,14 @@ import { normalizeCode } from './secondFactor';
 import type { AccountState } from './useAccount';
 import './SignInForm.css';
 
-/** The authenticator's code, typed as the app shows it (with or without the space in the middle). */
-export function CodeField({ label, value, onChange }: { readonly label: string; readonly value: string; readonly onChange: (code: string) => void }): React.JSX.Element {
+/** A code typed as it arrives (an authenticator app shows it with a space in the middle); the authenticator's by default. */
+export function CodeField({ label, value, onChange, length = AUTHENTICATOR_CODE_LENGTH }: {
+  readonly label: string; readonly value: string; readonly onChange: (code: string) => void; readonly length?: number;
+}): React.JSX.Element {
+  // No maxLength: it cut a pasted "123 456" to "123 45" before the space was dropped; normalizeCode caps the digits.
   return (
-    <TextField label={label} value={value} onChange={(typed) => { onChange(normalizeCode(typed)); }} inputMode="numeric" autoComplete="one-time-code"
-      pattern={`\\d{${String(AUTHENTICATOR_CODE_LENGTH)}}`} maxLength={AUTHENTICATOR_CODE_LENGTH} required spellCheck={false} />
+    <TextField label={label} value={value} onChange={(typed) => { onChange(normalizeCode(typed, length)); }} inputMode="numeric" autoComplete="one-time-code"
+      pattern={`\\d{${String(length)}}`} required spellCheck={false} />
   );
 }
 

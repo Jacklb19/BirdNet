@@ -61,6 +61,10 @@ export interface AccountState {
   signInWithGoogle(): Promise<void>;
   /** Resolves true when the account still needs email confirmation. */
   signUp(email: string, password: string): Promise<boolean>;
+  /** Resolves true when the code of the confirmation e-mail activated the account; the session starts with it. */
+  confirmSignUp(email: string, code: string): Promise<boolean>;
+  /** Resolves true when a new confirmation e-mail was requested. */
+  resendSignUpCode(email: string): Promise<boolean>;
   /** Resolves true when the reset e-mail was requested. */
   requestPasswordReset(email: string): Promise<boolean>;
   /** Resolves true when the new password was saved. */
@@ -241,6 +245,19 @@ export function useAccount(): AccountState {
     return data.session === null;
   }, false), [run]);
 
+  // The e-mail carries a code and the link; the code works on any device, the link only where it is opened.
+  const confirmSignUp = useCallback((email: string, code: string) => run(async () => {
+    const { error: failure } = await (await requireClient()).verifyOtp({ email, token: code, type: 'email' });
+    if (failure) throw failure;
+    return true;
+  }, false), [run]);
+
+  const resendSignUpCode = useCallback((email: string) => run(async () => {
+    const { error: failure } = await (await requireClient()).resend({ type: 'signup', email, options: { emailRedirectTo: authRedirectUrl() } });
+    if (failure) throw failure;
+    return true;
+  }, false), [run]);
+
   const requestPasswordReset = useCallback((email: string) => run(async () => {
     const { error: failure } = await (await requireClient()).resetPasswordForEmail(email, { redirectTo: authRedirectUrl() });
     if (failure) throw failure;
@@ -336,6 +353,6 @@ export function useAccount(): AccountState {
   return {
     configured: accountsConfigured, session, awaitingCode, secondStep, verifySecondStep, startSecondStep, confirmSecondStep, cancelSecondStep,
     turnOffSecondStep, profile, recovering, unownedCount: dismissed ? 0 : unownedCount, claimed, error, errorScope, errorDetail, clearError, working,
-    signIn, signInWithGoogle, signUp, requestPasswordReset, updatePassword, signOut, deleteAccount, deleted, saveAlias, saveAvatar, claimLocal, declineClaim,
+    signIn, signInWithGoogle, signUp, confirmSignUp, resendSignUpCode, requestPasswordReset, updatePassword, signOut, deleteAccount, deleted, saveAlias, saveAvatar, claimLocal, declineClaim,
   };
 }
