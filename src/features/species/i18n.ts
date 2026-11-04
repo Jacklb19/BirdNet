@@ -133,6 +133,19 @@ export const speciesMessages = defineMessages({
       },
       notFound: 'No se encontró esa especie.',
     },
+    publicGuide: {
+      title: 'Guía de aves',
+      subtitle: { one: (count: string) => `${count} ave de la región`, other: (count: string) => `${count} aves de la región` },
+      page: (page: string, pages: string) => `Página ${page} de ${pages}`,
+      onPage: (count: string) => `${count} aves en esta página`,
+      cardEyebrow: 'Ficha de la guía',
+      cardText: 'Su clasificación, su estado de conservación, dónde vive y cómo canta.',
+      join: {
+        title: 'Llena tu propio álbum',
+        text: 'Con una cuenta, cada ave que Trino reconozca por su canto se pega en tu álbum, con su hora y su lugar.',
+        action: 'Crear cuenta',
+      },
+    },
     album: {
       title: 'Mi álbum',
       subtitle: {
@@ -311,6 +324,19 @@ export const speciesMessages = defineMessages({
         cloudOnly: 'Saved in the cloud',
       },
       notFound: 'That species was not found.',
+    },
+    publicGuide: {
+      title: 'Guide of birds',
+      subtitle: { one: (count: string) => `${count} bird of the region`, other: (count: string) => `${count} birds of the region` },
+      page: (page: string, pages: string) => `Page ${page} of ${pages}`,
+      onPage: (count: string) => `${count} birds on this page`,
+      cardEyebrow: 'Guide card',
+      cardText: 'Its classification, conservation status, where it lives and how it sings.',
+      join: {
+        title: 'Fill your own album',
+        text: 'With an account, every bird Trino recognizes by its song sticks in your album, with its time and place.',
+        action: 'Create account',
+      },
     },
     album: {
       title: 'My album',

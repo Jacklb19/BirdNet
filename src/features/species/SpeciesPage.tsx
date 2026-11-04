@@ -113,7 +113,10 @@ export default function SpeciesPage({ species }: { readonly species: string }): 
   const { sites } = useSites();
   const cloud = useCloudRecord(species);
   const clips = useLocalRecordingUsage();
-  const token = useAccountContext().session?.access_token ?? null;
+  const account = useAccountContext();
+  const token = account.session?.access_token ?? null;
+  // The card is public (ADR-45); the person's own records of the bird are a second tab only with an account.
+  const signedIn = account.identity !== null;
   const summary = useSpeciesSummary(species, locale);
   const taxon = useTaxon(species);
   const factsId = useId();
@@ -156,15 +159,20 @@ export default function SpeciesPage({ species }: { readonly species: string }): 
     <Page className="bn-species-page">
       <a className="bn-species-page__back" href={routeHash({ name: 'album' })}>
         <Icon name="back" size="s" />
-        <span>{dict.species.album.title}</span>
+        <span>{signedIn ? dict.species.album.title : dict.species.publicGuide.title}</span>
       </a>
       <SpeciesPlate scientificName={species} name={name} headingLevel={1} notes={notes} drop
         eyebrow={<><Icon name="book" size="s" />{texts.eyebrow}</>} />
 
-      <Segmented label={texts.tabs.label} value={tab} onChange={setTab}
-        options={CARD_TABS.map((value) => ({ value, label: texts.tabs[value] }))} />
+      {signedIn && (
 
-      {tab === 'about' && (
+        <Segmented label={texts.tabs.label} value={tab} onChange={setTab}
+
+          options={CARD_TABS.map((value) => ({ value, label: texts.tabs[value] }))} />
+
+      )}
+
+      {(tab === 'about' || !signedIn) && (
         <div className="bn-species-page__guide">
           <section className="bn-species-page__card bn-species-page__sheet" aria-labelledby={factsId}>
             <h2 id={factsId} className="bn-species-page__title label">{texts.facts.title}</h2>
@@ -201,7 +209,7 @@ export default function SpeciesPage({ species }: { readonly species: string }): 
       )}
 
       {/* The person's own data, apart from the general knowledge of the other tab. */}
-      {tab === 'own' && (
+      {signedIn && tab === 'own' && (
         <section className="bn-species-page__own" aria-labelledby={ownId}>
           <header className="bn-species-page__own-header">
             <h2 id={ownId} className="bn-species-page__own-title display">{texts.own.title}</h2>

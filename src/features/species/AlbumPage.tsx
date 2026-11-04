@@ -19,6 +19,8 @@ import { guidePlace, useRegionGuide } from './regionGuide';
 import { ALBUM_PAGE_SLOTS, GUIDE_BYTES_PER_SPECIES, GUIDE_MAX_SPECIES } from './species.config';
 import { commonName, useSpeciesNames } from './speciesNames';
 import { useOwnSpecies } from './useOwnSpecies';
+import { useAccountContext } from '../account/accountContext';
+import { PublicGuide } from './PublicGuide';
 import { useRegionPlace } from './useRegionPlace';
 import './AlbumPage.css';
 
@@ -55,6 +57,11 @@ function SelectedCard({ slot, name, now }: { readonly slot: AlbumSlot; readonly 
  * card of the chosen bird on its right page; on a phone a sticker opens the bird's own screen.
  */
 export default function AlbumPage(): React.JSX.Element {
+  // The guide is open to everyone (ADR-45); the album in it is the signed-in person's.
+  return useAccountContext().identity ? <OwnAlbum /> : <PublicGuide />;
+}
+
+function OwnAlbum(): React.JSX.Element {
   const { dict, locale } = useI18n();
   const texts = dict.species.album;
   const names = useSpeciesNames();
