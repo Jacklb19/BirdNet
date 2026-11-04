@@ -8,14 +8,14 @@ import {
   GENERIC_ACCOUNT_FAILURE, GOOGLE_PROVIDER, PASSWORD_RECOVERY_EVENT, SIGNED_IN_EVENT, SIGNED_OUT_EVENT, type AccountFailure,
 } from './account.constants';
 import { deleteAccount as deleteAccountEverywhere, type DeletionOutcome } from './accountDeletion';
-import { readAuthCallbackError } from './authCallback';
+import { readAuthCallbackError, readStrandedCode } from './authCallback';
 import { requestGoogleIdToken, supportsFederatedSignIn, wasDismissed } from './googleSignIn';
 import { encodeAvatar, fetchProfile, normalizeAlias, updateProfile, uploadAvatar, type Profile } from './profileApi';
 import {
   cancelEnrollment, completeSecondStep, confirmEnrollment, disableSecondStep, needsSecondStep, secondStepEnabled, startEnrollment,
   type Enrollment,
 } from './secondFactor';
-import { accountFailure, accountsConfigured, authClient, toSyncSession } from './supabaseClient';
+import { accountFailure, accountsConfigured, authClient, sessionStorageKey, toSyncSession } from './supabaseClient';
 
 export type AccountError = AccountFailure | null;
 
@@ -95,7 +95,8 @@ function authRedirectUrl(): string {
  * Read once, when the app loads: the address the browser arrived at. A return that failed is then shown on the
  * account screen and taken out of the address, so reloading or sharing the page does not repeat it.
  */
-const returnError = typeof window === 'undefined' ? null : readAuthCallbackError(window.location.href);
+const returnError = typeof window === 'undefined' ? null
+  : readAuthCallbackError(window.location.href) ?? (config.supabase ? readStrandedCode(window.location.href, localStorage, sessionStorageKey(config.supabase.url)) : null);
 
 async function requireClient(): Promise<GoTrueClient> {
   const auth = await authClient();

@@ -10,12 +10,15 @@ export const PASSWORD_MIN_LENGTH = 8;
 
 /**
  * Browser session behavior: keep the session across reloads, refresh the access token before it expires (the
- * service worker needs a valid one for background sync), and complete e-mail confirmation links on arrival.
+ * service worker needs a valid one for background sync), and complete e-mail and Google returns on arrival.
+ * PKCE (owner's decision, 2026-11-04): a return carries a one-time code that only this browser can exchange,
+ * never the tokens themselves in the address, where history and extensions could read them.
  */
 export const SUPABASE_AUTH_OPTIONS = Object.freeze({
   persistSession: true,
   autoRefreshToken: true,
   detectSessionInUrl: true,
+  flowType: 'pkce' as const,
 });
 
 /**
@@ -77,9 +80,10 @@ export const GENERIC_ACCOUNT_FAILURE = 'generic';
 
 /**
  * Failures of a return to the app (from Google or from an e-mail link) that Supabase reports in the address
- * instead of a session: a link that was already used or is too old, and anything else that went wrong on its side.
+ * instead of a session: a link that was already used or is too old, a link opened in a browser other than the one
+ * that asked for it (PKCE), and anything else that went wrong on its side.
  */
-export type ReturnFailure = 'linkExpired' | 'returnFailed';
+export type ReturnFailure = 'linkExpired' | 'otherBrowser' | 'returnFailed';
 
 /** Failure kinds of the account actions; the interface has one message per kind. */
 export type AccountFailure = (typeof AUTH_ERROR_CODES)[AuthErrorCode] | typeof GENERIC_ACCOUNT_FAILURE | ReturnFailure;

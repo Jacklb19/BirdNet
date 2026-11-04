@@ -22,6 +22,25 @@ export interface AuthCallbackError {
   readonly detail: string | null;
 }
 
+/** Where Supabase Auth keeps the PKCE verifiers of a browser, by the session's storage key (auth-js `helpers`). */
+const verifierKeys = (storageKey: string, flowId: string | null): readonly string[] =>
+  [`${storageKey}-code-verifier`, ...(flowId ? [`${storageKey}-flow-${flowId}-code-verifier`] : [])];
+
+/**
+ * A return with a PKCE code that this browser cannot exchange: the link was opened somewhere else than where it was
+ * asked for. Supabase Auth leaves such an address alone, so without this the person would land signed out with no
+ * word. An e-mail confirmation is done on the server before the return, so that account is already active.
+ */
+export function readStrandedCode(href: string, storage: Pick<Storage, 'getItem'>, storageKey: string): AuthCallbackError | null {
+  let url: URL;
+  try { url = new URL(href); } catch { return null; }
+  const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
+  const read = (name: string): string | null => url.searchParams.get(name) ?? hash.get(name);
+  if (!read('code')) return null;
+  const stranded = verifierKeys(storageKey, read('sb_flow_id')).every((key) => storage.getItem(key) === null);
+  return stranded ? { failure: 'otherBrowser', detail: null } : null;
+}
+
 /** The failure a return address carries, or null when it carries none (a normal visit, or a successful return). */
 export function readAuthCallbackError(href: string): AuthCallbackError | null {
   let url: URL;
