@@ -646,6 +646,14 @@ Una auditoría de la versión desplegada encontró lo siguiente:
 - **Sentry**: también se borran los tokens y JWT citados en los mensajes de error.
 - **E2E con sesión**: `npm run build:e2e` hace la build con cuentas apuntando a un Supabase ficticio; `e2e/account.spec.ts` responde su Auth con rutas de Playwright y usa una sesión firmada por la API local.
 
+### Confirmación del correo con código (2026-11-04, decisión del dueño)
+- Al crear la cuenta con *Confirm email* activo, el formulario pasa a «Activa tu cuenta» y pide el código de 6 dígitos del correo (`verifyOtp` con `type: 'email'`). Ofrece «Enviar otro código» (`resend` de tipo `signup`) y «Usar otro correo».
+- El enlace del mismo correo sigue sirviendo. El código tiene una ventaja: funciona aunque el correo se abra en otro dispositivo, y no lo gasta un antivirus que abre los enlaces por adelantado.
+- Una cuenta creada antes y nunca activada se activa desde «Iniciar sesión»: con el error «aún no está activada», un botón abre el mismo paso.
+- Código incorrecto o vencido: Supabase responde `otp_expired` en los dos casos, y la interfaz dice ambas cosas.
+- El largo del código (`EMAIL_CODE_LENGTH`) debe coincidir con *Email OTP Length* de Supabase. La plantilla *Confirm signup* debe incluir `{{ .Token }}` (`docs/despliegue.md`).
+- Arreglo de paso: el campo de código cortaba en 6 caracteres un «123 456» pegado, antes de quitar el espacio. Pasaba también con el autenticador.
+
 ### Pendiente
 - Un límite de peticiones: Vercel Hobby admite una regla de límite por proyecto (verificado el 2026-11-02). La recomendación es ponerla en el proyecto de la web, sobre `/api/v1/`, por IP. La configura el dueño.
 - Volver a generar `species-names.json` traería los nombres de eBird en su nueva forma, solo con la primera palabra en mayúscula (7.288 nombres). Se dejó la forma actual y solo se añadió la garcilla bueyera occidental.
