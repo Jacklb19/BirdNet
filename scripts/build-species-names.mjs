@@ -13,8 +13,45 @@ const TAXONOMY_CATEGORY = 'species';
 const FETCH_TIMEOUT_MS = 60_000;
 // Model labels are "<scientific name>_<English common name>".
 const LABEL_SEPARATOR = '_';
-// Model labels whose species eBird now files under another genus: label name -> eBird name.
-const EBIRD_SYNONYMS = new Map([['Bubulcus ibis', 'Ardea ibis']]);
+// Model labels whose species eBird now files under another name: label name -> eBird name.
+const EBIRD_SYNONYMS = new Map([
+  ['Brachycope anomala', 'Euplectes anomalus'],
+  ['Bubulcus ibis', 'Ardea ibis'],
+  ['Emberiza affinis', 'Fringillaria affinis'],
+  ['Emberiza aureola', 'Schoeniclus aureolus'],
+  ['Emberiza bruniceps', 'Melophus bruniceps'],
+  ['Emberiza cabanisi', 'Fringillaria cabanisi'],
+  ['Emberiza capensis', 'Fringillaria capensis'],
+  ['Emberiza chrysophrys', 'Schoeniclus chrysophrys'],
+  ['Emberiza elegans', 'Schoeniclus elegans'],
+  ['Emberiza flaviventris', 'Fringillaria flaviventris'],
+  ['Emberiza goslingi', 'Fringillaria goslingi'],
+  ['Emberiza impetuani', 'Fringillaria impetuani'],
+  ['Emberiza lathami', 'Melophus lathami'],
+  ['Emberiza melanocephala', 'Melophus melanocephalus'],
+  ['Emberiza pallasi', 'Schoeniclus pallasi'],
+  ['Emberiza personata', 'Schoeniclus personatus'],
+  ['Emberiza poliopleura', 'Fringillaria poliopleura'],
+  ['Emberiza pusilla', 'Schoeniclus pusillus'],
+  ['Emberiza rustica', 'Schoeniclus rusticus'],
+  ['Emberiza rutila', 'Schoeniclus rutilus'],
+  ['Emberiza sahari', 'Fringillaria sahari'],
+  ['Emberiza schoeniclus', 'Schoeniclus schoeniclus'],
+  ['Emberiza siemsseni', 'Schoeniclus siemsseni'],
+  ['Emberiza spodocephala', 'Schoeniclus spodocephalus'],
+  ['Emberiza striolata', 'Fringillaria striolata'],
+  ['Emberiza sulphurata', 'Schoeniclus sulphuratus'],
+  ['Emberiza tahapisi', 'Fringillaria tahapisi'],
+  ['Emberiza tristrami', 'Schoeniclus tristrami'],
+  ['Emberiza variabilis', 'Schoeniclus variabilis'],
+  ['Emberiza yessoensis', 'Schoeniclus yessoensis'],
+  ['Ptilinopus holosericea', 'Ptilinopus holosericeus'],
+  ['Pycnopygius cinereus', 'Pinarostola cinerea'],
+  ['Thryorchilus browni', 'Troglodytes browni'],
+  ['Troglodytes hiemalis', 'Nannus hiemalis'],
+  ['Troglodytes pacificus', 'Nannus pacificus'],
+  ['Troglodytes troglodytes', 'Nannus troglodytes'],
+]);
 const SOURCE_NOTE = 'Spanish: eBird/Clements taxonomy, Cornell Lab of Ornithology. English: BirdNET labels.';
 
 const MODELS_PATH = join(PUBLIC_DIR, MODEL_ASSETS_DIR);
@@ -47,9 +84,24 @@ for (const entry of taxonomy) {
   const label = english.has(entry.sciName) ? entry.sciName : labelOf.get(entry.sciName);
   if (label && !spanish.has(label)) spanish.set(label, entry.comName);
 }
-// Compact tuples [es, en]; an empty Spanish name means eBird has no match and the English label is used.
+// eBird drops species it lumps into another one (e.g. Apus nipalensis); their labels keep the Spanish name the
+// previous build gave them instead of falling back to English.
+const previous = new Map();
+try {
+  const { names: previousNames } = JSON.parse(await readFile(OUTPUT_PATH, 'utf8'));
+  for (const [sci, tuple] of Object.entries(previousNames ?? {})) {
+    if (Array.isArray(tuple) && typeof tuple[0] === 'string' && tuple[0]) previous.set(sci, tuple[0]);
+  }
+} catch (error) {
+  if (error?.code !== 'ENOENT') throw error;
+}
+const kept = [...english.keys()].filter((sci) => !spanish.has(sci) && previous.has(sci));
+for (const sci of kept) spanish.set(sci, previous.get(sci));
+
+// Compact tuples [es, en]; an empty Spanish name means no Spanish name is known and the English label is used.
 const names = {};
 for (const [sci, en] of english) names[sci] = [spanish.get(sci) ?? '', en];
 const sorted = Object.fromEntries(Object.entries(names).sort(([a], [b]) => a.localeCompare(b)));
 await writeFile(OUTPUT_PATH, `${JSON.stringify({ source: SOURCE_NOTE, names: sorted })}\n`);
 process.stdout.write(`Spanish names: ${String(spanish.size)} of ${String(english.size)} model labels.\n`);
+if (kept.length > 0) process.stdout.write(`Kept from the previous build (not in eBird): ${kept.join(', ')}.\n`);
