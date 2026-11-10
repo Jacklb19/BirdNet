@@ -9,19 +9,24 @@
 
 .bn-home__hero {
   display: grid;
-  gap: var(--space-6);
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: var(--plumage-esmeralda);
+  color: var(--plumage-esmeralda-on);
 }
 
 .bn-home__intro {
   display: grid;
   align-content: center;
   gap: var(--space-4);
+  padding: var(--space-6) var(--space-5);
 }
 
 /* One plain sentence in one voice: the walk beside it does the convincing. */
 .bn-home__title {
   font-size: var(--text-xl);
   line-height: var(--leading-xl);
+  text-wrap: balance;
 }
 
 .bn-home__lede {
@@ -38,7 +43,11 @@
 }
 
 .bn-home__link {
-  color: var(--color-brand);
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-min);
+  color: inherit;
+  text-underline-offset: var(--space-1);
   font-weight: var(--font-weight-semibold);
 }
 
@@ -52,6 +61,24 @@
 .bn-home__heading {
   font-size: var(--text-l);
   line-height: var(--leading-l);
+}
+
+.bn-home__hero :is(.bn-home__lede, .bn-home__note) {
+  color: inherit;
+}
+
+.bn-home__hero .bn-button--secondary {
+  border-color: currentColor;
+  color: inherit;
+}
+
+.bn-home__hero .bn-button--secondary:hover {
+  background: var(--plumage-esmeralda-on);
+  color: var(--plumage-esmeralda);
+}
+
+.bn-home__intro :focus-visible {
+  outline-color: var(--color-accent);
 }
 
 .bn-home__points {
@@ -100,9 +127,9 @@
   display: grid;
   align-content: end;
   gap: var(--space-2);
-  min-height: 12rem;
+  min-height: var(--swatch-height);
   padding: var(--space-5);
-  border-radius: var(--radius-plate);
+  border-radius: var(--radius-l);
 }
 
 /* Each step is a plate of its own color, like the birds'. */
@@ -111,9 +138,7 @@
 .bn-home__step--collect { background: var(--plumage-azulejo); color: var(--plumage-azulejo-on); }
 
 .bn-home__step-icon {
-  position: absolute;
-  top: var(--space-5);
-  right: var(--space-5);
+  margin-bottom: var(--space-2);
 }
 
 .bn-home__step-title {
@@ -185,14 +210,12 @@
   }
 
   .bn-home__hero {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: var(--space-8);
-    align-items: center;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    border-radius: var(--radius-plate);
   }
 
-  /* Wide screens: the walk on the left, the words on the right. On phones the sentence still comes first. */
   .bn-home__intro {
-    order: 1;
+    padding: var(--space-8);
   }
 
   .bn-home__title {

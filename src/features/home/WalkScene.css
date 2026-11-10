@@ -1,13 +1,16 @@
 .bn-walk-scene {
-  position: relative;
+  display: grid;
+  grid-template-rows: 1fr auto;
   overflow: hidden;
-  aspect-ratio: 1;
-  border-radius: var(--radius-plate);
   background: var(--scene-land);
-  box-shadow: var(--shadow-float);
 }
 
-.bn-walk-scene__map,
+.bn-walk-scene__map {
+  position: relative;
+  aspect-ratio: var(--home-map-ratio);
+  min-width: 0;
+}
+
 .bn-walk-scene__map svg {
   position: absolute;
   inset: 0;
@@ -50,29 +53,18 @@
   position: absolute;
   top: calc(var(--y) * 1%);
   left: calc(var(--x) * 1%);
-  transform: translate(-50%, -100%);
+  transform: translate(-50%, -50%);
 }
 
-/* The stem that plants a sticker on the ground. */
-.bn-walk-scene__pin::after {
-  display: block;
-  width: var(--border-width-strong);
-  height: var(--space-3);
-  margin: 0 auto;
-  border-radius: var(--radius-pill);
-  background: var(--color-sticker-edge);
-  box-shadow: var(--shadow-raised);
-  content: '';
+.bn-walk-scene__pin .bn-sticker {
+  --size: var(--sticker-xs);
 }
 
 .bn-walk-scene__plate {
-  position: absolute;
-  inset: auto var(--space-3) var(--space-3);
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3);
-  border-radius: var(--radius-xl);
+  padding: var(--space-3) var(--space-5);
 }
 
 .bn-walk-scene__text {

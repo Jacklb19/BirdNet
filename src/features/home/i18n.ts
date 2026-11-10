@@ -9,9 +9,8 @@ export const homeMessages = defineMessages({
     open: 'Abrir Trino',
     createAccount: 'Crea tu cuenta gratis',
     title: 'Trino reconoce las aves por su canto.',
-    lede: 'Sales a caminar con el teléfono encendido. Trino escucha, reconoce cada ave sin conexión y la deja en tu mapa y en tu álbum.',
-    guideLead: '¿Solo quieres mirar?',
-    guide: 'Explora la guía de aves',
+    lede: 'Sal a caminar, escucha sin conexión y descubre qué ave pudo cantar. Guarda tus hallazgos en tu cuaderno de campo.',
+    guide: 'Explorar la guía',
     firstDownload: (size: string) => `La primera vez descarga ${size} para funcionar sin señal.`,
     scene: {
       label: 'Ejemplo de una caminata: cinco aves quedan pegadas a lo largo del camino',
@@ -34,7 +33,7 @@ export const homeMessages = defineMessages({
     how: {
       title: 'Cómo funciona',
       steps: {
-        listen: { title: 'Escucha', text: 'Pulsas una vez. El audio se analiza en tu teléfono; de cada canto queda allí un clip corto para oírlo después.' },
+        listen: { title: 'Escucha', text: 'El micrófono se activa cuando pulsas el botón de escucha. Trino analiza el audio en tu teléfono.' },
         identify: { title: 'Reconoce', text: 'Trino identifica el canto y te dice qué tan seguro está.' },
         collect: { title: 'Colecciona', text: 'Cada ave va a tu álbum y a tu mapa, con su hora y su lugar.' },
       } satisfies Record<HomeStep, { title: string; text: string }>,
@@ -53,7 +52,7 @@ export const homeMessages = defineMessages({
       title: 'Privacidad',
       promises: {
         audio: 'El audio se analiza en tu teléfono. Solo sale de él si tú eliges guardar tus grabaciones en tu cuenta, donde solo tú las oyes.',
-        account: 'Tus registros se guardan en tu cuenta y solo tú los ves. Puedes borrarla, con todo lo que tiene, cuando quieras.',
+        account: 'Desde tu cuenta puedes revisar tus registros y borrar la cuenta con sus datos.',
         offline: 'Una vez dentro funciona sin conexión, y sube tus cantos cuando vuelve la señal.',
       } satisfies Record<Exclude<HomePromise, 'location'>, string>,
       location: (distance: string) => `Tu posición se redondea a unos ${distance} y tú decides si tus cantos se ven en el mapa de todos.`,
@@ -68,9 +67,8 @@ export const homeMessages = defineMessages({
     open: 'Open Trino',
     createAccount: 'Create your free account',
     title: 'Trino recognizes birds by their song.',
-    lede: 'You go for a walk with the phone on. Trino listens, recognizes each bird offline and puts it on your map and in your album.',
-    guideLead: 'Just want to look around?',
-    guide: 'Explore the guide of birds',
+    lede: 'Take a walk, listen offline and discover which bird may have sung. Keep your sightings in your field notebook.',
+    guide: 'Explore the bird guide',
     firstDownload: (size: string) => `The first time it downloads ${size} so it works without signal.`,
     scene: {
       label: 'Example of a walk: five birds are pinned along the path',
@@ -93,7 +91,7 @@ export const homeMessages = defineMessages({
     how: {
       title: 'How it works',
       steps: {
-        listen: { title: 'Listen', text: 'You tap once. Audio is analysed on your phone; a short clip of each song stays there so you can listen to it later.' },
+        listen: { title: 'Listen', text: 'Tap the listen button to start the microphone. Trino analyses the audio on your phone.' },
         identify: { title: 'Identify', text: 'Trino recognizes the song and tells you how sure it is.' },
         collect: { title: 'Collect', text: 'Each bird goes to your album and your map, with its time and place.' },
       },
@@ -112,7 +110,7 @@ export const homeMessages = defineMessages({
       title: 'Privacy',
       promises: {
         audio: 'Audio is analysed on your phone. It leaves it only if you choose to save your recordings in your account, where only you can play them.',
-        account: 'Your records are kept in your account and only you see them. You can delete it, with everything in it, whenever you want.',
+        account: 'You can review your records in your account and delete your account along with its data.',
         offline: 'Once signed in it works offline, and uploads your songs when the signal is back.',
       },
       location: (distance: string) => `Your position is rounded to about ${distance} and you decide whether your songs show on everyone’s map.`,

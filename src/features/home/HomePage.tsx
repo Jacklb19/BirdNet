@@ -66,6 +66,7 @@ export default function HomePage(): React.JSX.Element {
   const model = useModel();
   const account = useAccountContext();
   const cardPlumage = usePlumage(HOME_CARD_SPECIES);
+  const heading = useRef<HTMLHeadingElement>(null);
   const how = useRef<HTMLElement>(null);
   const guide = useRef<HTMLElement>(null);
   const map = useRef<HTMLElement>(null);
@@ -95,6 +96,9 @@ export default function HomePage(): React.JSX.Element {
 
   return (
     <div className="bn-home">
+      <a className="bn-shell__skip" href="#main" onClick={(event) => { event.preventDefault(); heading.current?.focus(); }}>
+        {dict.app.skipToContent}
+      </a>
       <SiteBar navLabel={texts.navLabel} brandHref={routeHash({ name: 'home' })} onBrand={toTop} links={pageLinks}
         menu={[
           { key: 'page', label: dict.app.menuGroups.site, links: pageLinks },
@@ -115,16 +119,15 @@ export default function HomePage(): React.JSX.Element {
       <div className="bn-home__page">
         <section className="bn-home__hero">
           <div className="bn-home__intro">
-            <h1 className="bn-home__title display">{texts.title}</h1>
+            <h1 ref={heading} tabIndex={-1} className="bn-home__title display">{texts.title}</h1>
             <p className="bn-home__lede">{texts.lede}</p>
             <div className="bn-home__actions">
               {enter}
-              {!signedIn && <Button variant="secondary" href={routeHash({ name: 'signIn' })}>{dict.app.signIn}</Button>}
+              {!signedIn && <Button variant="secondary" icon="book" href={routeHash({ name: 'album' })}>{texts.guide}</Button>}
             </div>
             {!signedIn && (
               <p className="bn-home__note">
-                {texts.guideLead}{' '}
-                <a className="bn-home__link" href={routeHash({ name: 'album' })}>{texts.guide}</a>
+                <a className="bn-home__link" href={routeHash({ name: 'signIn' })}>{dict.app.signIn}</a>
               </p>
             )}
             {signedIn && needsDownload && model.available && (
@@ -161,9 +164,8 @@ export default function HomePage(): React.JSX.Element {
         <section ref={how} className="bn-home__section" aria-labelledby="bn-home-how">
           <h2 id="bn-home-how" className="bn-home__heading display">{texts.how.title}</h2>
           <ol className="bn-home__steps">
-            {HOME_STEPS.map((step, index) => (
+            {HOME_STEPS.map((step) => (
               <li key={step.id} className={`bn-home__step bn-home__step--${step.id}`}>
-                <span className="label">{formatNumber(index + 1, locale)}</span>
                 <span className="bn-home__step-icon" aria-hidden="true"><Icon name={step.icon} /></span>
                 <h3 className="bn-home__step-title display">{texts.how.steps[step.id].title}</h3>
                 <p>{texts.how.steps[step.id].text}</p>

@@ -4,15 +4,16 @@
 }
 
 .bn-group__title {
-  padding: 0 var(--space-4);
-  color: var(--color-text-secondary);
-  font-size: var(--text-small);
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: var(--text-title);
   font-weight: var(--font-weight-semibold);
-  line-height: var(--leading-small);
+  line-height: var(--leading-title);
 }
 
 .bn-group__body {
   overflow: hidden;
+  border: var(--border-width) solid var(--color-border-subtle);
   border-radius: var(--radius-l);
   background: var(--color-bg-surface);
 }

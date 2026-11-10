@@ -22,14 +22,15 @@ export function SpeciesPhoto({ scientificName, load, alt, variant = 'row', class
   const own = useSpeciesPhotoLoad(load ? null : scientificName);
   const { photo, status, settle } = load ?? own;
   const classes = ['bn-photo', `bn-photo--${variant}`, className ?? ''].filter(Boolean).join(' ');
-  if (!photo || status === 'failed') {
-    return alt
-      ? <span className={`${classes} bn-photo--empty`} role="img" aria-label={alt}><Icon name="bird" /></span>
-      : <span className={`${classes} bn-photo--empty`} aria-hidden="true"><Icon name="bird" /></span>;
-  }
-  // Keyed by file, so a new photo is a new element whose load or failure is reported for that file only.
+  // Keep the bird silhouette visible on slow connections, including while a thumbnail is decoding.
   return (
-    <img key={photo.url} className={classes} src={photo.url} alt={alt} crossOrigin="anonymous" loading="lazy" decoding="async"
-      onLoad={() => { settle(photo.url, true); }} onError={() => { settle(photo.url, false); }} />
+    <span className={classes} role={alt ? 'img' : undefined} aria-label={alt || undefined} aria-hidden={alt ? undefined : true}>
+      {status !== 'loaded' && <Icon name="bird" />}
+      {photo && status !== 'failed' && (
+        <img key={photo.url} className="bn-photo__image" data-loaded={status === 'loaded'} src={photo.url} alt=""
+          crossOrigin="anonymous" loading="lazy" decoding="async"
+          onLoad={() => { settle(photo.url, true); }} onError={() => { settle(photo.url, false); }} />
+      )}
+    </span>
   );
 }

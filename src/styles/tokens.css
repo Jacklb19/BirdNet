@@ -22,14 +22,14 @@
   color-scheme: light;
 
   /* Color — light: field-notebook paper, eucalyptus ink and the sun yellow of "singing now" */
-  --color-bg-canvas: #EDF1EE;
+  --color-bg-canvas: #F5F4EB;
   --color-bg-surface: #FFFFFF;
   --color-bg-sunken: #E2E8E4;
   --color-bg-inverse: #16362F;
   --color-text-primary: #16362F;
   --color-text-secondary: #4C625C;
   --color-text-inverse: #FFFFFF;
-  --color-border-subtle: #D3DCD6;
+  --color-border-subtle: #CFD6CB;
   --color-border-strong: #16362F;
   --color-brand: #0B6E4E;
   --color-brand-soft: #DDEFE6;
@@ -133,7 +133,7 @@
   --text-caption: 0.8125rem;
   --leading-caption: 1.125rem;
   --text-label: 0.6875rem;
-  --text-tab: 0.6875rem;
+  --text-tab: 0.75rem;
   --tracking-tight: -0.02em;
   --tracking-label: 0.09em;
 
@@ -169,7 +169,6 @@
   --icon-stroke: 1.75;
   --photo-row: 3.25rem;
   --photo-hero: 18rem;
-  --record-button: 4.5rem;
   --record-button-s: 2.5rem;
   --avatar: 3.25rem;
   --avatar-l: 6rem;
@@ -177,6 +176,11 @@
   --topbar-height: 4rem;
   --content-max: 72rem;
   --content-narrow: 40rem;
+  --content-form: 28rem;
+  --reading-measure: 52ch;
+  --home-map-ratio: 6 / 5;
+  --record-control-max: 22rem;
+  --plate-fact-min: 7rem;
   --spectrogram-height: 7rem;
   --spectrogram-height-wide: 10rem;
   --map-height: 100dvh;
@@ -196,13 +200,10 @@
   --swatch-height: 6.5rem;
   --map-photo-marker: 2.75rem;
 
-  /* Field-notebook annotations: a hairline that draws itself to a small label */
-  --annotation-width: 1.4px;
   --annotation-dot: 0.375rem;
 
   /* Shell — brand mark, tab indicator, live player */
   --brand-mark-size: 2.25rem;
-  --tab-indicator-height: 0.125rem;
   --live-player-height: 3.5rem;
   --live-photo-size: 2.5rem;
   --live-dot-size: 0.4375rem;

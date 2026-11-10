@@ -1,7 +1,4 @@
 .bn-listen-record {
-  /* Ring of the card colour around the big button, as in the design, so it reads as lifted from the page. */
-  --listen-record-ring: var(--space-1);
-
   display: inline-flex;
   align-items: center;
   border: 0;
@@ -32,25 +29,34 @@
   background: currentColor;
 }
 
-/* Phone: the big round control with its label underneath. */
+/* A single reachable control leaves room for the spectrogram above the phone's navigation. */
 .bn-listen-record--large {
-  flex-direction: column;
+  width: min(100%, var(--record-control-max));
+  min-height: var(--live-player-height);
+  justify-content: center;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-l);
-  font-size: var(--text-small);
-  line-height: var(--leading-small);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-brand);
+  color: var(--color-on-brand);
+  box-shadow: var(--shadow-raised);
+}
+
+.bn-listen-record--large.bn-listen-record--stop {
+  background: var(--color-record);
+  color: var(--color-on-record);
 }
 
 .bn-listen-record--large .bn-listen-record__circle {
-  width: var(--record-button);
-  height: var(--record-button);
-  box-shadow: 0 0 0 var(--listen-record-ring) var(--color-bg-surface), var(--shadow-float);
+  width: var(--icon-size);
+  height: var(--icon-size);
+  background: transparent;
+  color: inherit;
 }
 
 .bn-listen-record--large .bn-listen-record__square {
-  width: var(--icon-size);
-  height: var(--icon-size);
+  width: var(--stop-icon-size);
+  height: var(--stop-icon-size);
 }
 
 /* Desktop header: a pill with the small round button and its label beside it. */
