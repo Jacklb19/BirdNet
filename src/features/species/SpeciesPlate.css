@@ -3,6 +3,8 @@
   display: grid;
   overflow: hidden;
   grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'heading photo' 'facts photo';
+  align-content: center;
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-6) var(--space-5);
@@ -24,11 +26,15 @@
   transform: translateY(-50%);
 }
 
+.bn-species-plate__heading,
 .bn-species-plate__text {
   display: grid;
   min-width: 0;
   gap: var(--space-2);
 }
+
+.bn-species-plate__heading { grid-area: heading; }
+.bn-species-plate__text { grid-area: facts; }
 
 .bn-species-plate__eyebrow {
   display: inline-flex;
@@ -49,15 +55,18 @@
 
 .bn-species-plate__notes {
   display: grid;
-  gap: var(--space-2);
-  margin: var(--space-2) 0 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--plate-fact-min)), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding-block: var(--space-3);
+  border-block: var(--border-width) solid currentColor;
 }
 
-/* Each note ends in a hairline that points at the sticker and draws itself in. */
 .bn-species-plate__note {
-  position: relative;
   display: grid;
+  align-content: start;
   justify-items: start;
+  overflow-wrap: anywhere;
 }
 
 .bn-species-plate__note dd {
@@ -65,22 +74,9 @@
   font-weight: var(--font-weight-semibold);
 }
 
-.bn-species-plate__note::after {
-  position: absolute;
-  top: 50%;
-  right: calc(var(--space-4) * -1);
-  width: var(--space-7);
-  height: var(--annotation-width);
-  background: currentcolor;
-  content: '';
-  opacity: 0.7;
-  transform-origin: left;
-  animation: bn-annotation-draw var(--duration-slow) var(--ease-standard) both;
-  animation-delay: calc(var(--duration-medium) + var(--stagger));
-}
-
 .bn-species-plate__figure {
   display: grid;
+  grid-area: photo;
   justify-items: center;
   gap: var(--space-2);
 }
@@ -93,22 +89,30 @@
   overflow-wrap: anywhere;
 }
 
-/* Phones: the sticker sits above the text, centered, so long names keep the full width. */
+/* The name and image identify the bird together. Its measurements can use the full phone width. */
 @media (max-width: 39.99rem) {
   .bn-species-plate {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) var(--sticker-s);
+    grid-template-areas: 'heading photo';
+  }
+
+  .bn-species-plate__text,
+  .bn-species-plate__credit {
+    grid-area: auto / 1 / auto / -1;
   }
 
   .bn-species-plate__figure {
-    order: -1;
+    display: contents;
   }
 
   .bn-species-plate .bn-sticker {
-    --size: var(--sticker-m);
+    grid-area: photo;
+    --size: var(--sticker-s);
   }
 
-  .bn-species-plate__note::after {
-    display: none;
+  .bn-species-plate__credit {
+    max-width: none;
+    text-align: start;
   }
 }
 
@@ -125,9 +129,4 @@
   .bn-species-plate .bn-sticker {
     --size: var(--sticker-xl);
   }
-}
-
-@keyframes bn-annotation-draw {
-  from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
 }

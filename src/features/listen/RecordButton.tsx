@@ -5,7 +5,7 @@ import { useElapsed } from '../../shared/useElapsed';
 import './RecordButton.css';
 
 export interface RecordButtonProps {
-  /** `large`: the round phone control with its label below. `inline`: a compact pill for the desktop header. */
+  /** The wide phone control or the compact control in the desktop header. */
   readonly variant: 'large' | 'inline';
   readonly active: boolean;
   readonly startedAt: number | null;

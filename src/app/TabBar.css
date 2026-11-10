@@ -30,16 +30,19 @@
 }
 
 .bn-tabbar__link[aria-current='page'] {
-  color: var(--color-brand);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
 }
 
-/* The active indicator sits on the top edge, like the design's tab bar. */
-.bn-tabbar__link[aria-current='page']::before {
-  position: absolute;
-  inset: 0 0 auto;
-  height: var(--tab-indicator-height);
+.bn-tabbar__link .bn-icon {
+  box-sizing: content-box;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+}
+
+.bn-tabbar__link[aria-current='page'] .bn-icon {
   background: var(--color-brand);
-  content: '';
+  color: var(--color-on-brand);
 }
 
 @media (min-width: 64rem) {

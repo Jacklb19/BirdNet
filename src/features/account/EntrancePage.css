@@ -5,10 +5,10 @@
 .bn-entrance {
   display: grid;
   width: 100%;
-  max-width: var(--content-max);
+  max-width: var(--content-narrow);
   margin: 0 auto;
   grid-template-areas: 'head' 'panel' 'aside';
-  gap: var(--space-6);
+  gap: var(--space-4);
   padding: var(--space-4) var(--space-4) var(--space-8);
 }
 
@@ -18,18 +18,13 @@
   gap: var(--space-2);
 }
 
-.bn-entrance__kicker {
-  color: var(--color-brand);
-}
-
 .bn-entrance__title {
-  max-width: 30rem;
   font-size: var(--text-l);
   line-height: var(--leading-l);
 }
 
 .bn-entrance__lede {
-  max-width: 34rem;
+  max-width: var(--reading-measure);
   color: var(--color-text-secondary);
 }
 
@@ -63,6 +58,8 @@
   display: grid;
   margin: 0;
   gap: var(--space-3);
+  padding: var(--space-4);
+  border-block: var(--border-width) solid var(--color-border-subtle);
 }
 
 /* Smaller stickers on a phone, so the three fit side by side at 360 px with their tilt. */
@@ -129,8 +126,9 @@
 
 @media (min-width: 64rem) {
   .bn-entrance {
+    max-width: var(--content-max);
     grid-template-areas: 'head panel' 'aside panel';
-    grid-template-columns: minmax(0, 1fr) minmax(0, 28rem);
+    grid-template-columns: minmax(0, 1fr) minmax(0, var(--content-form));
     grid-template-rows: auto 1fr;
     column-gap: var(--space-9);
     row-gap: var(--space-6);
@@ -138,8 +136,8 @@
   }
 
   .bn-entrance__title {
-    font-size: var(--text-xl);
-    line-height: var(--leading-xl);
+    font-size: var(--text-display);
+    line-height: var(--leading-display);
   }
 
   .bn-entrance__stickers {

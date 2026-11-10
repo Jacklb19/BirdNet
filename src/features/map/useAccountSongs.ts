@@ -34,16 +34,16 @@ export function useAccountSongs(token: string | null, userId: string | null, onl
     const controller = new AbortController();
     void (async () => {
       const songs: MapDetection[] = [];
-      let before: string | null = null;
+      const params = new URLSearchParams();
       for (;;) {
-        const params = new URLSearchParams();
-        if (before) params.set('before', before);
         const body = await (await apiFetch(API_ROUTES.meDetections, { token, params, signal: controller.signal })).json() as { detections?: unknown; has_more?: unknown };
         if (!Array.isArray(body.detections) || typeof body.has_more !== 'boolean') throw new Error('Invalid songs of the account.');
-        songs.push(...body.detections.map(parseOwnSong).filter((song): song is MapDetection => song !== null));
-        const last = songs.at(-1);
+        const page = body.detections.map(parseOwnSong);
+        const last = page.at(-1);
+        songs.push(...page.filter((song): song is MapDetection => song !== null));
         if (!body.has_more || !last || songs.length >= MAP_ACCOUNT_SONGS) break;
-        before = last.recorded_at;
+        params.set('before', last.recorded_at);
+        params.set('after_id', last.id);
       }
       setLoaded({ userId, songs: songs.slice(0, MAP_ACCOUNT_SONGS) });
     })().catch(() => undefined);

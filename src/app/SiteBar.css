@@ -88,7 +88,8 @@
 /* The current place is underlined, as on a printed index, instead of filled like a button. */
 .bn-sitebar__link[aria-current] {
   text-decoration: underline;
-  text-decoration-thickness: var(--tab-indicator-height);
+  text-decoration-color: var(--color-brand);
+  text-decoration-thickness: var(--focus-width);
   text-underline-offset: var(--space-2);
 }
 
@@ -172,7 +173,8 @@
 }
 
 .bn-sitemenu__link[aria-current] {
-  background: var(--color-bg-sunken);
+  background: var(--color-brand-soft);
+  box-shadow: inset var(--focus-width) 0 var(--color-brand);
 }
 
 .bn-sitemenu__link .bn-icon {

@@ -148,6 +148,8 @@ test('a song kept only in the account is reviewed and annotated from the log (AD
   expect(created.ok()).toBe(true);
   await page.goto(`/${routeHash({ name: 'log' })}`);
   await expect(page.getByRole('heading', { name: texts.log.account.title })).toBeVisible();
+  // This browser has never recorded a song. It can still export the account's log.
+  await expect(page.getByRole('button', { name: texts.log.exportAll.action })).toBeEnabled();
   await page.locator(`a[href="${routeHash({ name: 'detection', id })}"]`).click();
   await expect(page.getByText(texts.log.detail.account.source)).toBeVisible();
 
@@ -163,6 +165,26 @@ test('a song kept only in the account is reviewed and annotated from the log (AD
 
   const stored = await (await page.request.get(`${API_PROXY_PREFIX}/v1/me/detections/${id}`, { headers: bearer(session) })).json() as Record<string, unknown>;
   expect(stored).toMatchObject({ status: 'verified', reviewed_by: 'person', note: 'Planeando sobre el valle' });
+});
+
+test('songs recorded at the same instant remain reachable across account pages', async ({ page }) => {
+  const session = await signIn(page);
+  const ids = [randomUUID(), randomUUID()];
+  const recordedAt = new Date().toISOString();
+  const created = await page.request.post(`${API_PROXY_PREFIX}/v1/detections/batch`, {
+    headers: bearer(session),
+    data: { detections: ids.map((id) => ({ id, species: 'Turdus fuscater', confidence: 0.6, status: 'provisional',
+      recorded_at: recordedAt, location: { latitude: 4.679, longitude: -74.123 }, model_version: 'birdnet-v2.4:arm', shared: false })) },
+  });
+  expect(created.ok()).toBe(true);
+  // Force a page boundary between the tied rows while keeping the real cursor and API response.
+  await page.route(/\/api\/v1\/me\/detections(?:\?|$)/, async (route) => {
+    const url = new URL(route.request().url());
+    url.searchParams.set('limit', '1');
+    await route.fulfill({ response: await route.fetch({ url: url.href }) });
+  });
+  await page.goto(`/${routeHash({ name: 'log' })}`);
+  for (const id of ids) await expect(page.locator(`a[href="${routeHash({ name: 'detection', id })}"]`)).toBeVisible();
 });
 
 test('a place is renamed and deleted from its panel, with the focus following each step (ADR-44)', async ({ page }) => {

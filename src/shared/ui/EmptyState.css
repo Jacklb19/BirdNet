@@ -4,6 +4,9 @@
   gap: var(--space-2);
   padding: var(--space-8) var(--space-4);
   text-align: center;
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-surface);
 }
 
 .bn-empty__icon {
@@ -13,8 +16,8 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-pill);
-  background: var(--color-bg-sunken);
-  color: var(--color-text-secondary);
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
 }
 
 .bn-empty__title {
@@ -26,7 +29,7 @@
 }
 
 .bn-empty__text {
-  max-width: var(--content-narrow);
+  max-width: var(--reading-measure);
   color: var(--color-text-secondary);
 }
 

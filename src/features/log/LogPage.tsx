@@ -52,7 +52,7 @@ export default function LogPage(): React.JSX.Element {
   ), [everything, filter, site, query, names, locale]);
   // Only the shown slice is grouped and rendered; "show more" extends it.
   const groups = useMemo(() => groupByDay(visible.slice(0, limit), readAt), [visible, limit, readAt]);
-  const unlocated = records ? syncCounts(records).noLocation : 0;
+  const unlocated = everything ? syncCounts(everything).noLocation : 0;
   const searching = query.trim() !== '' || site !== ALL_SITES;
   const localIds = useMemo(() => new Set((everything ?? []).map((record) => record.id)), [everything]);
 
@@ -77,7 +77,7 @@ export default function LogPage(): React.JSX.Element {
       {records === null && !error && <p className="bn-log__status" role="status">{dict.common.loading}</p>}
       {/* The account's songs this phone does not keep, so they can be reviewed from here too (ADR-44). */}
       {records !== null && <AccountSongsCard local={localIds} online={queue.online} now={readAt} />}
-      {records?.length === 0 && (
+      {everything?.length === 0 && (
         <EmptyState icon="log" title={dict.log.empty.title}
           action={(
             <div className="bn-log__empty-actions">
@@ -90,11 +90,11 @@ export default function LogPage(): React.JSX.Element {
           {dict.log.empty.text}
         </EmptyState>
       )}
-      {records?.length ? (
+      {everything && everything.length > 0 && (
         <>
           {unlocated > 0 && <AssignSiteCard count={unlocated} sites={sites} activeSiteId={active?.id ?? null} />}
-          <LogSummary records={records} walks={walks} now={readAt} />
-          <LogSyncNotice records={records} online={queue.online} syncFailed={queue.syncFailed} syncing={queue.syncing} onRetry={() => { void queue.syncNow(); }} />
+          {records && records.length > 0 && <LogSummary records={records} walks={walks} now={readAt} />}
+          <LogSyncNotice records={everything} online={queue.online} syncFailed={queue.syncFailed} syncing={queue.syncing} onRetry={() => { void queue.syncNow(); }} />
           <div className="bn-log__search" role="search" aria-label={dict.log.search.label}>
             <div className="bn-log__query">
               <label htmlFor={searchId} className="visually-hidden">{dict.log.search.placeholder}</label>
@@ -120,9 +120,9 @@ export default function LogPage(): React.JSX.Element {
           {visible.length > limit && (
             <Button variant="secondary" block onClick={() => { setLimit((current) => current + LOG_PAGE_SIZE); }}>{dict.log.showMore}</Button>
           )}
-          <ExportAllCard />
         </>
-      ) : null}
+      )}
+      <ExportAllCard hasLocalRecords={Boolean(everything?.length)} />
     </Page>
   );
 }

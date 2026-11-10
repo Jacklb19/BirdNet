@@ -4,9 +4,10 @@
   justify-content: center;
   gap: var(--space-2);
   min-height: var(--control-height);
-  padding: 0 var(--space-5);
+  max-width: 100%;
+  padding: var(--space-2) var(--space-4);
   border: var(--border-width-strong) solid transparent;
-  border-radius: var(--radius-l);
+  border-radius: var(--radius-m);
   font-size: var(--text-body);
   font-weight: var(--font-weight-semibold);
   line-height: var(--leading-body);
@@ -24,8 +25,8 @@
 }
 
 .bn-button--primary {
-  background: var(--color-bg-inverse);
-  color: var(--color-text-inverse);
+  background: var(--color-brand);
+  color: var(--color-on-brand);
 }
 
 /* The one call to action of a plate or the home page: the sun yellow of "singing now". */

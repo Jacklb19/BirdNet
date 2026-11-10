@@ -1,7 +1,25 @@
 .bn-photo {
+  position: relative;
+  display: inline-flex;
+  overflow: hidden;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  object-fit: cover;
   background: var(--color-bg-sunken);
+  color: var(--color-text-secondary);
+}
+
+.bn-photo__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+}
+
+.bn-photo__image[data-loaded='true'] {
+  opacity: 1;
 }
 
 .bn-photo--row {
@@ -23,11 +41,4 @@
 .bn-photo--hero {
   width: 100%;
   height: var(--photo-hero);
-}
-
-.bn-photo--empty {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-secondary);
 }

@@ -10,12 +10,11 @@ export const accountMessages = defineMessages({
       text: 'Esta instalación de Trino no tiene cuentas configuradas, y Trino solo se usa con una cuenta. La guía de aves sí se puede ver.',
     },
     entrance: {
-      kicker: 'Tu cuaderno de campo',
-      title: 'Las aves que oyes, guardadas en tu cuenta',
-      lede: 'Trino reconoce las aves por su canto en tu teléfono. Con tu cuenta, cada registro, lugar y caminata queda a salvo y te sigue a cualquier dispositivo.',
+      title: 'Tu cuaderno de campo',
+      lede: 'Entra para escuchar aves y volver a tus registros.',
       requested: (screen: string) => `«${screen}» es parte de tu cuenta. Inicia sesión o crea una para abrirla.`,
       points: {
-        cloud: { title: 'Todo en tu cuenta', text: 'Tus cantos, lugares y caminatas se guardan en la nube y no se pierden si cambias de teléfono.' },
+        cloud: { title: 'Lo que llevas a otro teléfono', text: 'Los registros sincronizados y tus lugares están en tu cuenta. Tú eliges por separado si guardas también los recorridos y las grabaciones.' },
         offline: { title: 'Escucha sin señal', text: 'Una vez dentro, Trino escucha y registra sin conexión, y sube lo pendiente cuando vuelve la señal.' },
         privacy: { title: 'Tú decides qué se comparte', text: 'El audio se analiza en tu teléfono. Al mapa de todos solo va lo que eliges, sin tu nombre y a unos 10 m.' },
       },
@@ -248,12 +247,11 @@ export const accountMessages = defineMessages({
       text: 'This installation of Trino has no accounts configured, and Trino is used only with an account. The guide of birds can still be seen.',
     },
     entrance: {
-      kicker: 'Your field notebook',
-      title: 'The birds you hear, kept in your account',
-      lede: 'Trino recognizes birds by their song on your phone. With your account, every record, place and walk is safe and follows you to any device.',
+      title: 'Your field notebook',
+      lede: 'Sign in to listen for birds and revisit your records.',
       requested: (screen: string) => `“${screen}” is part of your account. Sign in or create one to open it.`,
       points: {
-        cloud: { title: 'All in your account', text: 'Your songs, places and walks are kept in the cloud and are not lost if you change phones.' },
+        cloud: { title: 'What travels with you', text: 'Your synced records and places are in your account. You decide separately whether to save your walking routes and audio recordings there too.' },
         offline: { title: 'Listen without signal', text: 'Once signed in, Trino listens and records offline, and uploads what is pending when the signal returns.' },
         privacy: { title: 'You decide what is shared', text: 'Audio is analysed on your phone. Only what you choose reaches the map of everyone, without your name and to about 10 m.' },
       },

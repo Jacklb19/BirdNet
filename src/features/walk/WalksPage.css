@@ -1,6 +1,12 @@
 .bn-walks__list {
   display: grid;
-  gap: var(--space-3);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-surface);
+}
+
+.bn-walks__list li + li {
+  border-block-start: var(--border-width) solid var(--color-border-subtle);
 }
 
 .bn-walks__item {
@@ -8,22 +14,15 @@
   min-height: var(--touch-min);
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-xl);
-  background: var(--color-bg-surface);
-  box-shadow: var(--shadow-raised);
+  padding: var(--space-4);
+  border-radius: var(--radius-l);
   color: var(--color-text-primary);
   text-decoration: none;
-  transition: translate var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard);
+  transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
 .bn-walks__item:hover {
-  translate: 0 var(--state-hover-lift);
-  box-shadow: var(--shadow-float);
-}
-
-.bn-walks__item:active {
-  scale: var(--state-pressed-scale);
+  background: var(--color-bg-sunken);
 }
 
 .bn-walks__icon {
@@ -42,6 +41,7 @@
   display: grid;
   min-width: 0;
   flex: 1;
+  gap: var(--space-1);
 }
 
 .bn-walks__name {

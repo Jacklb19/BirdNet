@@ -7,11 +7,14 @@
   --site-card-pulse: calc(4 * var(--duration-medium));
 
   display: grid;
+  overflow: hidden;
+  border: var(--border-width) solid var(--color-border-subtle);
   border-radius: var(--radius-xl);
   background: var(--color-bg-surface);
 }
 
 .bn-site-card--active {
+  border-color: var(--color-brand);
   box-shadow: inset 0 0 0 var(--border-width-strong) var(--color-brand);
 }
 
@@ -156,6 +159,11 @@
   justify-items: start;
   padding: 0 var(--space-4);
   border-top: var(--border-width) solid var(--color-border-subtle);
+  background: var(--color-bg-sunken);
+}
+
+.bn-site-card--active .bn-site-card__footer {
+  background: var(--color-brand-soft);
 }
 
 .bn-site-card__active {

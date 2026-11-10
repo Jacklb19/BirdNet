@@ -83,14 +83,6 @@ export default function ListenPage(): React.JSX.Element {
       {sessionError !== null && showsSessionError(sessionError, model.state) && <SessionErrorNotice error={sessionError} />}
       <ModelNotice model={model} active={active} />
       {tooSlowForTwo && <Notice tone="info" live>{t.tooSlowForTwo}</Notice>}
-      {zone === 'none' && sites.ready && (
-        <Notice tone="caution" icon="sites" title={t.noLocation.title}
-          action={<Button variant="quiet" onClick={() => { void update({ locationEnabled: true }).then((saved) => { setLocationFailed(!saved); }); }}>{t.noLocation.action}</Button>}>
-          {t.noLocation.text(formatMeters(APPROX_CELL_METERS, locale))}
-          {locationFailed && <p role="alert">{t.noLocation.failed}</p>}
-        </Notice>
-      )}
-
       <div className="bn-listen__stage">
         <div className="bn-listen__main">
           <SingingPlate species={species[0] ?? null} active={active} phase={phase} />
@@ -98,6 +90,13 @@ export default function ListenPage(): React.JSX.Element {
         </div>
         <div className="bn-listen__side">
           <SessionAlbum species={species} active={active} />
+          {zone === 'none' && sites.ready && (
+            <Notice tone="caution" icon="sites" title={t.noLocation.title}
+              action={<Button variant="quiet" onClick={() => { void update({ locationEnabled: true }).then((saved) => { setLocationFailed(!saved); }); }}>{t.noLocation.action}</Button>}>
+              {t.noLocation.text(formatMeters(APPROX_CELL_METERS, locale))}
+              {locationFailed && <p role="alert">{t.noLocation.failed}</p>}
+            </Notice>
+          )}
           {/* Below the plate and only between sessions: the question waits until listening is not what the person came
               for, and nothing is shared until it is answered (ADR-22, ADR-44). Account asks it first. */}
           {!active && <ShareChoiceCard />}

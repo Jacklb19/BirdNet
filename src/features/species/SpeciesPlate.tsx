@@ -27,7 +27,7 @@ export interface SpeciesPlateProps {
 
 /**
  * A plate of the field guide (ADR-20): the screen takes the bird's plumage color, its photo sits on it as a die-cut
- * sticker, and annotations point at it like notes in a field notebook.
+ * sticker, with field notes grouped below the bird's name.
  */
 export function SpeciesPlate({ scientificName, name, eyebrow, notes, headingLevel = 2, drop = false, children }: SpeciesPlateProps): React.JSX.Element {
   const { dict } = useI18n();
@@ -36,22 +36,26 @@ export function SpeciesPlate({ scientificName, name, eyebrow, notes, headingLeve
   const Heading = headingLevel === 1 ? 'h1' : 'h2';
   return (
     <section className="bn-species-plate bn-plate" style={plateStyle(plumage)} aria-label={name}>
-      <div className="bn-species-plate__text">
+      <div className="bn-species-plate__heading">
         <p className="bn-species-plate__eyebrow label">{eyebrow}</p>
         <Heading className="bn-species-plate__name display">{name}</Heading>
         {name !== scientificName && <p className="bn-species-plate__scientific scientific">{scientificName}</p>}
-        {notes.length > 0 && (
-          <dl className="bn-species-plate__notes">
-            {notes.map((note) => (
-              <div key={note.label} className="bn-species-plate__note">
-                <dt className="label">{note.label}</dt>
-                <dd>{note.value}</dd>
-              </div>
-            ))}
-          </dl>
-        )}
-        {children}
       </div>
+      {(notes.length > 0 || children) && (
+        <div className="bn-species-plate__text">
+          {notes.length > 0 && (
+            <dl className="bn-species-plate__notes">
+              {notes.map((note) => (
+                <div key={note.label} className="bn-species-plate__note">
+                  <dt className="label">{note.label}</dt>
+                  <dd>{note.value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          {children}
+        </div>
+      )}
       <div className="bn-species-plate__figure">
         {/* Keyed by species, so a new singer lands as a new sticker instead of swapping the photo in place. */}
         <Sticker key={scientificName} scientificName={scientificName} alt="" size="l" load={picture} drop={drop} />

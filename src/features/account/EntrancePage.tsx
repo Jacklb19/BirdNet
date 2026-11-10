@@ -41,7 +41,6 @@ export default function EntrancePage({ mode, requested }: EntrancePageProps): Re
   return (
     <div className="bn-entrance">
       <header className="bn-entrance__head">
-        <p className="bn-entrance__kicker label">{texts.kicker}</p>
         <h1 id={titleId} className="bn-entrance__title display">{texts.title}</h1>
         <p className="bn-entrance__lede">{texts.lede}</p>
       </header>
