@@ -148,6 +148,8 @@ test('a song kept only in the account is reviewed and annotated from the log (AD
   expect(created.ok()).toBe(true);
   await page.goto(`/${routeHash({ name: 'log' })}`);
   await expect(page.getByRole('heading', { name: texts.log.account.title })).toBeVisible();
+  // This browser has never recorded a song. It can still export the account's log.
+  await expect(page.getByRole('button', { name: texts.log.exportAll.action })).toBeEnabled();
   await page.locator(`a[href="${routeHash({ name: 'detection', id })}"]`).click();
   await expect(page.getByText(texts.log.detail.account.source)).toBeVisible();
 

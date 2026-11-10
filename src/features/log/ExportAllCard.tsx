@@ -18,7 +18,7 @@ type ExportState =
  * included with their state. Always, from this phone: built here with the same columns, so the person can take their
  * record away without a connection too.
  */
-export function ExportAllCard(): React.JSX.Element {
+export function ExportAllCard({ hasLocalRecords }: { readonly hasLocalRecords: boolean }): React.JSX.Element | null {
   const { dict, locale } = useI18n();
   const t = dict.log.exportAll;
   const { session } = useAccountContext();
@@ -28,6 +28,7 @@ export function ExportAllCard(): React.JSX.Element {
   const [state, setState] = useState<ExportState>({ status: 'idle' });
   const token = session?.access_token ?? null;
   const working = state.status === 'working';
+  if (!token && !hasLocalRecords) return null;
 
   const run = async (source: 'account' | 'phone'): Promise<void> => {
     setState({ status: 'working' });
@@ -58,9 +59,13 @@ export function ExportAllCard(): React.JSX.Element {
           <p id={whyId} className="bn-log__status">{online ? t.what : t.needsConnection}</p>
         </>
       )}
-      <Button variant={token ? 'quiet' : 'secondary'} icon="export" aria-disabled={working} aria-busy={working} aria-describedby={phoneId}
-        onClick={() => { if (!working) void run('phone'); }}>{t.phoneAction}</Button>
-      <p id={phoneId} className="bn-log__status">{t.phoneWhat}</p>
+      {hasLocalRecords && (
+        <>
+          <Button variant={token ? 'quiet' : 'secondary'} icon="export" aria-disabled={working} aria-busy={working} aria-describedby={phoneId}
+            onClick={() => { if (!working) void run('phone'); }}>{t.phoneAction}</Button>
+          <p id={phoneId} className="bn-log__status">{t.phoneWhat}</p>
+        </>
+      )}
       {state.status === 'failed' && <Notice tone="error">{t.error}</Notice>}
       {state.status === 'done' && (state.truncated
         ? <Notice tone="caution" icon="pending" live>{t.truncated}</Notice>

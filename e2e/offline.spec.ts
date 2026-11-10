@@ -192,6 +192,27 @@ test('deleting an account forgets its records on the phone and keeps those of an
   expect(left.settings.shareMap).toBeUndefined();
 });
 
+test('the last discarded song remains reviewable and exportable on this phone', async ({ page }) => {
+  await ready(page, routeHash({ name: 'log' }), true);
+  const id = await page.evaluate(async () => {
+    await window.offlineChecks.bind();
+    await window.offlineChecks.seed(1, 0.6, false);
+    const [record] = await window.offlineChecks.listDetections();
+    if (!record) throw new Error('The test detection was not stored.');
+    return record.id;
+  });
+  await page.goto(`/${routeHash({ name: 'detection', id })}`);
+  const discard = page.getByRole('button', { name: texts.log.detail.review.discard });
+  await discard.click();
+  await expect(discard).toHaveAttribute('aria-pressed', 'true');
+  await page.goto(`/${routeHash({ name: 'log' })}`);
+  await expect(page.locator(`a[href="${routeHash({ name: 'detection', id })}"]`)).toContainText(texts.common.status.discarded);
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: texts.log.exportAll.phoneAction }).click();
+  const csv = await (await download).path();
+  expect(fs.readFileSync(csv, 'utf8')).toContain(id);
+});
+
 test('unassociated records and records without location stay local', async ({ page }) => {
   await ready(page);
   await page.evaluate(async () => {
