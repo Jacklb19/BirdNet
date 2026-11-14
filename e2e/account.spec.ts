@@ -3,6 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { API_PROXY_PREFIX, E2E_SUPABASE } from '../build.config.mjs';
 import { routeHash } from '../src/app/routes';
 import { DEFAULT_LOCALE } from '../src/i18n/locales';
+import { formatDataSize } from '../src/i18n';
 import { dictionaries } from '../src/i18n/allMessages';
 import { buildHasAccounts } from './builds';
 import { storeSession, testSession, testUser, type TestSession } from './session';
@@ -15,6 +16,19 @@ test.skip(!buildHasAccounts, 'Build with `npm run build:e2e` to run the account 
 test.use({ serviceWorkers: 'block' });
 
 for (const width of [360, 1280]) {
+  test(`recording settings disclose temporary upload reservations at ${String(width)}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await signIn(page);
+    await page.route(`**${API_PROXY_PREFIX}/v1/me/recordings`, (route) => route.fulfill({ json: {
+      recordings: 1, bytes: 1000, allocated_bytes: 100000, limit_bytes: 100000,
+    } }));
+    await page.goto(`/${routeHash({ name: 'settings' })}`);
+    await expect(page.getByText(texts.settings.recordings.accountFull, { exact: true })).toBeVisible();
+    await expect(page.getByText(texts.settings.recordings.accountReserved(formatDataSize(99000, DEFAULT_LOCALE)), { exact: true })).toBeVisible();
+    await page.screenshot({ path: `tmp/audit-ui/reservations-${String(width)}.png`, fullPage: true });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  });
+
   test(`the own map explains and retries an account read failure at ${String(width)}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await signIn(page);

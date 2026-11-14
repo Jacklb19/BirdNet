@@ -87,6 +87,26 @@ test('response loss after commit retains queue; retry against PostgreSQL produce
   expect(after.detections - before.detections).toBe(3);
 });
 
+test('a large local history remains readable and clip listings omit audio blobs', async ({ page }) => {
+  await ready(page);
+  const measurement = await page.evaluate(async () => {
+    await window.offlineChecks.seedWindow(5000);
+    const records = await window.offlineChecks.listDetections();
+    await window.offlineChecks.acknowledge(records.map((row) => row.id));
+    const started = performance.now();
+    const history = await window.offlineChecks.listHistory();
+    const historyMs = performance.now() - started;
+    await window.offlineChecks.seedRelated(records[0]?.id ?? '');
+    const clips = await window.offlineChecks.listRecordings();
+    return { rows: history.length, historyMs: Math.round(historyMs), clips: clips.length, retainsBlob: clips.some((row) => 'blob' in row) };
+  });
+  expect(measurement.rows).toBe(5000);
+  expect(measurement.clips).toBe(1);
+  expect(measurement.retainsBlob).toBe(false);
+  test.info().annotations.push({ type: 'measurement', description: JSON.stringify(measurement) });
+  fs.writeFileSync(test.info().outputPath('local-history.json'), JSON.stringify(measurement));
+});
+
 test('a walk goes to the account only with the permission, once, and is marked saved only with the answer', async ({ page }) => {
   await ready(page);
   const id = await page.evaluate(async () => { await window.offlineChecks.bind(); return window.offlineChecks.seedWalk(); });
@@ -175,6 +195,9 @@ test('deleting an account forgets its records on the phone and keeps those of an
     await window.offlineChecks.seed(1);
     await window.offlineChecks.bind(false);
     await window.offlineChecks.seed(2);
+    const owned = (await window.offlineChecks.listDetections()).find((record) => record.owner && record.owner !== owner);
+    if (!owned) throw new Error('The account has no test record.');
+    await window.offlineChecks.seedRelated(owned.id);
     await window.offlineChecks.seedWalk();
     await window.offlineChecks.updateSettings({ saveWalks: true, shareMap: true });
     return kept;
