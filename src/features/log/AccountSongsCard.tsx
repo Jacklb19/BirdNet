@@ -1,5 +1,6 @@
 import { useId, useMemo, useState } from 'react';
 import { routeHash } from '../../app/routes';
+import { AccountDataNotice } from '../../shared/AccountDataNotice';
 import { formatCount, useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
 import { Icon } from '../../shared/ui/Icon';
@@ -30,8 +31,8 @@ export function AccountSongsCard({ local, online, now }: AccountSongsCardProps):
   const songs = useAccountSongs(session?.access_token ?? null, session?.user.id ?? null, online);
   const [limit, setLimit] = useState(LOG_PAGE_SIZE);
   const titleId = useId();
-  const missing = useMemo(() => songs.filter((song) => !local.has(song.id)), [songs, local]);
-  if (missing.length === 0) return null;
+  const missing = useMemo(() => songs.data.filter((song) => !local.has(song.id)), [songs.data, local]);
+  if (missing.length === 0) return <AccountDataNotice resource={songs} />;
   return (
     <section className="bn-log-account" aria-labelledby={titleId}>
       <h2 id={titleId} className="bn-log-account__title">
@@ -39,6 +40,7 @@ export function AccountSongsCard({ local, online, now }: AccountSongsCardProps):
         <span className="bn-log-account__count">{formatCount(dict.log.today.detections, missing.length, locale)}</span>
       </h2>
       <p className="bn-log-account__text">{texts.text}</p>
+      <AccountDataNotice resource={songs} />
       <ul className="bn-log-account__list">
         {missing.slice(0, limit).map((song) => (
           <li key={song.id}>

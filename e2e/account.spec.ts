@@ -14,6 +14,48 @@ test.skip(!buildHasAccounts, 'Build with `npm run build:e2e` to run the account 
 // The Auth double answers the page's own requests; a service worker in between would hide them from the routes.
 test.use({ serviceWorkers: 'block' });
 
+for (const width of [360, 1280]) {
+  test(`the own map explains and retries an account read failure at ${String(width)}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await signIn(page);
+    let fail = true;
+    await page.route(`**${API_PROXY_PREFIX}/v1/me/detections*`, (route) => route.fulfill(fail
+      ? { status: 502, json: { detail: 'Unavailable' } } : { json: { detections: [], has_more: false } }));
+    await page.route(`**${API_PROXY_PREFIX}/v1/walks/paths*`, (route) => route.fulfill(fail
+      ? { status: 502, json: { detail: 'Unavailable' } } : { json: { walks: [], has_more: false } }));
+    await page.goto(`/${routeHash({ name: 'map' })}`);
+    await expect(page.getByText(texts.common.accountData.error, { exact: true }).last()).toBeVisible();
+    await page.screenshot({ path: `tmp/audit-ui/map-error-${String(width)}.png`, fullPage: true });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    fail = false;
+    await page.getByRole('button', { name: texts.common.actions.retry, exact: true }).click();
+    await expect(page.getByText(texts.common.accountData.error, { exact: true })).toHaveCount(0);
+  });
+
+  test(`an album account failure is visible and retryable at ${String(width)}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await signIn(page);
+    let release: () => void = () => undefined;
+    const pending = new Promise<void>((resolve) => { release = resolve; });
+    let fail = true;
+    await page.route(`**${API_PROXY_PREFIX}/v1/me/species`, async (route) => {
+      await pending;
+      await route.fulfill(fail ? { status: 502, json: { detail: 'Unavailable' } } : { json: { species: [] } });
+    });
+    await page.goto(`/${routeHash({ name: 'album' })}`);
+    await expect(page.getByText(texts.common.accountData.loading, { exact: true })).toBeVisible();
+    await expect(page.getByText(texts.species.album.empty.title, { exact: true })).toHaveCount(0);
+    release();
+    await expect(page.getByText(texts.common.accountData.error, { exact: true }).first()).toBeVisible();
+    await page.screenshot({ path: `tmp/audit-ui/album-error-${String(width)}.png`, fullPage: true });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    fail = false;
+    await page.getByRole('button', { name: texts.common.actions.retry, exact: true }).first().click();
+    await expect(page.getByText(texts.species.album.empty.title, { exact: true })).toBeVisible();
+    await expect(page.getByText(texts.common.accountData.error, { exact: true })).toHaveCount(0);
+  });
+}
+
 /**
  * Signs the page in without Supabase: the local API signs a session it accepts, the page finds it where Supabase Auth
  * keeps it, and the few Auth calls the app makes are answered here.

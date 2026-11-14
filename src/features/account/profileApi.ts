@@ -94,8 +94,8 @@ export async function fetchSummary(token: string): Promise<AccountSummary> {
   return parseSummary(await (await apiFetch(API_ROUTES.meSummary, { token, params })).json());
 }
 
-export async function fetchOwnSpecies(token: string): Promise<OwnSpecies[]> {
-  return parseOwnSpecies(await (await apiFetch(API_ROUTES.meSpecies, { token })).json());
+export async function fetchOwnSpecies(token: string, signal?: AbortSignal): Promise<OwnSpecies[]> {
+  return parseOwnSpecies(await (await apiFetch(API_ROUTES.meSpecies, { token, signal })).json());
 }
 
 /**
