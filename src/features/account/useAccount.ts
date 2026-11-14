@@ -18,6 +18,7 @@ import {
 import { accountFailure, accountsConfigured, authClient, sessionStorageKey, toSyncSession } from './supabaseClient';
 import { identityOf, readStoredIdentity, type Identity } from './storedIdentity';
 import { claimWalks } from '../walk/walkStore';
+import { stopAccountActivity } from './sessionActivity';
 
 export type AccountError = AccountFailure | null;
 
@@ -315,6 +316,7 @@ export function useAccount(): AccountState {
   const signOut = useCallback(() => run(async () => {
     const auth = await authClient();
     if (!auth) return;
+    await stopAccountActivity();
     setClaimed(false);
     setDismissed(false);
     setRecovering(false);
@@ -329,13 +331,15 @@ export function useAccount(): AccountState {
     if (!auth || !token || !userId) return null;
     setWorking(true);
     try {
+      await stopAccountActivity();
       const outcome = await deleteAccountEverywhere(token, userId);
       setClaimed(false);
       setDismissed(false);
       setRecovering(false);
       setDeleted(outcome);
       // The user no longer exists, so only this browser's session is ended; the server has nothing left to revoke.
-      await auth.signOut({ scope: 'local' }).catch(() => undefined);
+      const current = await auth.getSession();
+      if (current.data.session?.user.id === userId) await auth.signOut({ scope: 'local' }).catch(() => undefined);
       return outcome;
     } catch {
       return null;

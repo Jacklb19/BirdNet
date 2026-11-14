@@ -99,6 +99,8 @@ export interface PersistenceContext {
   recordedAt: string;
   location: ApproximateLocation | null;
   modelVersion: string;
+  /** The account that started capture; absent only on legacy callers and test fixtures. */
+  owner?: string | null;
 }
 export interface ModelDownloadState {
   status: 'missing' | 'downloading' | 'cached' | 'error';

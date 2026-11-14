@@ -1,4 +1,5 @@
 import { AccountProvider } from './features/account/AccountProvider';
+import { useAccountContext } from './features/account/accountContext';
 import { ListeningProvider } from './features/listen/ListeningProvider';
 import { WalkProvider } from './features/walk/WalkProvider';
 import { I18nProvider } from './i18n';
@@ -11,14 +12,20 @@ export function App(): React.JSX.Element {
     <ThemeProvider>
       <I18nProvider>
         <AccountProvider>
-          <ListeningProvider>
-            <WalkProvider>
-              <AppShell />
-            </WalkProvider>
-          </ListeningProvider>
+          <AccountSession />
         </AccountProvider>
       </I18nProvider>
     </ThemeProvider>
+  );
+}
+
+/** A change of identity releases the previous account's microphone, GPS watch and session state. */
+function AccountSession(): React.JSX.Element {
+  const userId = useAccountContext().identity?.userId ?? null;
+  return (
+    <ListeningProvider key={userId ?? 'signed-out'} ownerId={userId}>
+      <WalkProvider><AppShell /></WalkProvider>
+    </ListeningProvider>
   );
 }
 

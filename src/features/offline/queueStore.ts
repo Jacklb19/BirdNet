@@ -224,6 +224,8 @@ export async function persistDetections(candidates: readonly ClassifiedDetection
   if (!context.modelVersion || context.modelVersion.length > FIELD_LIMITS.modelVersion || !candidates.every(isStorable)) throw new Error('Invalid detection context.');
   const stored = await transact([STORES.settings, STORES.detections], 'readwrite', async (tx) => {
     const settings = await readSettings(tx);
+    // A worker can finish after sign-out or a different account's sign-in. Never file that window under its successor.
+    if (context.owner !== undefined && context.owner !== (settings.session?.userId ?? null)) return [];
     // Read with the active site inside the transaction, so a site chosen mid-session applies to the next window.
     const location = recordingLocation(settings, context.location);
     const siteId = recordingSite(settings, location);

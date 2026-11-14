@@ -48,6 +48,9 @@ export function createSessionOptions(): InferenceSession.SessionOptions {
 /** The model takes one window per run: back-pressure keeps a single window in flight. */
 export const INPUT_BATCH_SIZE = 1;
 
+/** A wedged worker must not indefinitely prevent signing out; normal disposal waits for its final transaction. */
+export const WORKER_STOP_TIMEOUT_MS = 10_000;
+
 /** Separator between scientific and common name in each line of the model labels file. */
 export const MODEL_LABEL_SEPARATOR = '_';
 

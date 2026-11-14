@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { registerAccountActivity } from '../account/sessionActivity';
 import { useAudioCapture } from '../audio/hooks/useAudioCapture';
 import type { ClassifiedDetection } from '../inference/detectionPolicy';
 import { mergeSession, type SessionSpecies } from './session';
@@ -7,7 +8,7 @@ import {
 } from './listeningContext';
 
 /** Owns the one listening session of the app; screens read it through useListening() / useListeningSignal(). */
-export function ListeningProvider({ children }: { readonly children: ReactNode }): React.JSX.Element {
+export function ListeningProvider({ children, ownerId }: { readonly children: ReactNode; readonly ownerId: string | null }): React.JSX.Element {
   const [species, setSpecies] = useState<readonly SessionSpecies[]>([]);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [mode, setMode] = useState<ListeningMode>('listen');
@@ -20,19 +21,22 @@ export function ListeningProvider({ children }: { readonly children: ReactNode }
   const {
     state: captureState, modelStatus, sessionError, tooSlowForTwo, regionSpecies, startListening, stopListening,
     rmsLevel, peakLevel, latestSpectrogram, sampleRate, windowCount, droppedWindows, spectrogramLatencyMs, inferenceLatencyMs, endToEndLatencyMs,
-  } = useAudioCapture({ onWindowAnalysed });
+  } = useAudioCapture({ onWindowAnalysed, ownerId });
 
   const start = useCallback(async (next: ListeningMode = 'listen'): Promise<void> => {
+    if (!ownerId) return;
     setSpecies([]);
     setMode(next);
     setStartedAt(Date.now());
     await startListening();
-  }, [startListening]);
+  }, [startListening, ownerId]);
 
   const stop = useCallback(async (): Promise<void> => {
     setStartedAt(null);
     await stopListening();
   }, [stopListening]);
+
+  useEffect(() => registerAccountActivity(stop), [stop]);
 
   // A failed session is over: the timer and the live player stop with it (the error stays visible).
   const active = startedAt !== null && sessionError === null;

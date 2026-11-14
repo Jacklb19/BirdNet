@@ -40,6 +40,7 @@ export interface UseAudioCaptureReturn {
 }
 
 export interface UseAudioCaptureOptions {
+  readonly ownerId?: string | null;
   /** Called once per analysed window, with the classified detections (possibly none) and the epoch time. */
   readonly onWindowAnalysed?: (detections: readonly ClassifiedDetection[], analysedAt: number) => void;
 }
@@ -66,6 +67,7 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
   const serviceRef = useRef<AudioCaptureService | null>(null);
   const inferenceRef = useRef<InferenceService | null>(null);
   const requestedRef = useRef(false);
+  const sessionOwnerRef = useRef<string | null | undefined>(undefined);
   const clearLocationRef = useRef<() => void>(() => undefined);
   // The latest callback is read when a window arrives, so a new function never restarts the session.
   const onWindowAnalysedRef = useRef(options.onWindowAnalysed);
@@ -96,6 +98,7 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
         // Windows are stored only when the exact model that classified them is known.
         const persistence: PersistenceContext | undefined = modelVersion ? {
           recordedAt: new Date(performance.timeOrigin + timestamp).toISOString(), location, modelVersion,
+          ...(sessionOwnerRef.current !== undefined ? { owner: sessionOwnerRef.current } : {}),
         } : undefined;
         inference.infer(buffer, windowIndex, timestamp, TOP_K, MIN_CANDIDATE_CONFIDENCE, persistence);
       },
@@ -186,6 +189,7 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
   const startListening = useCallback(async (): Promise<void> => {
     if (requestedRef.current || !inferenceRef.current) return;
     requestedRef.current = true;
+    sessionOwnerRef.current = options.ownerId;
     setSessionError(null);
     setTooSlowForTwo(false);
     paceRef.current = watchPace();
@@ -200,15 +204,16 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
     setLatestSpectrogram(null);
     setSpectrogramLatencyMs(0);
     await inferenceRef.current.loadModel();
-  }, []);
+  }, [options.ownerId]);
 
   const stopListening = useCallback(async (): Promise<void> => {
     requestedRef.current = false;
     monitorRef.current?.finish();
     monitorRef.current = null;
     clearLocationRef.current();
-    inferenceRef.current?.dispose();
+    const released = inferenceRef.current?.disposeAndWait();
     await serviceRef.current?.stop();
+    await released;
     setRmsLevel(0);
     setPeakLevel(0);
   }, []);
