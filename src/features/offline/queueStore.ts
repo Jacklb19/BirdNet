@@ -168,24 +168,34 @@ export async function keepChoicesOf(userId: string | null): Promise<void> {
 }
 /**
  * After the account was deleted (ADR-38): its records waiting to upload and those without an owner (which any account
- * signing in here would claim) go, the history of uploaded songs goes (it keeps no owner, and on this phone it is the
- * account's), and so do the session, the account's sites and the choices about what to save in it. Records another
- * account left waiting stay; device preferences (queue size, location, models) stay too.
+ * signing in here would claim) go, together with its history, session, sites and sharing choices. Returns the ids of
+ * other accounts' records, whose clips, notes and verdicts must stay too. Repeating a partial cleanup remains safe:
+ * those other records still identify everything that must be retained.
  */
-export async function forgetAccountRecords(userId: string): Promise<void> {
+export async function forgetAccountRecords(userId: string): Promise<ReadonlySet<string>> {
   if (!isUuid(userId)) throw new Error('Invalid account.');
-  await transact([STORES.settings, STORES.detections, STORES.history], 'readwrite', async (tx) => {
-    const records = await request(tx.objectStore(STORES.detections).getAll()) as StoredDetection[];
-    for (const row of records) if (!row.owner || row.owner === userId) await request(tx.objectStore(STORES.detections).delete(row.id));
-    await request(tx.objectStore(STORES.history).clear());
-    const next: OfflineSettings = { ...await readSettings(tx), session: null, sites: [], sitesOwner: null, activeSiteId: null, choicesOwner: null };
+  const retained = await transact([STORES.settings, STORES.detections, STORES.history], 'readwrite', async (tx) => {
+    const kept = new Set<string>();
+    for (const name of [STORES.detections, STORES.history]) {
+      const store = tx.objectStore(name);
+      for (const row of await request(store.getAll()) as (StoredDetection | HistoryEntry)[]) {
+        if (row.owner && row.owner !== userId) kept.add(row.id);
+        else await request(store.delete(row.id));
+      }
+    }
+    const settings = await readSettings(tx);
+    // Another tab may have signed into a different account while the deletion request was in flight.
+    if (settings.session && settings.session.userId !== userId) return kept;
+    const next: OfflineSettings = { ...settings, session: null, sites: [], sitesOwner: null, activeSiteId: null, choicesOwner: null };
     // Unanswered again: a later account on this phone is asked anew.
     delete next.shareMap;
     delete next.saveRecordings;
     delete next.saveWalks;
     await writeSettings(tx, next);
+    return kept;
   });
   announceQueueChange(['settings', 'records']);
+  return retained;
 }
 export async function listHistory(): Promise<HistoryEntry[]> {
   const rows = await transact([STORES.history], 'readonly', async (tx) => request(tx.objectStore(STORES.history).getAll()) as Promise<HistoryEntry[]>);

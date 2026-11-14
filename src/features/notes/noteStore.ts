@@ -64,8 +64,12 @@ export async function markNote(sent: Pick<StoredNote, 'id' | 'writtenAt'>, sync:
   announceQueueChange(['notes']);
 }
 
-/** After the account was deleted (ADR-38): notes keep no owner, and on this phone they are the account's. */
-export async function deleteAllNotes(): Promise<void> {
-  await transact('readwrite', (store) => request(store.clear()));
+/** Account cleanup retains notes whose detections belong to another account. */
+export async function deleteNotesExcept(retained: ReadonlySet<string>): Promise<void> {
+  await transact('readwrite', async (store) => {
+    for (const id of await request(store.getAllKeys())) {
+      if (typeof id !== 'string' || !retained.has(id)) await request(store.delete(id));
+    }
+  });
   announceQueueChange(['notes']);
 }

@@ -85,3 +85,13 @@ export async function deleteAllRecordings(): Promise<void> {
   await transact('readwrite', (store) => request(store.clear()));
   announceQueueChange(['recordings']);
 }
+
+/** Account cleanup retains the clips of every other account on this phone, including unsent ones. */
+export async function deleteRecordingsExcept(retained: ReadonlySet<string>): Promise<void> {
+  await transact('readwrite', async (store) => {
+    for (const id of await request(store.getAllKeys())) {
+      if (typeof id !== 'string' || !retained.has(id)) await request(store.delete(id));
+    }
+  });
+  announceQueueChange(['recordings']);
+}

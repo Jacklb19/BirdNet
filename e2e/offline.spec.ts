@@ -169,6 +169,8 @@ test('deleting an account forgets its records on the phone and keeps those of an
   const other = '00000000-0000-4000-8000-0000000000ff';
   const foreign = await page.evaluate(async (owner) => {
     const kept = await window.offlineChecks.seedForeign(owner);
+    await window.offlineChecks.seedRelated(kept);
+    await window.offlineChecks.acknowledge([kept]);
     // Records of the account, records that had none, and the account's walk: all of them go.
     await window.offlineChecks.seed(1);
     await window.offlineChecks.bind(false);
@@ -182,10 +184,18 @@ test('deleting an account forgets its records on the phone and keeps those of an
   await page.evaluate((userId) => window.offlineChecks.forgetAccountOnPhone(userId), owner ?? '');
   const left = await page.evaluate(async () => ({
     records: (await window.offlineChecks.listDetections()).map((row) => ({ id: row.id, owner: row.owner })),
+    history: (await window.offlineChecks.listHistory()).map((row) => ({ id: row.id, owner: row.owner })),
+    notes: (await window.offlineChecks.listNotes()).map((row) => row.id),
+    reviews: (await window.offlineChecks.listReviews()).map((row) => row.id),
+    recordings: (await window.offlineChecks.listRecordings()).map((row) => row.id),
     walks: (await window.offlineChecks.listWalks()).length,
     settings: await window.offlineChecks.getSettings(),
   }));
-  expect(left.records).toEqual([{ id: foreign, owner: other }]);
+  expect(left.records).toEqual([]);
+  expect(left.history).toEqual([{ id: foreign, owner: other }]);
+  expect(left.notes).toEqual([foreign]);
+  expect(left.reviews).toEqual([foreign]);
+  expect(left.recordings).toEqual([foreign]);
   expect(left.walks).toBe(0);
   expect(left.settings.session).toBeNull();
   expect(left.settings.saveWalks).toBeUndefined();

@@ -23,7 +23,7 @@ const second = '00000000-0000-4000-8000-000000000003';
 const clip = (id: string, changes: Partial<StoredRecording> = {}): StoredRecording => ({
   id, species: 'Turdus fuscater', recordedAt: '2026-10-11T12:00:00.000Z', blob: new Blob([new Uint8Array(12_000)]), bytes: 12_000, upload: 'pending', ...changes,
 });
-const synced = (id: string): HistoryEntry => ({ id, species: 'Turdus fuscater', confidence: 0.9, status: 'confirmed', recorded_at: '2026-10-11T12:00:00.000Z', siteId: null, syncedAt: '2026-10-11T12:01:00.000Z' });
+const synced = (id: string): HistoryEntry => ({ id, owner: userId, species: 'Turdus fuscater', confidence: 0.9, status: 'confirmed', recorded_at: '2026-10-11T12:00:00.000Z', siteId: null, syncedAt: '2026-10-11T12:01:00.000Z' });
 const signedFor = (id: string, origin = storageOrigin): Response => Response.json({ upload_url: `${origin}/storage/v1/object/upload/sign/recordings/${userId}/${id}.webm?token=up`, recording_path: `${userId}/${id}.webm` });
 const usage = (): Response => Response.json({ recordings: 1, bytes: 12_000, limit_bytes: 52_428_800 });
 
@@ -41,6 +41,13 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); });
 
 describe('uploadRecordings', () => {
+  it('does not send or reject another account\'s pending clip', async () => {
+    vi.mocked(listHistory).mockResolvedValue([{ ...synced(first), owner: second }]);
+    await uploadRecordings(userId);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(markRecording).not.toHaveBeenCalled();
+  });
+
   it('uploads a clip straight to Storage and marks it only once the server has linked it', async () => {
     vi.mocked(fetch).mockResolvedValueOnce(signedFor(first)).mockResolvedValueOnce(new Response(null, { status: 200 })).mockResolvedValueOnce(usage());
     await uploadRecordings(userId);

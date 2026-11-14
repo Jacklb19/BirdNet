@@ -1,9 +1,9 @@
 import { API_ROUTES, apiFetch } from '../../config/api';
 import { JSON_HEADERS } from '../offline/offline.constants';
 import { forgetAccountRecords } from '../offline/queueStore';
-import { deleteAllNotes } from '../notes/noteStore';
-import { deleteAllRecordings } from '../recordings/recordingStore';
-import { deleteAllReviews } from '../review/reviewStore';
+import { deleteNotesExcept } from '../notes/noteStore';
+import { deleteRecordingsExcept } from '../recordings/recordingStore';
+import { deleteReviewsExcept } from '../review/reviewStore';
 import { deleteWalksOf } from '../walk/walkStore';
 
 /** The fixed word the API asks for, so a request sent by mistake deletes nothing (`AccountDeletion` in the API). */
@@ -30,9 +30,9 @@ export async function deleteAccount(token: string, userId: string): Promise<Dele
 }
 
 export async function forgetAccountOnPhone(userId: string): Promise<void> {
-  await forgetAccountRecords(userId);
+  const retained = await forgetAccountRecords(userId);
   await deleteWalksOf(userId);
-  await deleteAllRecordings();
-  await deleteAllReviews();
-  await deleteAllNotes();
+  await deleteRecordingsExcept(retained);
+  await deleteReviewsExcept(retained);
+  await deleteNotesExcept(retained);
 }

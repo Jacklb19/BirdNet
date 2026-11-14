@@ -74,7 +74,7 @@ export function isSettled(clip: Pick<StoredRecording, 'recordedAt'>, now: number
  */
 export async function uploadRecordings(userId: string): Promise<void> {
   if (!uploadSession(await getSettings(), userId)) return;
-  const acknowledged = new Set((await listHistory()).map((entry) => entry.id));
+  const acknowledged = new Set((await listHistory()).filter((entry) => entry.owner === userId).map((entry) => entry.id));
   const now = Date.now();
   const clips = (await listRecordings()).filter((clip) => clip.upload === 'pending' && acknowledged.has(clip.id) && isSettled(clip, now));
   for (const clip of clips) {
