@@ -2,6 +2,10 @@
 
 Este documento registra los Registros de Decisión de Arquitectura (ADR) adicionales y decisiones transversales que complementan a `docs/definicion-proyecto.md`.
 
+## Informes del sitio: decisión sobre A14 (2026-11-14, conserva ADR-37)
+
+El dueño decidió mantener la redacción libre de los informes del sitio y dejar pendiente el hallazgo A14 de la auditoría. Se conservan el redactor y las validaciones actuales. La comprobación de que los números aparecen en las estadísticas no garantiza su asociación con la métrica correcta; esa limitación sigue abierta. La propuesta de frases verificadas por la API, ordenadas y agrupadas por Gemini, queda descartada para este cierre.
+
 ---
 
 ## Convención Transversal: Idioma del Código Fuente y Mensajes de Control

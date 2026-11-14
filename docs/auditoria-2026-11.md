@@ -19,7 +19,7 @@ Dentro del cierre de S11, con autorización del dueño para aplicar la hoja de r
 | A11 | Dependencias de la web | Actualizadas las herramientas afectadas sin forzar versiones incompatibles; quedan 11 avisos de desarrollo (2 bajos, 9 moderados) |
 | A12 | Carga, error y vacío | Álbum, Mi mapa y registros de cuenta distinguen fallos, permiten reintentar e indican resultados limitados |
 | A13 | Caminatas simultáneas | Cursor inicio/UUID en lista y recorridos; regresión real en SQL |
-| A14 | Asociación semántica de cifras del informe | Pendiente de decisión: frases verificadas por la API, agrupadas por el modelo. La comprobación actual de pertenencia de números no garantiza que una cifra describa la métrica correcta |
+| A14 | Asociación semántica de cifras del informe | Pendiente por decisión del dueño (2026-11-14): mantener la redacción libre. La comprobación actual de pertenencia de números no garantiza que una cifra describa la métrica correcta |
 | A15 | Índice espacial | Migración nueva para `ubicacion::geometry`, con benchmark reproducible; falta aplicarla y medirla en producción |
 | A16 | Lecturas locales crecientes | Los listados, cuota y expulsión de clips conservan solo metadatos; la subida carga un Blob a la vez. Se mide un historial de 5.000 registros, sin cambiar el esquema de la cola ni recortar datos |
 | A17 | Regresiones en CI | Añadidas cola sin conexión, pérdida de respuesta, permisos, borrado selectivo e historial grande; pendiente observar la ejecución en GitHub tras publicar ambos repos |
