@@ -1,4 +1,5 @@
-import { ApiError, API_ROUTES, TRUNCATED_HEADER, WRITING_TIMEOUT_MS, apiFetch } from '../../config/api';
+import { ApiError, API_ROUTES, WRITING_TIMEOUT_MS, apiFetch } from '../../config/api';
+import { downloadAccountCsv } from '../../shared/accountCsv';
 import { HOURS_PER_DAY, isPeriod, REPORT_MAX_NAMES, REPORT_NAME_MAX_LENGTH, REPORT_NAME_PATTERN, type Period } from '../../config/contract';
 import { config } from '../../config/env';
 import type { Locale } from '../../i18n/locales';
@@ -91,8 +92,7 @@ export async function siteStats(token: string, id: string, period: Period): Prom
 export async function exportCsv(token: string, id: string, since: Date | null = null): Promise<CsvExport> {
   const params = new URLSearchParams({ site_id: id });
   if (since) params.set('since', since.toISOString());
-  const response = await apiFetch(API_ROUTES.export, { token, params });
-  return { blob: await response.blob(), truncated: response.headers.get(TRUNCATED_HEADER) === 'true' };
+  return downloadAccountCsv(token, params);
 }
 
 /**

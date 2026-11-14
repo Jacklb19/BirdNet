@@ -1,7 +1,8 @@
 /**
  * Walks saved in the account (ADR-35). Every answer is checked before use: the server is a boundary like any other.
  */
-import { API_ROUTES, apiFetch, TRUNCATED_HEADER } from '../../config/api';
+import { API_ROUTES, apiFetch } from '../../config/api';
+import { downloadAccountCsv } from '../../shared/accountCsv';
 import { isUuid } from '../../config/contract';
 import { JSON_HEADERS } from '../offline/offline.constants';
 import type { TrackPoint } from '../offline/types';
@@ -165,6 +166,5 @@ export interface CsvFile {
 /** The account's CSV of one walk, or of the whole record when `walkId` is null. */
 export async function exportAccountCsv(token: string, walkId: string | null): Promise<CsvFile> {
   const params = walkId ? new URLSearchParams({ walk_id: walkId }) : undefined;
-  const response = await apiFetch(API_ROUTES.export, { token, params });
-  return { blob: await response.blob(), truncated: response.headers.get(TRUNCATED_HEADER) === 'true' };
+  return downloadAccountCsv(token, params);
 }
