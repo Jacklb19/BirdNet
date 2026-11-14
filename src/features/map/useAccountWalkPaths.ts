@@ -19,12 +19,14 @@ export function useAccountWalkPaths(token: string | null, userId: string | null,
     void (async () => {
       const walks: AccountWalkPath[] = [];
       let before: number | null = null;
+      let afterId: string | undefined;
       for (;;) {
-        const page = await fetchWalkPaths(token, before, controller.signal);
+        const page = await fetchWalkPaths(token, before, controller.signal, afterId);
         walks.push(...page.walks);
         const last = page.walks.at(-1);
         if (!page.hasMore || !last || walks.length >= MAP_ACCOUNT_WALKS) break;
         before = last.startedAt;
+        afterId = last.id;
       }
       setLoaded({ userId, walks: walks.slice(0, MAP_ACCOUNT_WALKS) });
     })().catch(() => undefined);

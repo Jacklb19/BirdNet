@@ -100,9 +100,10 @@ export async function renameAccountWalk(token: string, id: string, name: string 
 }
 
 /** Newest first; `before` is the start of the last walk already received. */
-export async function fetchWalkPage(token: string, before: number | null, limit: number, signal?: AbortSignal): Promise<WalkPage> {
+export async function fetchWalkPage(token: string, before: number | null, limit: number, signal?: AbortSignal, afterId?: string): Promise<WalkPage> {
   const params = new URLSearchParams({ limit: String(limit) });
   if (before !== null) params.set('before', new Date(before).toISOString());
+  if (afterId) params.set('after_id', afterId);
   const body: unknown = await (await apiFetch(API_ROUTES.walks, { token, params, signal })).json();
   if (!isObject(body) || !Array.isArray(body.walks) || typeof body.has_more !== 'boolean') throw new Error('Invalid walk list.');
   return { walks: body.walks.map(parseWalk), hasMore: body.has_more };
@@ -133,9 +134,10 @@ function parsePath(value: unknown): AccountWalkPath {
 }
 
 /** Newest first, in pages: each walk carries its whole path. */
-export async function fetchWalkPaths(token: string, before: number | null, signal?: AbortSignal): Promise<WalkPathPage> {
+export async function fetchWalkPaths(token: string, before: number | null, signal?: AbortSignal, afterId?: string): Promise<WalkPathPage> {
   const params = new URLSearchParams();
   if (before !== null) params.set('before', new Date(before).toISOString());
+  if (afterId) params.set('after_id', afterId);
   const body: unknown = await (await apiFetch(API_ROUTES.walkPaths, { token, params, signal })).json();
   if (!isObject(body) || !Array.isArray(body.walks) || typeof body.has_more !== 'boolean') throw new Error('Invalid walk paths.');
   return { walks: body.walks.map(parsePath), hasMore: body.has_more };

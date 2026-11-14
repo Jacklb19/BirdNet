@@ -112,7 +112,7 @@ export function useWalkList(): WalkList {
     const before = account.walks.at(-1)?.startedAt ?? null;
     const current = account;
     setFound({ token, list: { ...current, more: 'loading' } });
-    fetchWalkPage(token, before, WALK_PAGE_SIZE)
+    fetchWalkPage(token, before, WALK_PAGE_SIZE, undefined, account.walks.at(-1)?.id)
       .then((page) => { setFound({ token, list: { status: 'ready', walks: [...current.walks, ...page.walks], hasMore: page.hasMore, more: 'idle' } }); })
       .catch(() => { setFound({ token, list: { ...current, more: 'error' } }); });
   }, [account, token]);
