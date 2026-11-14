@@ -6,6 +6,7 @@ export interface RecordingUsage {
   readonly recordings: number;
   readonly bytes: number;
   readonly limitBytes: number;
+  readonly allocatedBytes?: number;
 }
 
 const isCount = (value: unknown): value is number => typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
@@ -13,7 +14,9 @@ const isCount = (value: unknown): value is number => typeof value === 'number' &
 function parseUsage(body: unknown): RecordingUsage {
   if (!body || typeof body !== 'object' || !('recordings' in body) || !('bytes' in body) || !('limit_bytes' in body) ||
       !isCount(body.recordings) || !isCount(body.bytes) || !isCount(body.limit_bytes)) throw new Error('Invalid recording usage.');
-  return { recordings: body.recordings, bytes: body.bytes, limitBytes: body.limit_bytes };
+  const allocated = 'allocated_bytes' in body ? body.allocated_bytes : body.bytes;
+  if (!isCount(allocated) || allocated < body.bytes) throw new Error('Invalid recording allocation.');
+  return { recordings: body.recordings, bytes: body.bytes, limitBytes: body.limit_bytes, allocatedBytes: allocated };
 }
 
 export async function fetchRecordingUsage(token: string, signal?: AbortSignal): Promise<RecordingUsage> {

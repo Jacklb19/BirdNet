@@ -8,7 +8,7 @@ import { Toggle } from '../../shared/ui/Toggle';
 import { useAccountContext } from '../account/accountContext';
 import type { OfflineSettingsState } from '../offline/useOfflineSettings';
 import { useOnline } from '../offline/useQueueStatus';
-import { ACCOUNT_RECORDINGS_DEFAULT_LIMIT_BYTES } from '../recordings/recordings.config';
+import { ACCOUNT_RECORDINGS_DEFAULT_LIMIT_BYTES, RECORDING_MAX_UPLOAD_BYTES } from '../recordings/recordings.config';
 import { deleteAllRecordings } from '../recordings/recordingStore';
 import { deleteAccountRecordings } from '../recordings/recordingsApi';
 import { savesRecordings } from '../recordings/recordingSync';
@@ -48,7 +48,8 @@ export function RecordingSettings({ offline }: { readonly offline: OfflineSettin
   if (account.status === 'ready') accountText = texts.accountUsage(count(account.usage.recordings), formatDataSize(account.usage.bytes, locale), formatDataSize(account.usage.limitBytes, locale));
   else if (account.status === 'loading') accountText = texts.accountLoading;
   else if (account.status === 'unavailable') accountText = texts.accountUnavailable;
-  const full = account.status === 'ready' && account.usage.bytes >= account.usage.limitBytes;
+  const reserved = account.status === 'ready' ? Math.max(0, (account.usage.allocatedBytes ?? account.usage.bytes) - account.usage.bytes) : 0;
+  const full = account.status === 'ready' && account.usage.limitBytes - (account.usage.allocatedBytes ?? account.usage.bytes) < RECORDING_MAX_UPLOAD_BYTES;
 
   const remove = async (place: Place): Promise<void> => {
     setWorking(true);
@@ -84,6 +85,7 @@ export function RecordingSettings({ offline }: { readonly offline: OfflineSettin
           </p>
         )}
         {full && <Notice tone="caution" icon="pending">{texts.accountFull}</Notice>}
+        {reserved > 0 && <Notice>{texts.accountReserved(formatDataSize(reserved, locale))}</Notice>}
         {confirming ? (
           <div className="bn-settings-recordings__confirm" role="group" aria-label={confirming === 'local' ? texts.deleteLocal : texts.deleteAccount}>
             <p ref={askRef} tabIndex={-1} className="bn-settings-step">{confirming === 'local' ? texts.deleteLocalConfirm : texts.deleteAccountConfirm}</p>

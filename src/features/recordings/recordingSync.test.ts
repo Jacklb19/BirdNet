@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_QUEUE_BYTES } from '../offline/offline.constants';
 import { getSettings, listHistory } from '../offline/queueStore';
 import type { HistoryEntry, OfflineSettings } from '../offline/types';
-import { listRecordings, markRecording } from './recordingStore';
+import { getRecording, listRecordings, markRecording } from './recordingStore';
 import { isSettled, uploadRecordings } from './recordingSync';
 import { SONG_MAX_MS } from './recordings.config';
 import type { StoredRecording } from './types';
@@ -34,6 +34,10 @@ beforeEach(() => {
   vi.mocked(getSettings).mockImplementation(() => Promise.resolve(structuredClone(settings)));
   vi.mocked(listHistory).mockResolvedValue([synced(first), synced(second)]);
   vi.mocked(listRecordings).mockResolvedValue([clip(first)]);
+  vi.mocked(getRecording).mockImplementation(async (id) => {
+    const stored = (await listRecordings()).find((row) => row.id === id);
+    return stored ? { ...stored, blob: new Blob([new Uint8Array(stored.bytes)]) } : undefined;
+  });
   vi.mocked(markRecording).mockResolvedValue(undefined);
   vi.stubGlobal('self', { location: { origin: 'https://birdnet.example' } });
   vi.stubGlobal('fetch', vi.fn());
@@ -41,8 +45,8 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); });
 
 describe('uploadRecordings', () => {
-  it('links the existing immutable object when a previous successful upload lost its answer', async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(signedFor(first)).mockResolvedValueOnce(new Response(null, { status: 409 })).mockResolvedValueOnce(usage());
+  it.each([409, 400])('links an immutable object after a lost answer and a duplicate-object response (%s)', async (status) => {
+    vi.mocked(fetch).mockResolvedValueOnce(signedFor(first)).mockResolvedValueOnce(Response.json({ error: 'Duplicate' }, { status })).mockResolvedValueOnce(usage());
     await uploadRecordings(userId);
     expect(markRecording).toHaveBeenCalledWith(first, 'uploaded');
     expect(new Headers(vi.mocked(fetch).mock.calls[1]?.[1]?.headers).has('x-upsert')).toBe(false);
