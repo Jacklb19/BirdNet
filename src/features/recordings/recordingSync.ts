@@ -11,9 +11,8 @@ import type { StoredRecording } from './types';
 const HTTP_NOT_FOUND = 404;
 const HTTP_UNPROCESSABLE = 422;
 const HTTP_INSUFFICIENT_STORAGE = 507;
+const HTTP_CONFLICT = 409;
 const MILLISECONDS_PER_SECOND = 1000;
-/** Signed Storage uploads overwrite the same object, so a retry after a lost answer cannot fail. */
-const UPSERT_HEADERS = { 'x-upsert': 'true' } as const;
 
 /**
  * Whether the person's recordings go to their account (ADR-28). It is a choice they make explicitly: until they
@@ -47,8 +46,9 @@ async function upload(clip: StoredRecording, session: SyncSession): Promise<'upl
     });
     const uploadUrl = uploadAuthorization(await signed.json(), path);
     // The signed URL is the credential; the API token must not travel to Storage.
-    const sent = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': RECORDING_MIME_TYPE, ...UPSERT_HEADERS }, body: clip.blob, signal: AbortSignal.timeout(config.apiTimeoutMs) });
-    if (!sent.ok) throw new Error('Recording upload failed.');
+    const sent = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': RECORDING_MIME_TYPE }, body: clip.blob, signal: AbortSignal.timeout(config.apiTimeoutMs) });
+    // A lost answer can leave the immutable object in Storage. The API verifies it before accepting this retry.
+    if (!sent.ok && sent.status !== HTTP_CONFLICT) throw new Error('Recording upload failed.');
     await apiFetch(API_ROUTES.detectionRecording(clip.id), { method: 'PUT', token: session.accessToken, headers: JSON_HEADERS, body: JSON.stringify({ recording_path: path }) });
     return 'uploaded';
   } catch (error) {

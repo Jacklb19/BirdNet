@@ -41,6 +41,12 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); });
 
 describe('uploadRecordings', () => {
+  it('links the existing immutable object when a previous successful upload lost its answer', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(signedFor(first)).mockResolvedValueOnce(new Response(null, { status: 409 })).mockResolvedValueOnce(usage());
+    await uploadRecordings(userId);
+    expect(markRecording).toHaveBeenCalledWith(first, 'uploaded');
+    expect(new Headers(vi.mocked(fetch).mock.calls[1]?.[1]?.headers).has('x-upsert')).toBe(false);
+  });
   it('does not send or reject another account\'s pending clip', async () => {
     vi.mocked(listHistory).mockResolvedValue([{ ...synced(first), owner: second }]);
     await uploadRecordings(userId);
