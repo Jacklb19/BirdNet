@@ -709,3 +709,28 @@ La app usa la API pública de GBIF sin clave (coincidencia de nombres, categorí
 - Según el acuerdo de uso de datos de GBIF citado por fuentes secundarias (última versión de agosto de 2017): hay que respetar la licencia de cada conjunto y reconocer a quien lo publica, y GBIF no persigue legalmente el uso de datos CC BY-NC.
 
 **Pendiente del dueño:** abrir https://www.gbif.org/terms/data-user en un navegador y confirmar que no pide nada más para mostrar sus datos en una app.
+
+---
+
+## ADR-46. Diario de campo y asistentes acotados (beta, 2026-11-15; amplía ADR-37)
+
+El dueño aprobó tres bloques: diario/importación/observaciones visuales; organización y línea temporal; consulta de bitácora y tutor. Las demás ideas propuestas quedan fuera. Complementan RF-03/05/06/08/10/11/14 y RNF-06/08; no cambian el clasificador, la revisión humana ni los informes actuales.
+
+- **Diario:** cada escucha estacionaria o caminata crea una salida con UUID local; las detecciones se vinculan por ese identificador, sin deducir pertenencia por coincidencia de horas. El recorrido se vincula solo cuando la caminata se ha subido con su permiso independiente. Borrar la salida conserva cantos, grabaciones y observaciones.
+- **Línea temporal:** mezcla explícita de detecciones acústicas con confianza/estado y observaciones manuales sin confianza. Las marcas acústicas son aproximadas. Solo se reproducen clips que existen; no se promete una grabación continua.
+- **Observaciones:** especie del catálogo, momento original, ubicación opcional redondeada, individuos y nota. Son privadas y se mantienen fuera de las estadísticas acústicas. Foto opcional local: JPEG recodificado sin metadatos originales, sin subida ni bucket nuevo.
+- **Importar audio:** mediabunny ya instalado, formatos locales explícitos, decodificación incremental, mezcla de canales y ventanas solapadas con el mismo remuestreo/normalización y Worker ONNX. Una ventana en vuelo; progreso, cancelación y liberación de recursos. Analizar sin guardar conserva resultados temporales; guardar exige la fecha original indicada por la persona. No se usa la fecha del archivo ni la ubicación actual. Sin fecha/lugar se omite el filtro geográfico. El original no se sube; clips y cantos guardados respetan los permisos existentes.
+- **Organización:** colecciones privadas de registros propios y lista privada de especies de interés. Aviso visual discreto de posible coincidencia durante la escucha, como máximo una vez por especie y sesión; no confirma identidad ni usa notificaciones externas.
+- **Sincronización:** IndexedDB independiente de la cola existente. Los metadatos y las relaciones tienen una bandeja persistente por dueño; el cuerpo enviado sobrevive a cambios locales posteriores y a la pérdida de respuesta. Versiones de servidor, elección explícita ante conflicto y marcas de borrado impiden sobrescritura silenciosa o resurrección de un UUID. El ledger se recorre desde el principio al reconciliar; su cursor no es una marca global de commits. Se puede aceptar un borrado remoto o copiar explícitamente sus metadatos a otro UUID, sin copiar vínculos.
+- **Consultas:** seis intenciones cerradas (detecciones, especies acústicas, salidas, observaciones, colecciones, interés), filtros validados y cifras deterministas. El modo guiado no llama a Gemini. Con texto libre, Gemini propone filtros; la persona revisa/edita/confirma y solo después la API consulta. Paginar conserva el cursor exacto y no vuelve a llamar al modelo. Los resultados privados nunca regresan a Gemini.
+- **Tutor:** cinco temas públicos: confianza, estados, privacidad del audio, ubicación aproximada y hechos de una especie del catálogo. No identifica aves ni evalúa audio. Muestra fuentes públicas, modelo, fecha y consumo real; valores desconocidos se muestran como desconocidos.
+
+### Texto libre: decisión explícita del dueño
+
+Respuesta del dueño: «Texto libre con aviso y consentimiento explícito». Amplía la restricción anterior de ADR-37 exclusivamente para el texto que la persona escriba. Consentimiento `assistant-text-v1`, inicialmente apagado, por cuenta y dispositivo, revocable. El aviso informa que el plan gratuito de Google puede usar entradas/respuestas para mejorar productos y someterlas a revisión humana; pide no incluir información personal, sensible ni confidencial y enlaza [las condiciones oficiales](https://aistudio.google.com/docs/terms). La API exige la declaración versionada, que por sí sola no prueba que se marcara una casilla.
+
+No se adjuntan automáticamente audio, fotos, espectrogramas, notas, registros, resultados, ubicación, identificadores ni conversaciones. El texto explícito sí se envía. Preguntas y respuestas permanecen solo en memoria de la pantalla, sin historial persistente. Retirar el consentimiento cancela el cliente y borra el texto local; no retira lo ya enviado al proveedor. Al salir o borrar la cuenta se detiene el trabajo y se ignoran respuestas tardías; el borrado local conserva los datos de otras cuentas.
+
+Las consultas guiadas no gastan cuota del modelo. Interpretación y tutor comparten los límites existentes con fichas/informes; una aclaración o rechazo válido también consume una unidad. No hay reintento automático del texto. No se añadió proveedor, SDK, dependencia, recurso de pago ni tarea programada. Se mantienen los informes de redacción libre: A14 sigue aplazado por decisión del dueño.
+
+La API necesita la migración nueva `20261114010000_private_field_journal.sql`, que aplica el dueño; v2 de texto no añade otra. Validación local y límites pendientes se registran en `docs/beta-validacion.md`.

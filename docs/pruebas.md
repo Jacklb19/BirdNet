@@ -2,6 +2,26 @@
 
 Lo que las pruebas automáticas no pueden comprobar: un teléfono real, un micrófono real, cuentas reales y una hora caminando. Cada prueba dice qué hacer, qué debe pasar y qué anotar. Al terminar, se copian los resultados en la última sección y se resumen en `PROGRESS.md`.
 
+## Beta: diario y asistentes
+
+Complementa las pruebas existentes; requiere aplicar la migración beta y publicar primero la API (`docs/despliegue.md`). Las verificaciones automáticas locales se describen en `beta-validacion.md`.
+
+| Prueba manual | Resultado esperado |
+|---|---|
+| Escuchar en un teléfono real, detener y volver al Diario; repetir caminando, con y sin permiso de guardar recorridos | Una salida por sesión; sus cantos quedan vinculados por UUID. El diario no sube un recorrido sin el permiso independiente |
+| Abrir una salida con cantos, descartes, observaciones y un clip | Orden temporal, confianza/estado en acústicas, observaciones marcadas manuales; solo se reproducen clips existentes |
+| Añadir observación sin señal, con nota y foto del teléfono; volver a tener red y abrir otro teléfono | Metadatos privados sincronizados; foto solo en el primero, sin metadatos originales; no aumenta el total de detecciones acústicas |
+| Editar el mismo registro en dos dispositivos; borrar uno mientras el otro tiene un cambio pendiente | Conflicto visible, notas conservadas, elección explícita; ningún borrado remoto se resucita por una respuesta tardía |
+| Crear colección, añadir/quitar registros; borrar colección y salida | Los registros originales y sus clips se conservan; solo cambian sus vínculos |
+| Añadir especie de interés y escuchar un canto de ella | Aviso visual de posible coincidencia, como máximo una vez por especie y sesión; no afirma una identificación |
+| Importar WAV/MP3/M4A/FLAC/Ogg/WebM reales, incluido uno largo, y cancelar | Compatibilidad comprobada por navegador/códec; memoria y batería aceptables, progreso y cancelación; clips y resultados parciales según permisos |
+| Importar sin fecha en «solo analizar»; guardar otro con fecha y lugar originales diferentes al lugar actual | El primero no persiste; el segundo respeta los datos explícitos redondeados. No usa fecha del archivo ni GPS actual |
+| Asistente con cuenta real sin marcar consentimiento; aceptar, interpretar, revisar y confirmar | Sin consentimiento no se envía texto; el plan no consulta hasta confirmar. Resultados y paginación no se envían a Gemini |
+| Tutor con pregunta dentro y fuera de los cinco temas; cuota agotada; sin red | Respuesta con fuentes/contexto público o rechazo claro, uso real/desconocido sin estimaciones; errores de red/cuota visibles |
+| Retirar consentimiento durante una petición; cambiar de cuenta y volver; borrar la cuenta de prueba | No reaparecen respuestas tardías; el consentimiento depende de cuenta/dispositivo; borrado local selectivo conserva la otra cuenta |
+
+Anotar teléfono, sistema, navegador, códec, duración/tamaño, modelo elegido, latencia, memoria si es medible y batería. No dar por probados Safari/iOS, móviles o Gemini real a partir de Edge y de un proveedor simulado.
+
 ## 1. Pruebas de campo (definición de terminado, RNF-01, RNF-02, RNF-04)
 
 La definición de terminado pide **al menos dos sesiones de una hora** en exteriores, sin perder ventanas y con menos del 25 % de batería por hora.

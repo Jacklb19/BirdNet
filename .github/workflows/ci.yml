@@ -66,7 +66,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Jacklb19/Bird_Back
-          ref: 3c6bb19b57f4ee43d9ae98a24521f4fd9055b31b
+          ref: a9753b436524a630acf8c0826c9bbc28f47ca6de
           path: backend
           persist-credentials: false
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
@@ -91,4 +91,5 @@ jobs:
           node scripts/prepare-offline-check.mjs
           npx --no-install playwright install --with-deps chromium
           npx --no-install playwright test e2e/account.spec.ts
+          npx --no-install playwright test e2e/beta.spec.ts --grep-invert "real browser decoder"
           npx --no-install playwright test e2e/offline.spec.ts --grep "500 detections|response loss|a walk goes|a note goes|service worker finishes|deleting an account|large local history|unassociated records"

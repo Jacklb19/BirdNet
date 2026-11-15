@@ -18,6 +18,7 @@ Documento de definición técnica del proyecto
 > | RNF-05: 25 MB en la primera carga | Una descarga obligatoria del modelo (52,4 MB) aparte de la aplicación, y un segundo modelo de 80,6 MB que llega en segundo plano | ADR-07, ADR-19, ADR-36 |
 > | RF-15: informes periódicos | Informes redactados solo cuando la persona los pide, a partir de cifras ya calculadas | ADR-37 |
 > | Uso de la aplicación: la definición no lo restringe y hasta S11 la cuenta fue opcional | Solo se usa con cuenta. Sin ella se ven la portada, la privacidad y la guía de aves. Con la sesión iniciada sigue funcionando sin conexión | ADR-45 |
+> | Ampliación beta aprobada el 14–15 de noviembre de 2026 | Diario y línea temporal, importación local, observaciones visuales, colecciones, especies de interés, consultas de bitácora y tutor; complementan RF-03/05/06/08/10/11/14 y RNF-06/08 | ADR-46; amplía ADR-37 solo para texto explícito con consentimiento |
 > | Plan de sprints (tabla 22) | Once sprints; S8 a S11 añadieron caminatas, grabaciones, revisión, segundo modelo, cuentas completas, verificación en dos pasos, notas y cantos de referencia | `PROGRESS.md` |
 >
 > Pendiente de la definición de terminado: las dos pruebas de campo de una hora (RNF-01, RNF-02, RNF-04) y las pruebas manuales con dispositivos y cuentas reales, que se guían con `docs/pruebas.md`.
