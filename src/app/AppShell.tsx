@@ -59,7 +59,7 @@ export function AppShell(): React.JSX.Element {
   // A new screen takes the focus to its heading, so the keyboard and screen readers start there instead of in the
   // bar (audit F08). Not on the first screen of a visit, nor when only the query of the same screen changes.
   // Signing in replaces the way in with the screen that was asked for, at the same address: that is a new screen too.
-  const screenKey = `${route.name}:${'id' in route ? route.id : 'species' in route ? route.species ?? '' : ''}:${signedIn ? 'in' : 'out'}`;
+  const screenKey = `${route.name}:${'id' in route ? route.id ?? '' : 'species' in route ? route.species ?? '' : ''}:${signedIn ? 'in' : 'out'}`;
   const firstScreen = useRef(true);
   useEffect(() => {
     if (firstScreen.current) { firstScreen.current = false; return; }

@@ -19,12 +19,15 @@ export interface EntityRecord<K extends EntityKind> {
   tag: 'entity'; key: string; id: string; owner: string; kind: K; data: EntityDataMap[K];
   version: number | null; revision: number; dirty: boolean; pending: PendingWrite | null;
   deleted: boolean; conflict: boolean; createdAt: string; updatedAt: string;
+  localWalkId?: string;
+  importState?: 'running' | 'cancelled' | 'completed' | 'failed';
 }
 export type JournalEntity = { [K in EntityKind]: EntityRecord<K> }[EntityKind];
 export interface JournalRelation {
   tag: 'relation'; key: string; owner: string; kind: 'outingDetection' | 'collectionItem' | 'wish';
   parent: string; recordKind: 'detection' | 'observation'; recordId: string;
   present: boolean; revision: number; dirty: boolean; pending: { id: string; revision: number; present: boolean } | null;
+  event?: TimelineEvent;
 }
 export type JournalEntry = JournalEntity | JournalRelation;
 export interface ObservationPhoto { key: string; owner: string; id: string; blob: Blob }

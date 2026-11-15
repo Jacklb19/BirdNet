@@ -1,6 +1,7 @@
 import { ApiError, apiFetch } from '../../config/api';
 import { isUuid } from '../../config/contract';
-import { getSettings, listHistory } from '../offline/queueStore';
+import { getSettings, listDetections } from '../offline/queueStore';
+import { listWalks } from '../walk/walkStore';
 import { JOURNAL_PAGE_SIZE, JOURNAL_ROUTES, JOURNAL_SYNC_LOCK } from './journal.config';
 import { entityPath, fetchEntity, fetchEntityPage, fetchEvents, putEntity } from './journalApi';
 import { changeEntry, entityKey, putRemote, readJournal, remoteRelation } from './journalStore';
@@ -22,9 +23,9 @@ async function syncEntity(owner: string, row: JournalEntity): Promise<void> {
     const response = sent.method === 'PUT' ? await putEntity(token, current.kind, current.id, sent.data, sent.expectedVersion) : null;
     if (sent.method === 'DELETE') await apiFetch(entityPath(current.kind, current.id), { token, method: 'DELETE', params: new URLSearchParams({ expected_version: String(sent.expectedVersion ?? 1) }) });
     // Missing rows are never recreated by an acknowledgement after account deletion.
-    await changeEntry(current.key, (latest) => latest?.tag === 'entity' ? acceptWrite(latest, sent, response) : latest);
+    await changeEntry(current.key, (latest) => latest?.tag === 'entity' ? sent.method === 'DELETE' && latest.revision === sent.revision ? null : acceptWrite(latest, sent, response) : latest);
   } catch (error) {
-    if (error instanceof ApiError && error.status === 409) {
+    if (error instanceof ApiError && (error.status === 409 || error.status === 404)) {
       await changeEntry(current.key, (latest) => latest?.tag === 'entity' ? { ...latest, conflict: true } : latest);
       return;
     }
@@ -38,28 +39,38 @@ function relationPath(row: JournalRelation): string {
 }
 async function syncRelations(owner: string): Promise<void> {
   const snapshot = await readJournal(owner);
-  const uploaded = new Set((await listHistory()).filter((row) => row.owner === owner).map((row) => row.id));
+  const waiting = new Set((await listDetections()).filter((row) => row.owner === owner).map((row) => row.id));
   for (const row of snapshot.relations.filter((entry) => entry.dirty)) {
     const token = await session(owner);
     if (!token) return;
     if (row.kind !== 'wish' && row.present) {
       const parent = snapshot.entities.find((entry) => entry.id === row.parent && entry.kind === (row.kind === 'outingDetection' ? 'outing' : 'collection'));
       if (!parent || parent.deleted || parent.version === null || parent.dirty) continue;
-      if (row.recordKind === 'detection' && !uploaded.has(row.recordId)) continue;
+      if (row.recordKind === 'detection' && waiting.has(row.recordId)) continue;
       if (row.recordKind === 'observation' && !snapshot.entities.some((entry) => entry.kind === 'observation' && entry.id === row.recordId && !entry.deleted && entry.version !== null && !entry.dirty)) continue;
     }
     await changeEntry(row.key, (current) => current?.tag === 'relation' && !current.pending ? { ...current, pending: { id: crypto.randomUUID(), revision: current.revision, present: current.present } } : current);
     const latest = (await readJournal(owner)).relations.find((entry) => entry.key === row.key);
     if (!latest?.pending) continue;
     const sent = latest.pending;
-    await apiFetch(relationPath(latest), { token, method: sent.present ? 'PUT' : 'DELETE' });
+    try { await apiFetch(relationPath(latest), { token, method: sent.present ? 'PUT' : 'DELETE' }); }
+    catch (error) {
+      // A known rejection did not apply the snapshot. A later explicit removal may replace it.
+      if (error instanceof ApiError && (error.status === 409 || error.status === 404)) await changeEntry(row.key, (current) => current?.tag === 'relation' && current.pending?.id === sent.id ? { ...current, pending: null } : current);
+      throw error;
+    }
     await changeEntry(row.key, (current) => current?.tag === 'relation' && current.pending?.id === sent.id ? { ...current, pending: null, dirty: current.revision !== sent.revision } : current);
   }
 }
 
 /** Run after existing detections and walks; entities and links keep their own idempotent outbox. */
 export async function synchronizeJournal(owner: string): Promise<void> {
+  if (typeof indexedDB === 'undefined') return;
   const run = async (): Promise<void> => {
+    const walks = await listWalks();
+    for (const row of (await readJournal(owner)).entities) if (row.kind === 'outing' && !row.deleted && row.localWalkId && row.data.walk_id === null && walks.some((walk) => walk.id === row.localWalkId && walk.owner === owner && walk.inAccount)) {
+      await changeEntry(row.key, (current) => current?.tag === 'entity' && current.kind === 'outing' ? { ...current, data: { ...current.data, walk_id: row.localWalkId ?? null }, dirty: true, revision: current.revision + 1 } : current);
+    }
     for (const kind of ['outing', 'observation', 'collection'] as const) {
       for (const row of (await readJournal(owner)).entities.filter((entry) => entry.kind === kind && entry.dirty && !entry.conflict)) await syncEntity(owner, row);
     }
@@ -107,6 +118,7 @@ export async function refreshJournal(owner: string, signal?: AbortSignal): Promi
     }
   }
   let after: string | undefined;
+  const wished = new Set<string>();
   for (;;) {
     const params = new URLSearchParams({ limit: String(JOURNAL_PAGE_SIZE), ...(after ? { after_species: after } : {}) });
     const body: unknown = await (await apiFetch(JOURNAL_ROUTES.wishlist, { token, params, signal })).json();
@@ -115,11 +127,13 @@ export async function refreshJournal(owner: string, signal?: AbortSignal): Promi
     for (const value of body.species) {
       if (!object(value) || typeof value.species !== 'string' || !timestamp(value.created_at)) throw new Error('Invalid wished species.');
       await remoteRelation(owner, 'wish', '', value.species);
+      wished.add(value.species);
       after = value.species;
     }
     if (!body.has_more) break;
     if (!body.species.length) throw new Error('Wish cursor did not advance.');
   }
+  for (const row of (await readJournal(owner)).relations) if (row.kind === 'wish' && !row.dirty && !wished.has(row.recordId)) await changeEntry(row.key, (current) => current?.tag === 'relation' && !current.dirty ? { ...current, present: false } : current);
 }
 export async function loadRemoteEvents(owner: string, kind: 'outing' | 'collection', id: string, signal?: AbortSignal): Promise<TimelineEvent[]> {
   const token = await session(owner);
@@ -129,7 +143,12 @@ export async function loadRemoteEvents(owner: string, kind: 'outing' | 'collecti
     const page = await fetchEvents(token, kind, id, events.at(-1), signal);
     if (!await session(owner)) return [];
     events.push(...page.rows);
-    if (!page.more) return events;
+    if (!page.more) {
+      const relationKind = kind === 'outing' ? 'outingDetection' : 'collectionItem';
+      for (const event of events) if (kind === 'collection' || event.kind === 'detection') await remoteRelation(owner, relationKind, id, event.id, event.kind, event);
+      for (const row of (await readJournal(owner)).relations) if (row.kind === relationKind && row.parent === id && !row.dirty && !events.some((event) => event.id === row.recordId && event.kind === row.recordKind)) await changeEntry(row.key, (current) => current?.tag === 'relation' && !current.dirty ? { ...current, present: false } : current);
+      return events;
+    }
     if (!page.rows.length) throw new Error('Event cursor did not advance.');
   }
 }

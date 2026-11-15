@@ -2,7 +2,7 @@ import { isDetectionModel, isDetectionStyle } from '../inference/detectionChoice
 import type { ClassifiedDetection } from '../inference/detectionPolicy';
 import { CONFIDENCE_THRESHOLDS, FIELD_LIMITS, isUuid } from '../../config/contract';
 import { announceQueueChange } from './queueChanges';
-import { assertQueueCapacity, choicesFor, recordingLocation, recordingSite, unlocatedAssignment } from './queuePolicy';
+import { approximateLocation, assertQueueCapacity, choicesFor, recordingLocation, recordingSite, unlocatedAssignment } from './queuePolicy';
 import {
   DATABASE_NAME, DATABASE_VERSION, DEFAULT_QUEUE_BYTES, isEditableSettingsKey, QUEUED_STATUS_BY_LOCAL_STATUS,
   SETTINGS_RECORD_KEY, STORES, type EditableSettings, type StoreName,
@@ -220,6 +220,7 @@ function isStorable(candidate: ClassifiedDetection): boolean {
 /** Called by the inference worker before it publishes a successful classification; returns the records it stored. */
 export async function persistDetections(candidates: readonly ClassifiedDetection[], context: PersistenceContext): Promise<StoredDetection[]> {
   if (candidates.length === 0) return [];
+  if (!context.recordedAt) throw new Error('Capture date is required to save a detection.');
   const recordedAt = new Date(context.recordedAt).toISOString();
   if (!context.modelVersion || context.modelVersion.length > FIELD_LIMITS.modelVersion || !candidates.every(isStorable)) throw new Error('Invalid detection context.');
   const stored = await transact([STORES.settings, STORES.detections], 'readwrite', async (tx) => {
@@ -227,11 +228,11 @@ export async function persistDetections(candidates: readonly ClassifiedDetection
     // A worker can finish after sign-out or a different account's sign-in. Never file that window under its successor.
     if (context.owner !== undefined && context.owner !== (settings.session?.userId ?? null)) return [];
     // Read with the active site inside the transaction, so a site chosen mid-session applies to the next window.
-    const location = recordingLocation(settings, context.location);
-    const siteId = recordingSite(settings, location);
+    const location = context.historical ? context.location ? approximateLocation(context.location.latitude, context.location.longitude) : null : recordingLocation(settings, context.location);
+    const siteId = context.historical ? null : recordingSite(settings, location);
     const existing = await request(tx.objectStore(STORES.detections).getAll()) as StoredDetection[];
     const records = candidates.map((candidate): StoredDetection => {
-      const record: StoredDetection = { id: crypto.randomUUID(), species: candidate.scientificName, confidence: candidate.confidence, status: QUEUED_STATUS_BY_LOCAL_STATUS[candidate.status], recorded_at: recordedAt, location, model_version: context.modelVersion, owner: settings.session?.userId ?? null, bytes: 0, siteId };
+      const record: StoredDetection = { id: crypto.randomUUID(), species: candidate.scientificName, confidence: candidate.confidence, status: QUEUED_STATUS_BY_LOCAL_STATUS[candidate.status], recorded_at: recordedAt, location, model_version: context.modelVersion, owner: settings.session?.userId ?? null, bytes: 0, siteId, ...(context.outingId ? { outingId: context.outingId } : {}) };
       measureRecord(record);
       return record;
     });
@@ -294,7 +295,7 @@ export async function acknowledge(ids: readonly string[]): Promise<void> {
     for (const id of ids) {
       const row = await request(store.get(id)) as StoredDetection | undefined;
       if (!row) continue;
-      await request(history.put({ id: row.id, species: row.species, confidence: row.confidence, status: row.status, recorded_at: row.recorded_at, siteId: row.siteId ?? null, syncedAt, location: row.location, owner: row.owner } satisfies HistoryEntry));
+      await request(history.put({ id: row.id, species: row.species, confidence: row.confidence, status: row.status, recorded_at: row.recorded_at, siteId: row.siteId ?? null, syncedAt, location: row.location, owner: row.owner, ...(row.outingId ? { outingId: row.outingId } : {}) } satisfies HistoryEntry));
       await request(store.delete(id));
     }
   });

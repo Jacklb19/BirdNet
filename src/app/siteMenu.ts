@@ -19,6 +19,7 @@ export function appLinks(dict: Messages, current: Section | null): SiteBarLink[]
  */
 export function collectionLinks(dict: Messages, place: MenuPlace): SiteBarLink[] {
   return [
+    { key: 'journal', label: dict.app.menuLinks.journal, href: routeHash({ name: 'journal' }), icon: 'log', current: ['journal', 'outing', 'observations', 'collections', 'wishlist'].includes(place) },
     { key: 'places', label: dict.app.menuLinks.places, href: routeHash({ name: 'sites' }), icon: 'sites', current: place === 'sites' || place === 'site' },
     { key: 'walks', label: dict.app.menuLinks.walks, href: routeHash({ name: 'walks' }), icon: 'walk', current: place === 'walks' || place === 'walk' },
   ];

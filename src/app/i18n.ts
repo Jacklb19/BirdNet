@@ -12,7 +12,7 @@ export const appMessages = defineMessages({
     menu: 'Abrir el menú',
     closeMenu: 'Cerrar el menú',
     menuGroups: { app: 'La app', site: 'Trino', account: 'Tu cuenta' },
-    menuLinks: { profile: 'Mi cuenta', settings: 'Ajustes', places: 'Lugares', walks: 'Mis caminatas' },
+    menuLinks: { profile: 'Mi cuenta', settings: 'Ajustes', places: 'Lugares', walks: 'Mis caminatas', journal: 'Diario de salidas' },
     signIn: 'Iniciar sesión',
     signUp: 'Crear cuenta',
     accountButton: 'Mi cuenta',
@@ -36,6 +36,7 @@ export const appMessages = defineMessages({
       listen: 'Escuchar', log: 'Bitácora', detection: 'Registro', map: 'Mapa', sites: 'Lugares', site: 'Lugar', species: 'Ficha de especie',
       account: 'Cuenta', settings: 'Ajustes', album: 'Guía', walks: 'Caminatas', walk: 'Caminata', notFound: 'Pantalla no encontrada',
       signIn: 'Iniciar sesión', signUp: 'Crear cuenta',
+      journal: 'Diario de salidas', outing: 'Salida', observations: 'Observaciones visuales', collections: 'Colecciones', wishlist: 'Especies de interés',
     },
     notFound: {
       title: 'No encontramos esta pantalla',
@@ -54,7 +55,7 @@ export const appMessages = defineMessages({
     menu: 'Open the menu',
     closeMenu: 'Close the menu',
     menuGroups: { app: 'The app', site: 'Trino', account: 'Your account' },
-    menuLinks: { profile: 'My account', settings: 'Settings', places: 'Places', walks: 'My walks' },
+    menuLinks: { profile: 'My account', settings: 'Settings', places: 'Places', walks: 'My walks', journal: 'Outing journal' },
     signIn: 'Sign in',
     signUp: 'Create account',
     accountButton: 'My account',
@@ -76,6 +77,7 @@ export const appMessages = defineMessages({
       listen: 'Listen', log: 'Log', detection: 'Record', map: 'Map', sites: 'Places', site: 'Place', species: 'Species card',
       account: 'Account', settings: 'Settings', album: 'Guide', walks: 'Walks', walk: 'Walk', notFound: 'Screen not found',
       signIn: 'Sign in', signUp: 'Create account',
+      journal: 'Outing journal', outing: 'Outing', observations: 'Visual observations', collections: 'Collections', wishlist: 'Species wishlist',
     },
     notFound: {
       title: 'We could not find this screen',

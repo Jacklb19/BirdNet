@@ -17,11 +17,21 @@ const AlbumPage = lazy(() => import('../features/species/AlbumPage'));
 const SpeciesPage = lazy(() => import('../features/species/SpeciesPage'));
 const WalksPage = lazy(() => import('../features/walk/WalksPage'));
 const WalkPage = lazy(() => import('../features/walk/WalkPage'));
+const JournalPage = lazy(() => import('../features/journal/JournalPage'));
+const OutingPage = lazy(() => import('../features/journal/OutingPage'));
+const ObservationsPage = lazy(() => import('../features/journal/ObservationsPage'));
+const CollectionsPage = lazy(() => import('../features/journal/CollectionsPage'));
+const WishlistPage = lazy(() => import('../features/journal/WishlistPage'));
 const NotFoundPage = lazy(() => import('./NotFoundPage'));
 
 /** The screen for a route; the home page and the way in are handled by the shell, which decides when they show. */
 export function RoutePage({ route }: { readonly route: Exclude<Route, { name: 'home' | 'signIn' | 'signUp' }> }): React.JSX.Element {
   switch (route.name) {
+    case 'journal': return <JournalPage />;
+    case 'outing': return <OutingPage key={route.id} id={route.id} />;
+    case 'observations': return <ObservationsPage key={route.id ?? 'list'} id={route.id} />;
+    case 'collections': return <CollectionsPage key={route.id ?? 'list'} id={route.id} />;
+    case 'wishlist': return <WishlistPage />;
     case 'listen': return <ListenPage />;
     case 'log': return <LogPage />;
     case 'detection': return <DetectionPage id={route.id} />;

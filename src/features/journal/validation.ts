@@ -31,3 +31,8 @@ export function validData(kind: EntityKind, value: unknown): value is EntityData
 
 export const cleanName = (value: string): string => value.trim().replace(/\s+/g, ' ');
 export const cleanNote = (value: string): string | null => value.trim() || null;
+
+export function localDateTime(value = new Date().toISOString()): string {
+  const date = new Date(value);
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+}

@@ -10,6 +10,8 @@ import { WALK_HEARTBEAT_MS, WALK_TRACK_MAX_POINTS, WALKS_KEPT_MAX } from './walk
 import { WalkContext, type WalkContextValue, type WalkFix } from './walkContext';
 import { appendTrackPoint } from './walkGeometry';
 import { saveWalk } from './walkStore';
+import { activeOutingId } from '../journal/outingSession';
+import { changeEntry, entityKey } from '../journal/journalStore';
 
 const MILLISECONDS_PER_SECOND = 1000;
 
@@ -38,6 +40,8 @@ export function WalkProvider({ children }: { readonly children: ReactNode }): Re
   useEffect(() => {
     if (!walking || startedAt === null) return;
     const id = crypto.randomUUID();
+    const outingId = activeOutingId(owner);
+    if (owner && outingId) void changeEntry(entityKey(owner, 'outing', outingId), (entry) => entry?.tag === 'entity' ? { ...entry, localWalkId: id } : entry).catch(() => undefined);
     const started = new Date(startedAt).toISOString();
     let track: readonly TrackPoint[] = [];
     // The account signed in when the walk starts is the one it can be saved to.

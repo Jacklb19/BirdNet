@@ -1,3 +1,4 @@
+import { activeOutingId } from '../../journal/outingSession';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { AudioCaptureService, type AudioCaptureState } from '../services/audioCaptureService';
 import type { MelSpectrogramResponse } from '../worker/mel-spectrogram.protocol';
@@ -97,7 +98,7 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}): UseAudioC
         const modelVersion = inference.getModelVersion();
         // Windows are stored only when the exact model that classified them is known.
         const persistence: PersistenceContext | undefined = modelVersion ? {
-          recordedAt: new Date(performance.timeOrigin + timestamp).toISOString(), location, modelVersion,
+          recordedAt: new Date(performance.timeOrigin + timestamp).toISOString(), location, modelVersion, outingId: activeOutingId(sessionOwnerRef.current),
           ...(sessionOwnerRef.current !== undefined ? { owner: sessionOwnerRef.current } : {}),
         } : undefined;
         inference.infer(buffer, windowIndex, timestamp, TOP_K, MIN_CANDIDATE_CONFIDENCE, persistence);

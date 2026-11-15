@@ -44,7 +44,7 @@ async function seedWalk(): Promise<string> {
   return id;
 }
 
-const context: PersistenceContext = { recordedAt: '2026-10-06T12:00:00Z', location: { latitude: 4.679, longitude: -74.123 }, modelVersion: 'birdnet-v2.4:arm' };
+const context = { recordedAt: '2026-10-06T12:00:00Z', location: { latitude: 4.679, longitude: -74.123 }, modelVersion: 'birdnet-v2.4:arm' } satisfies PersistenceContext;
 /** Size of the WAV fragment (one PCM16 window and its header) that versions before the upload was removed kept. */
 const LEGACY_FRAGMENT_BYTES = 288_044;
 

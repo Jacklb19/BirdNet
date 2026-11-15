@@ -164,6 +164,8 @@
   /* Sizes */
   --touch-min: 2.75rem;
   --control-height: 3rem;
+  --journal-note-height: 8rem;
+  --journal-photo-max-height: 24rem;
   --icon-size: 1.5rem;
   --icon-size-s: 1.125rem;
   --icon-stroke: 1.75;

@@ -47,7 +47,7 @@ export async function changeEntry(key: string, action: (current: JournalEntry | 
   });
   announceJournal();
 }
-export async function saveEntity(owner: string, kind: EntityKind, data: EntityData, id = crypto.randomUUID()): Promise<string> {
+export async function saveEntity(owner: string, kind: EntityKind, data: EntityData, id: string = crypto.randomUUID()): Promise<string> {
   if (!isUuid(owner) || !isUuid(id) || !validData(kind, data)) throw new Error('Invalid journal data.');
   const key = entityKey(owner, kind, id);
   await changeEntry(key, (current) => {
@@ -61,6 +61,10 @@ export async function saveEntity(owner: string, kind: EntityKind, data: EntityDa
 }
 export async function deleteEntity(owner: string, kind: EntityKind, id: string): Promise<void> {
   await changeEntry(entityKey(owner, kind, id), (current) => current?.tag === 'entity' ? { ...current, deleted: true, revision: current.revision + 1, dirty: true, conflict: false } : current);
+  const snapshot = await readJournal(owner);
+  for (const row of snapshot.relations) if ((row.parent === id && ((kind === 'outing' && row.kind === 'outingDetection') || (kind === 'collection' && row.kind === 'collectionItem'))) || (kind === 'observation' && row.recordKind === 'observation' && row.recordId === id)) await changeEntry(row.key, () => null);
+  if (kind === 'outing') for (const row of snapshot.entities) if (row.kind === 'observation' && row.data.outing_id === id) await changeEntry(row.key, (current) => current?.tag === 'entity' && current.kind === 'observation'
+    ? { ...current, data: { ...current.data, outing_id: null }, revision: current.revision + 1 } : current);
 }
 export async function putRemote(owner: string, kind: EntityKind, remote: ServerEntity): Promise<void> {
   await changeEntry(entityKey(owner, kind, remote.id), (current) => {
@@ -75,9 +79,9 @@ export async function setRelation(owner: string, kind: JournalRelation['kind'], 
   await changeEntry(key, (current) => ({ tag: 'relation', key, owner, kind, parent, recordId, recordKind, present,
     revision: (current?.revision ?? 0) + 1, dirty: true, pending: current?.tag === 'relation' ? current.pending : null }));
 }
-export async function remoteRelation(owner: string, kind: JournalRelation['kind'], parent: string, recordId: string, recordKind: 'detection' | 'observation' = 'detection'): Promise<void> {
+export async function remoteRelation(owner: string, kind: JournalRelation['kind'], parent: string, recordId: string, recordKind: 'detection' | 'observation' = 'detection', event?: JournalRelation['event']): Promise<void> {
   const key = relationKey(owner, kind, parent, recordId, recordKind);
-  await changeEntry(key, (current) => current ?? { tag: 'relation', key, owner, kind, parent, recordId, recordKind, present: true, revision: 0, dirty: false, pending: null });
+  await changeEntry(key, (current) => current?.dirty ? current : { tag: 'relation', key, owner, kind, parent, recordId, recordKind, present: true, revision: current?.revision ?? 0, dirty: false, pending: null, ...(event ? { event } : {}) });
 }
 export async function savePhoto(owner: string, id: string, blob: Blob): Promise<void> {
   if (!isUuid(owner) || !isUuid(id) || blob.type !== 'image/jpeg') throw new Error('Invalid observation photo.');

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { beginOuting, endOuting } from '../journal/outingSession';
 import { registerAccountActivity } from '../account/sessionActivity';
 import { useAudioCapture } from '../audio/hooks/useAudioCapture';
 import type { ClassifiedDetection } from '../inference/detectionPolicy';
@@ -12,6 +13,8 @@ export function ListeningProvider({ children, ownerId }: { readonly children: Re
   const [species, setSpecies] = useState<readonly SessionSpecies[]>([]);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [mode, setMode] = useState<ListeningMode>('listen');
+  const starting = useRef(false);
+  const [diaryError, setDiaryError] = useState(false);
 
   // Every analysed window, including silent ones, refreshes who is singing now.
   const onWindowAnalysed = useCallback((detections: readonly ClassifiedDetection[], analysedAt: number): void => {
@@ -19,22 +22,30 @@ export function ListeningProvider({ children, ownerId }: { readonly children: Re
   }, []);
 
   const {
-    state: captureState, modelStatus, sessionError, tooSlowForTwo, regionSpecies, startListening, stopListening,
+    state: captureState, modelStatus, sessionError: captureError, tooSlowForTwo, regionSpecies, startListening, stopListening,
     rmsLevel, peakLevel, latestSpectrogram, sampleRate, windowCount, droppedWindows, spectrogramLatencyMs, inferenceLatencyMs, endToEndLatencyMs,
   } = useAudioCapture({ onWindowAnalysed, ownerId });
+  const sessionError = diaryError ? 'storage' : captureError;
 
   const start = useCallback(async (next: ListeningMode = 'listen'): Promise<void> => {
-    if (!ownerId) return;
-    setSpecies([]);
-    setMode(next);
-    setStartedAt(Date.now());
-    await startListening();
-  }, [startListening, ownerId]);
+    if (!ownerId || starting.current || (startedAt !== null && sessionError === null)) return;
+    starting.current = true; setDiaryError(false);
+    try {
+      await endOuting(ownerId);
+      await beginOuting(ownerId, next === 'walk');
+      setSpecies([]); setMode(next); setStartedAt(Date.now());
+      await startListening();
+    } catch { setDiaryError(true); }
+    finally { starting.current = false; }
+  }, [startListening, ownerId, startedAt, sessionError]);
 
   const stop = useCallback(async (): Promise<void> => {
-    setStartedAt(null);
     await stopListening();
-  }, [stopListening]);
+    if (ownerId) await endOuting(ownerId);
+    setStartedAt(null);
+  }, [stopListening, ownerId]);
+
+  useEffect(() => { if (captureError && ownerId) void endOuting(ownerId).catch(() => { setDiaryError(true); }); }, [captureError, ownerId]);
 
   useEffect(() => registerAccountActivity(stop), [stop]);
 
