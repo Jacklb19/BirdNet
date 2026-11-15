@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { routeHash } from '../../app/routes';
 import { useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
@@ -17,29 +17,31 @@ export type JournalState = ReturnType<typeof useJournal>;
 export function JournalLinks(): React.JSX.Element {
   const t = journalMessages[useI18n().locale];
   return <nav className="bn-journal__links" aria-label={t.title}>{([
-    ['journal', t.title], ['observations', t.observations], ['collections', t.collections], ['wishlist', t.wishlist],
+    ['journal', t.title], ['observations', t.observations], ['collections', t.collections], ['wishlist', t.wishlist], ['importAudio', t.importAudio], ['assistant', t.assistant],
   ] as const).map(([name, label]) => <Button key={name} variant="quiet" href={routeHash({ name })}>{label}</Button>)}</nav>;
 }
 export function JournalNotices({ state }: { readonly state: JournalState }): React.JSX.Element {
   const t = journalMessages[useI18n().locale];
-  return <>{!state.ready && <p role="status">{t.loading}</p>}{state.error && <Notice tone="error" action={<Button variant="quiet" disabled={state.busy} onClick={() => { void state.refresh(); }}>{t.retry}</Button>}>{t.error}</Notice>}</>;
+  return <>{(!state.ready || state.busy) && <p role="status">{t.loading}</p>}{state.error && <Notice tone="error" action={<Button variant="quiet" disabled={state.busy} onClick={() => { void state.refresh(); }}>{t.retry}</Button>}>{t.error}</Notice>}</>;
 }
 export function EntityStatus({ row, state }: { readonly row: JournalEntity; readonly state: JournalState }): React.JSX.Element {
   const t = journalMessages[useI18n().locale];
-  return row.conflict ? <Notice tone="caution" title={t.conflict} action={<div className="bn-journal__actions">
-    <Button variant="secondary" disabled={state.busy} onClick={() => { void state.run(() => resolveJournalConflict(row.owner, row.kind, row.id, 'remote')); }}>{t.useRemote}</Button>
-    <Button variant="quiet" disabled={state.busy} onClick={() => { void state.run(() => resolveJournalConflict(row.owner, row.kind, row.id, 'local')); }}>{t.useLocal}</Button>
+  return row.conflict ? <Notice tone="caution" title={row.remoteDeleted ? t.remoteDeleted : t.conflict} action={<div className="bn-journal__actions">
+    <Button variant="secondary" disabled={state.busy} onClick={() => { void state.run(() => resolveJournalConflict(row.owner, row.kind, row.id, 'remote')); }}>{row.remoteDeleted ? t.acceptDeletion : t.useRemote}</Button>
+    <Button variant="quiet" disabled={state.busy} onClick={() => { void state.run(() => resolveJournalConflict(row.owner, row.kind, row.id, 'local')); }}>{row.remoteDeleted ? t.copyMetadata : t.useLocal}</Button>
   </div>}>{row.data.note}</Notice> : <p className="bn-journal__muted">{row.dirty ? t.local : t.saved}</p>;
 }
-export function SpeciesField({ value, onChange }: { readonly value: string; readonly onChange: (value: string) => void }): React.JSX.Element {
+export function SpeciesField({ value, onChange, required = true }: { readonly value: string; readonly onChange: (value: string) => void; readonly required?: boolean }): React.JSX.Element {
   const { locale } = useI18n();
   const t = journalMessages[locale];
   const names = useSpeciesNames();
   const id = useId();
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => { input.current?.setCustomValidity(!value || (names && Object.hasOwn(names, value) && /^[A-Z][a-z]+ [a-z]+(?:-[a-z]+)?$/.test(value)) ? '' : t.chooseSpecies); }, [value, names, t.chooseSpecies]);
   const matches = names ? searchSpecies(names, value, locale, JOURNAL_PAGE_SIZE) : [];
-  return <label>{t.species}<input value={value} onChange={(event) => { onChange(event.target.value); }} required list={id} maxLength={200} autoComplete="off" placeholder={t.chooseSpecies} />
+  return <><label htmlFor={`${id}-input`}>{t.species}<input ref={input} id={`${id}-input`} value={value} onChange={(event) => { onChange(event.target.value); }} required={required} list={id} maxLength={200} autoComplete="off" placeholder={t.chooseSpecies} /></label>
     <datalist id={id}>{matches.map((row) => <option key={row.scientificName} value={row.scientificName}>{commonName(names, row.scientificName, locale)}</option>)}</datalist>
-  </label>;
+  </>;
 }
 export function ObservationImage({ owner, id }: { readonly owner: string; readonly id: string }): React.JSX.Element {
   const t = journalMessages[useI18n().locale];

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { acceptWrite, prepareWrite } from './syncState';
+import { acceptDeletion, acceptWrite, prepareWrite } from './syncState';
 import { validData } from './validation';
 import { parseEntity, parseEvent } from './journalApi';
 import type { JournalEntity, ServerEntity } from './types';
@@ -32,6 +32,15 @@ describe('versioned journal outbox', () => {
   it('does not generate another operation over an unresolved conflict', () => {
     const conflicted = { ...original(), conflict: true };
     expect(prepareWrite(conflicted, 'ignored')).toBe(conflicted);
+  });
+  it('keeps local edits after a remote deletion and ignores the older in-flight acknowledgement', () => {
+    const sent = prepareWrite(original(), 'first');
+    const deleted = acceptDeletion(sent, 2);
+    expect(deleted).toMatchObject({ remoteDeleted: true, conflict: true, dirty: true, pending: null, version: 2 });
+    expect(acceptWrite(deleted, pending(sent), response(1))).toBe(deleted);
+    expect(prepareWrite(deleted, 'retry')).toBe(deleted);
+    expect(acceptDeletion({ ...original(), dirty: false }, 2)).toMatchObject({ deleted: true, remoteDeleted: true });
+    expect(acceptDeletion({ ...original(), deleted: true }, 2)).toMatchObject({ deleted: true, dirty: false, conflict: false, pending: null });
   });
 });
 describe('journal boundaries', () => {

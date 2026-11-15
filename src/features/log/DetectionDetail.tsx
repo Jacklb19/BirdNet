@@ -4,6 +4,7 @@ import { Button } from '../../shared/ui/Button';
 import { Icon } from '../../shared/ui/Icon';
 import { Page } from '../../shared/ui/Page';
 import { useNotes } from '../notes/useNotes';
+import { CollectionPicker } from '../journal/CollectionPicker';
 import { AccountRecordingButton } from '../recordings/AccountRecordingButton';
 import { useLocalRecording } from '../recordings/useRecordings';
 import { commonName, useSpeciesNames } from '../species/speciesNames';
@@ -57,6 +58,7 @@ export function DetectionDetail({ record, online, now, account }: DetectionDetai
         <Button variant="primary" icon="book" href={routeHash({ name: 'species', species: record.species })}>{dict.log.openSpecies}</Button>
       </SpeciesPlate>
       <DetectionStatusCard record={record} modelName={record.modelSpecies ? commonName(names, record.modelSpecies, locale) : undefined} />
+      <CollectionPicker key={record.id} id={record.id} />
       {/* Keyed by the audio, so playback state and a past failure never carry over to another one. */}
       {recording && <RecordingCard key={recording.url} detectionId={record.id} recording={recording} online={online} />}
       {account?.detection.hasRecording && !recording && (

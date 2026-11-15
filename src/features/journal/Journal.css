@@ -1,5 +1,6 @@
 .bn-journal { display: grid; gap: var(--space-5); }
 .bn-journal__links, .bn-journal__actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.bn-journal__links { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--journal-link-min-width)), 1fr)); }
 .bn-journal__form, .bn-journal__card { display: grid; gap: var(--space-3); padding: var(--space-5); border: var(--border-width) solid var(--color-border-subtle); border-radius: var(--radius-l); background: var(--color-bg-surface); min-width: 0; }
 .bn-journal__form label { display: grid; gap: var(--space-2); color: var(--color-text-primary); }
 .bn-journal__form input, .bn-journal__form textarea, .bn-journal__form select { width: 100%; box-sizing: border-box; min-height: var(--touch-min); padding: var(--space-3); border: var(--border-width) solid var(--color-border-strong); border-radius: var(--radius-s); background: var(--color-bg-surface); color: var(--color-text-primary); font: inherit; }
@@ -10,5 +11,6 @@
 .bn-journal__timeline { border-inline-start: var(--border-width) solid var(--color-border-strong); padding-inline-start: var(--space-4); }
 .bn-journal__photo { width: 100%; max-height: var(--journal-photo-max-height); object-fit: contain; border-radius: var(--radius-m); }
 .bn-journal__check { display: flex; align-items: center; gap: var(--space-3); min-height: var(--touch-min); }
+.bn-journal__form .bn-journal__check { display: flex; }
 .bn-journal__check input { width: var(--space-5); height: var(--space-5); }
 .bn-journal__card audio { width: 100%; max-width: 100%; min-width: 0; }

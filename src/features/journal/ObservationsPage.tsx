@@ -53,7 +53,7 @@ export default function ObservationsPage({ id }: { readonly id?: string }): Reac
     {(!id || selected) && <ObservationForm key={`${id ?? 'new'}:${String(selected?.version ?? 0)}`} row={selected} state={state} />}
     {selected && <EntityStatus row={selected} state={state} />}
     {id && <Button variant="secondary" href={routeHash({ name: 'observations' })}>{t.newObservation}</Button>}
-    {state.ready && !rows.length && <p>{t.empty}</p>}<ul className="bn-journal__list">{rows.slice(0, limit).map((row) => <li className="bn-journal__card" key={row.id}>
+    {state.ready && !state.busy && !rows.length && <p>{t.empty}</p>}<ul className="bn-journal__list">{rows.slice(0, limit).map((row) => <li className="bn-journal__card" key={row.id}>
       <h2><a href={routeHash({ name: 'observations', id: row.id })}>{row.data.species}</a></h2><p>{t.manual} · {new Date(row.data.observed_at).toLocaleString(locale)}</p><EntityStatus row={row} state={state} />
     </li>)}</ul>{rows.length > limit && <Button variant="secondary" onClick={() => { setLimit(limit + JOURNAL_PAGE_SIZE); }}>{t.showMore}</Button>}
   </Page>;

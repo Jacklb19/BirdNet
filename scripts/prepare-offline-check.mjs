@@ -22,6 +22,7 @@ const productionWorker = (await readdir(join(OUT_DIR, ASSETS_DIR))).find((file) 
 if (!productionWorker) throw new Error('Build the production worker before preparing offline checks.');
 await build({
   configFile: false,
+  define: { 'process.env.NODE_ENV': JSON.stringify('production') },
   // The same worker naming as the app build, so hashedAssetRegExp() finds the bundled worker below.
   worker: { rolldownOptions: { output: { ...HASHED_OUTPUT_NAMES } } },
   build: {

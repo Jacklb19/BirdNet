@@ -19,6 +19,7 @@ export interface EntityRecord<K extends EntityKind> {
   tag: 'entity'; key: string; id: string; owner: string; kind: K; data: EntityDataMap[K];
   version: number | null; revision: number; dirty: boolean; pending: PendingWrite | null;
   deleted: boolean; conflict: boolean; createdAt: string; updatedAt: string;
+  remoteDeleted?: boolean;
   localWalkId?: string;
   importState?: 'running' | 'cancelled' | 'completed' | 'failed';
 }
@@ -33,8 +34,8 @@ export type JournalEntry = JournalEntity | JournalRelation;
 export interface ObservationPhoto { key: string; owner: string; id: string; blob: Blob }
 export interface JournalSnapshot { entities: JournalEntity[]; relations: JournalRelation[] }
 export interface ServerEntity { id: string; version: number; data: EntityData; createdAt: string; updatedAt: string }
-export interface TimelineEvent {
-  kind: 'detection' | 'observation'; id: string; recorded_at: string; species: string;
-  confidence?: number; status?: 'confirmed' | 'provisional' | 'verified' | 'corrected' | 'discarded';
-  has_recording?: boolean; individuals?: number | null;
-}
+interface EventRecord { id: string; recorded_at: string; species: string }
+export type TimelineEvent = EventRecord & (
+  { kind: 'detection'; confidence: number; status: 'confirmed' | 'provisional' | 'verified' | 'corrected' | 'discarded'; has_recording: boolean }
+  | { kind: 'observation'; individuals: number | null }
+);

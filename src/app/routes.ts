@@ -6,7 +6,7 @@ export type Route =
   | { name: 'map'; species?: string } | { name: 'sites' } | { name: 'site'; id: string }
   | { name: 'species'; species: string } | { name: 'account' } | { name: 'settings' } | { name: 'home' }
   | { name: 'walks' } | { name: 'walk'; id: string } | { name: 'signIn' } | { name: 'signUp' } | { name: 'notFound' }
-  | { name: 'journal' } | { name: 'outing'; id: string } | { name: 'observations'; id?: string } | { name: 'collections'; id?: string } | { name: 'wishlist' };
+  | { name: 'journal' } | { name: 'outing'; id: string } | { name: 'observations'; id?: string } | { name: 'collections'; id?: string } | { name: 'wishlist' } | { name: 'importAudio' } | { name: 'assistant' };
 
 /**
  * Screens anyone can open without signing in (ADR-45): the home page, the way in and the guide of birds, which holds
@@ -44,6 +44,8 @@ export function parseRoute(hash: string): Route {
     case 'observations': return isUuid(id) ? { name: 'observations', id } : { name: 'observations' };
     case 'collections': return isUuid(id) ? { name: 'collections', id } : { name: 'collections' };
     case 'wishlist': return { name: 'wishlist' };
+    case 'import': return { name: 'importAudio' };
+    case 'assistant': return { name: 'assistant' };
     case GUIDE_PATH: return { name: 'album' };
     case 'log':
       if (id === LEGACY_ALBUM_SEGMENT) return { name: 'album' };
@@ -72,6 +74,7 @@ export function parseRoute(hash: string): Route {
 
 export function routeHash(route: Route): string {
   switch (route.name) {
+    case 'importAudio': return '#/import';
     case 'outing': return `#/journal/${route.id}`;
     case 'observations': case 'collections': return `#/${route.name}${route.id ? `/${route.id}` : ''}`;
     case 'detection': return `#/log/${route.id}`;
@@ -91,7 +94,7 @@ export function routeHash(route: Route): string {
 export function sectionOf(route: Route): 'listen' | 'map' | 'guide' | 'log' | 'account' | null {
   switch (route.name) {
     case 'album': case 'species': return 'guide';
-    case 'detection': case 'walks': case 'walk': case 'journal': case 'outing': case 'observations': case 'collections': case 'wishlist': return 'log';
+    case 'detection': case 'walks': case 'walk': case 'journal': case 'outing': case 'observations': case 'collections': case 'wishlist': case 'importAudio': case 'assistant': return 'log';
     case 'sites': case 'site': return 'map';
     case 'settings': case 'home': return 'account';
     // Belong to no section, so none is marked.

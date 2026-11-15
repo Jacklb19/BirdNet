@@ -1,7 +1,7 @@
 import { apiFetch } from '../../config/api';
 import { isUuid } from '../../config/contract';
 import { JOURNAL_PAGE_SIZE, JOURNAL_ROUTES } from './journal.config';
-import { count, ENTITY_FIELDS, object, timestamp, validData } from './validation';
+import { count, ENTITY_FIELDS, object, timestamp, validData, validEvent } from './validation';
 import type { EntityData, EntityKind, ServerEntity, TimelineEvent } from './types';
 
 export const entityPath = (kind: EntityKind, id: string): string => `${JOURNAL_ROUTES[kind]}/${encodeURIComponent(id)}`;
@@ -31,11 +31,8 @@ export async function putEntity(token: string, kind: EntityKind, id: string, dat
   return parsed;
 }
 export function parseEvent(value: unknown): TimelineEvent {
-  if (!object(value) || !isUuid(value.id) || !timestamp(value.recorded_at) || typeof value.species !== 'string') throw new Error('Invalid journal event.');
-  if (value.kind === 'detection' && typeof value.confidence === 'number' && Number.isFinite(value.confidence) && value.confidence >= 0 && value.confidence <= 1 &&
-      ['confirmed', 'provisional', 'verified', 'corrected', 'discarded'].includes(String(value.status)) && typeof value.has_recording === 'boolean') return value as unknown as TimelineEvent;
-  if (value.kind === 'observation' && (value.individuals === null || (count(value.individuals) && value.individuals > 0)) && !('confidence' in value) && !('status' in value)) return value as unknown as TimelineEvent;
-  throw new Error('Invalid journal event kind.');
+  if (!validEvent(value)) throw new Error('Invalid journal event.');
+  return value;
 }
 export async function fetchEvents(token: string, kind: 'outing' | 'collection', id: string, last?: TimelineEvent, signal?: AbortSignal): Promise<{ rows: TimelineEvent[]; more: boolean }> {
   const params = new URLSearchParams({ limit: String(JOURNAL_PAGE_SIZE) });

@@ -5,6 +5,8 @@ import { deleteNotesExcept } from '../notes/noteStore';
 import { deleteRecordingsExcept } from '../recordings/recordingStore';
 import { deleteReviewsExcept } from '../review/reviewStore';
 import { deleteWalksOf } from '../walk/walkStore';
+import { deleteJournalOf } from '../journal/journalStore';
+import { clearAssistantConsent } from '../assistant/consent';
 
 /** The fixed word the API asks for, so a request sent by mistake deletes nothing (`AccountDeletion` in the API). */
 const DELETE_CONFIRMATION = 'DELETE';
@@ -35,4 +37,6 @@ export async function forgetAccountOnPhone(userId: string): Promise<void> {
   await deleteRecordingsExcept(retained);
   await deleteReviewsExcept(retained);
   await deleteNotesExcept(retained);
+  await deleteJournalOf(userId);
+  clearAssistantConsent(userId);
 }

@@ -1,6 +1,6 @@
 import { isUuid } from '../../config/contract';
 import { JOURNAL_CHANGED, JOURNAL_DATABASE } from './journal.config';
-import { count, object, validData } from './validation';
+import { count, object, timestamp, validData, validEvent } from './validation';
 import type { EntityData, EntityKind, JournalEntity, JournalEntry, JournalRelation, JournalSnapshot, ObservationPhoto, ServerEntity } from './types';
 
 const ENTRIES = 'entries';
@@ -26,13 +26,28 @@ export function announceJournal(): void {
 }
 function validEntry(value: unknown): value is JournalEntry {
   if (!object(value) || typeof value.key !== 'string' || !isUuid(value.owner) || !count(value.revision) || typeof value.dirty !== 'boolean') return false;
-  if (value.tag === 'entity') return ['outing', 'observation', 'collection'].includes(String(value.kind)) && isUuid(value.id) &&
-    validData(value.kind as EntityKind, value.data) && (value.version === null || (count(value.version) && value.version > 0));
-  return value.tag === 'relation' && ['outingDetection', 'collectionItem', 'wish'].includes(String(value.kind)) && typeof value.parent === 'string' && typeof value.recordId === 'string' && typeof value.present === 'boolean';
+  if (value.tag === 'entity') {
+    if (!['outing', 'observation', 'collection'].includes(String(value.kind)) || !isUuid(value.id)) return false;
+    const kind = value.kind as EntityKind;
+    if (value.key !== entityKey(value.owner, kind, value.id) || !validData(kind, value.data) || !(value.version === null || (count(value.version) && value.version > 0)) ||
+        typeof value.deleted !== 'boolean' || typeof value.conflict !== 'boolean' || !timestamp(value.createdAt) || !timestamp(value.updatedAt) ||
+        (value.remoteDeleted !== undefined && typeof value.remoteDeleted !== 'boolean') || (value.localWalkId !== undefined && !isUuid(value.localWalkId)) ||
+        (value.importState !== undefined && (typeof value.importState !== 'string' || !['running', 'cancelled', 'completed', 'failed'].includes(value.importState)))) return false;
+    const sent = value.pending;
+    return sent === null || (object(sent) && isUuid(sent.id) && count(sent.revision) && sent.revision <= value.revision && ['PUT', 'DELETE'].includes(String(sent.method)) &&
+      (sent.expectedVersion === null || (count(sent.expectedVersion) && sent.expectedVersion > 0)) && validData(kind, sent.data));
+  }
+  if (value.tag !== 'relation' || !['outingDetection', 'collectionItem', 'wish'].includes(String(value.kind)) || typeof value.parent !== 'string' || typeof value.recordId !== 'string' || typeof value.present !== 'boolean' ||
+      !['detection', 'observation'].includes(String(value.recordKind))) return false;
+  if (value.key !== relationKey(value.owner, value.kind as JournalRelation['kind'], value.parent, value.recordId, String(value.recordKind))) return false;
+  if (value.kind === 'wish' ? value.parent !== '' || !/^[A-Z][a-z]+ [a-z]+(?:-[a-z]+)?$/.test(value.recordId) : !isUuid(value.parent) || !isUuid(value.recordId)) return false;
+  if (value.kind === 'outingDetection' && value.recordKind !== 'detection') return false;
+  if (value.event !== undefined && (!validEvent(value.event) || value.event.id !== value.recordId || value.event.kind !== value.recordKind)) return false;
+  return value.pending === null || (object(value.pending) && isUuid(value.pending.id) && count(value.pending.revision) && value.pending.revision <= value.revision && typeof value.pending.present === 'boolean');
 }
 export async function readJournal(owner: string): Promise<JournalSnapshot> {
   if (!isUuid(owner)) throw new Error('Invalid journal owner.');
-  const all: unknown[] = await transact(ENTRIES, 'readonly', (store) => request(store.getAll()));
+  const all: unknown[] = await transact(ENTRIES, 'readonly', (store) => request(store.getAll(IDBKeyRange.bound(`${owner}:`, `${owner}:\uffff`))));
   const entries = all.filter((value) => object(value) && value.owner === owner);
   if (!entries.every(validEntry)) throw new Error('Invalid stored journal.');
   return { entities: entries.filter((row): row is JournalEntity => row.tag === 'entity'), relations: entries.filter((row): row is JournalRelation => row.tag === 'relation') };
@@ -94,9 +109,10 @@ export async function getPhoto(owner: string, id: string): Promise<Blob | null> 
 }
 export async function deletePhoto(owner: string, id: string): Promise<void> { await transact(PHOTOS, 'readwrite', (store) => request(store.delete(entityKey(owner, 'observation', id)))); announceJournal(); }
 export async function deleteJournalOf(owner: string): Promise<void> {
+  if (!isUuid(owner)) throw new Error('Invalid journal owner.');
   for (const name of [ENTRIES, PHOTOS]) await transact(name, 'readwrite', async (store) => {
-    const all: unknown[] = await request(store.getAll());
-    for (const row of all) if (object(row) && row.owner === owner && typeof row.key === 'string') await request(store.delete(row.key));
+    const keys = await request(store.getAllKeys(IDBKeyRange.bound(`${owner}:`, `${owner}:\uffff`)));
+    for (const key of keys) await request(store.delete(key));
   });
   announceJournal();
 }

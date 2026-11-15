@@ -4,8 +4,8 @@ import { getSettings, listDetections } from '../offline/queueStore';
 import { listWalks } from '../walk/walkStore';
 import { JOURNAL_PAGE_SIZE, JOURNAL_ROUTES, JOURNAL_SYNC_LOCK } from './journal.config';
 import { entityPath, fetchEntity, fetchEntityPage, fetchEvents, putEntity } from './journalApi';
-import { changeEntry, entityKey, putRemote, readJournal, remoteRelation } from './journalStore';
-import { acceptWrite, prepareWrite } from './syncState';
+import { changeEntry, deletePhoto, entityKey, getPhoto, putRemote, readJournal, remoteRelation, saveEntity, savePhoto } from './journalStore';
+import { acceptDeletion, acceptWrite, prepareWrite } from './syncState';
 import { count, object, timestamp } from './validation';
 import type { EntityKind, JournalEntity, JournalRelation, TimelineEvent } from './types';
 
@@ -67,6 +67,9 @@ async function syncRelations(owner: string): Promise<void> {
 export async function synchronizeJournal(owner: string): Promise<void> {
   if (typeof indexedDB === 'undefined') return;
   const run = async (): Promise<void> => {
+    const token = await session(owner);
+    if (!token) return;
+    await reconcileDeletions(owner, token);
     const walks = await listWalks();
     for (const row of (await readJournal(owner)).entities) if (row.kind === 'outing' && !row.deleted && row.localWalkId && row.data.walk_id === null && walks.some((walk) => walk.id === row.localWalkId && walk.owner === owner && walk.inAccount)) {
       await changeEntry(row.key, (current) => current?.tag === 'entity' && current.kind === 'outing' ? { ...current, data: { ...current.data, walk_id: row.localWalkId ?? null }, dirty: true, revision: current.revision + 1 } : current);
@@ -92,7 +95,7 @@ async function reconcileDeletions(owner: string, token: string, signal?: AbortSi
     for (const value of body.deletions) {
       if (!object(value) || !isUuid(value.id) || !['outing', 'observation', 'collection'].includes(String(value.kind)) || !timestamp(value.deleted_at) || !count(value.version)) throw new Error('Invalid deletion.');
       const kind = value.kind as EntityKind;
-      await changeEntry(entityKey(owner, kind, value.id), (current) => current?.tag === 'entity' ? current.dirty ? { ...current, conflict: true } : { ...current, deleted: true, pending: null } : current);
+      await changeEntry(entityKey(owner, kind, value.id), (current) => current?.tag === 'entity' ? acceptDeletion(current, Number(value.version)) : current);
       cursor = { kind, id: value.id, deleted_at: value.deleted_at };
     }
     if (!body.has_more) return;
@@ -156,9 +159,28 @@ export async function loadRemoteEvents(owner: string, kind: 'outing' | 'collecti
 export async function resolveJournalConflict(owner: string, kind: EntityKind, id: string, choice: 'remote' | 'local'): Promise<void> {
   const token = await session(owner);
   if (!token) throw new Error('Account connection required.');
-  const remote = await fetchEntity(token, kind, id);
+  let remote;
+  try { remote = await fetchEntity(token, kind, id); }
+  catch (error) {
+    if (!(error instanceof ApiError) || error.status !== 404) throw error;
+    if (!await session(owner)) return;
+    const row = (await readJournal(owner)).entities.find((entry) => entry.kind === kind && entry.id === id);
+    if (!row) return;
+    // The first choice reveals the deletion; accepting it or copying requires a second explicit choice.
+    if (!row.remoteDeleted) { await changeEntry(row.key, (current) => current?.tag === 'entity' ? { ...current, remoteDeleted: true, conflict: true, pending: null } : current); return; }
+    if (choice === 'local') {
+      const data = row.kind === 'observation' ? { ...row.data, outing_id: null } : row.data;
+      const copyId = await saveEntity(owner, kind, data);
+      const photo = kind === 'observation' ? await getPhoto(owner, id) : null;
+      if (photo) await savePhoto(owner, copyId, photo);
+    }
+    await changeEntry(row.key, () => null);
+    for (const relation of (await readJournal(owner)).relations) if ((relation.parent === id && (kind === 'outing' ? relation.kind === 'outingDetection' : kind === 'collection' && relation.kind === 'collectionItem')) || (kind === 'observation' && relation.recordKind === 'observation' && relation.recordId === id)) await changeEntry(relation.key, () => null);
+    if (kind === 'observation') await deletePhoto(owner, id);
+    return;
+  }
   if (!await session(owner)) return;
   await changeEntry(entityKey(owner, kind, id), (row) => row?.tag === 'entity' ? choice === 'local'
-    ? { ...row, pending: null, version: remote.version, conflict: false, dirty: true }
-    : { ...row, data: remote.data, version: remote.version, pending: null, conflict: false, dirty: false, deleted: false } as JournalEntity : row);
+    ? { ...row, pending: null, version: remote.version, remoteDeleted: false, conflict: false, dirty: true }
+    : { ...row, data: remote.data, version: remote.version, pending: null, remoteDeleted: false, conflict: false, dirty: false, deleted: false } as JournalEntity : row);
 }

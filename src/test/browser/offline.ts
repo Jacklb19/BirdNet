@@ -14,6 +14,7 @@ import { listReviews, saveReview } from '../../features/review/reviewStore';
 import { listRecordings, saveRecording } from '../../features/recordings/recordingStore';
 import { forgetAccountOnPhone } from '../../features/account/accountDeletion';
 import referenceRecordings from '../../../public/test-audio/metadata.json';
+import { journalChecks } from './journal';
 
 /** Public path of the reference recordings and of their metadata.json, both written by scripts/prepare-model.py. */
 const REFERENCE_AUDIO_DIR = '/test-audio';
@@ -130,6 +131,13 @@ async function inferReference(): Promise<string[]> {
   });
 }
 const checks = {
+  ...journalChecks,
+  referenceSamples: async (): Promise<number[]> => {
+    const { url, startSample } = referenceRecording();
+    const response = await fetch(url); const audio = new AudioContext({ sampleRate: AUDIO_CONSTANTS.TARGET_SAMPLE_RATE });
+    try { const decoded = await audio.decodeAudioData(await response.arrayBuffer()); return Array.from(decoded.getChannelData(0).slice(startSample, startSample + AUDIO_CONSTANTS.WINDOW_SAMPLES)); }
+    finally { await audio.close(); }
+  },
   seed, seedWindow, queueStats, listDetections, updateSettings, getSettings, loadReference, inferReference, leaveLegacyFragment, seedWalk, listWalks,
   seedForeign, seedRelated, acknowledge, listHistory, listReviews, listRecordings, forgetAccountOnPhone, saveNote, listNotes,
   legacyFragments: (): Promise<number> => inQueue('readonly', (transaction) => transaction.objectStore(STORES.audio).count()),

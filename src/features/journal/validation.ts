@@ -1,7 +1,7 @@
 import { isUuid } from '../../config/contract';
 import { approximateLocation } from '../offline/queuePolicy';
 import { JOURNAL_NAME_LIMIT, JOURNAL_NOTE_LIMIT } from './journal.config';
-import type { EntityData, EntityKind } from './types';
+import type { EntityData, EntityKind, TimelineEvent } from './types';
 
 export const object = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 export const count = (value: unknown): value is number => typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
@@ -31,6 +31,13 @@ export function validData(kind: EntityKind, value: unknown): value is EntityData
 
 export const cleanName = (value: string): string => value.trim().replace(/\s+/g, ' ');
 export const cleanNote = (value: string): string | null => value.trim() || null;
+
+export function validEvent(value: unknown): value is TimelineEvent {
+  if (!object(value) || !isUuid(value.id) || !timestamp(value.recorded_at) || typeof value.species !== 'string' || !/^[A-Z][a-z]+ [a-z]+(?:-[a-z]+)?$/.test(value.species)) return false;
+  if (value.kind === 'detection') return typeof value.confidence === 'number' && Number.isFinite(value.confidence) && value.confidence >= 0 && value.confidence <= 1 &&
+    ['confirmed', 'provisional', 'verified', 'corrected', 'discarded'].includes(String(value.status)) && typeof value.has_recording === 'boolean';
+  return value.kind === 'observation' && (value.individuals === null || (count(value.individuals) && value.individuals > 0 && value.individuals <= 999)) && !('confidence' in value) && !('status' in value) && !('has_recording' in value);
+}
 
 export function localDateTime(value = new Date().toISOString()): string {
   const date = new Date(value);

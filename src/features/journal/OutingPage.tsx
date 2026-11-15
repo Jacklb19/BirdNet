@@ -36,6 +36,6 @@ export default function OutingPage({ id }: { readonly id: string }): React.JSX.E
       <Timeline kind="outing" id={id} state={state} />
       <Notice tone="info">{t.deleteOuting}</Notice><Button variant="quiet" onClick={() => { setConfirm(!confirm); }}>{t.remove}</Button>
       {confirm && <Button variant="secondary" disabled={state.busy} onClick={() => { void state.run(() => deleteEntity(row.owner, 'outing', id)).then((ok) => { if (ok) navigateTo({ name: 'journal' }); }); }}>{t.confirmDelete}</Button>}
-    </> : state.ready && <p>{t.empty}</p>}
+    </> : state.ready && !state.busy && <p>{t.empty}</p>}
   </Page>;
 }

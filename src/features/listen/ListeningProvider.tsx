@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { beginOuting, endOuting } from '../journal/outingSession';
+import { importIsActive } from '../imports/importActivity';
 import { registerAccountActivity } from '../account/sessionActivity';
 import { useAudioCapture } from '../audio/hooks/useAudioCapture';
 import type { ClassifiedDetection } from '../inference/detectionPolicy';
@@ -14,6 +15,8 @@ export function ListeningProvider({ children, ownerId }: { readonly children: Re
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [mode, setMode] = useState<ListeningMode>('listen');
   const starting = useRef(false);
+  const generation = useRef(0);
+  const diaryTask = useRef<Promise<void> | null>(null);
   const [diaryError, setDiaryError] = useState(false);
 
   // Every analysed window, including silent ones, refreshes who is singing now.
@@ -28,19 +31,24 @@ export function ListeningProvider({ children, ownerId }: { readonly children: Re
   const sessionError = diaryError ? 'storage' : captureError;
 
   const start = useCallback(async (next: ListeningMode = 'listen'): Promise<void> => {
-    if (!ownerId || starting.current || (startedAt !== null && sessionError === null)) return;
+    if (!ownerId || importIsActive() || starting.current || (startedAt !== null && sessionError === null)) return;
     starting.current = true; setDiaryError(false);
+    const current = ++generation.current;
     try {
-      await endOuting(ownerId);
-      await beginOuting(ownerId, next === 'walk');
+      const task = (async () => { await endOuting(ownerId); await beginOuting(ownerId, next === 'walk'); })();
+      diaryTask.current = task;
+      await task;
+      if (current !== generation.current) return;
       setSpecies([]); setMode(next); setStartedAt(Date.now());
       await startListening();
     } catch { setDiaryError(true); }
-    finally { starting.current = false; }
+    finally { starting.current = false; diaryTask.current = null; }
   }, [startListening, ownerId, startedAt, sessionError]);
 
   const stop = useCallback(async (): Promise<void> => {
+    generation.current++;
     await stopListening();
+    await diaryTask.current?.catch(() => undefined);
     if (ownerId) await endOuting(ownerId);
     setStartedAt(null);
   }, [stopListening, ownerId]);

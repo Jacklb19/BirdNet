@@ -48,7 +48,7 @@ export function useJournal() {
     window.addEventListener(JOURNAL_CHANGED, update);
     const stop = async (): Promise<void> => { alive.current = false; abort.current.abort(); await Promise.allSettled([...tasks.current]); };
     const unregister = registerAccountActivity(stop);
-    return () => { unregister(); void stop(); channel?.close(); window.removeEventListener(JOURNAL_CHANGED, update); };
+    return () => { void stop().finally(unregister); channel?.close(); window.removeEventListener(JOURNAL_CHANGED, update); };
   }, [reload]);
   useEffect(() => { if (online && owner) void refresh(); }, [online, owner, refresh]);
   return { owner, online, ...snapshot, ready, error, busy, reload, run, refresh };
