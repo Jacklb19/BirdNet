@@ -2,6 +2,18 @@
 
 Dentro del cierre de S11, con autorización del dueño para aplicar la hoja de ruta. Se conservan el stack, los modelos elegidos, los permisos de audio y las decisiones de dominio. Requisitos relacionados: RF-01/02/07/08/11/12/15/16/17, RNF-03/05/06/07/08/10/12, con las modificaciones de los ADR vigentes sobre la especificación original.
 
+> **Publicación y revisión posterior, 2026-11-16.** La tabla y pasos siguientes conservan la evidencia previa a publicar del 14 de noviembre. El dueño confirmó ambas migraciones y el 15 se publicaron API `b9f627c` y web `dc46ff8`; A15 ya no está pendiente de aplicar, aunque falta medir producción. A17 tuvo CI correcta (353 pruebas API y 30 E2E web). La revisión posterior reabrió A07 únicamente en la web: el filtro conservaba texto/contextos arbitrarios, mientras la API ya usaba una lista permitida. Los arreglos del cierre académico son locales hasta que el dueño los publique; no se atribuyen a esas revisiones de producción.
+
+## Correcciones locales de entrega, 2026-11-16
+
+- Privacidad: el filtro web de Sentry construye el evento desde campos permitidos, redacta mensajes y valores de excepción y descarta contextos, variables y metadatos desconocidos. Regresión con texto privado ficticio; no se envió telemetría real.
+- Grabaciones: el Worker termina la codificación y persistencia pendiente antes de confirmar su cierre. La limpieza de cuenta también espera los Workers cuyo cierre ya se había solicitado. Regresiones del protocolo y de una importación guardada de una ventana con decodificador/ONNX reales.
+- Colecciones: «Mostrar más» permite elegir coincidencias posteriores a las primeras 20; la prueba añade la observación 21 de una misma especie y comprueba su relación en la API real.
+- Documentación: README de ambos repositorios, prerrequisitos de Auth/PostGIS/modelos, comprobador local de hashes, fuentes y estados de publicación/CI actualizados. Se sustituyó la referencia bibliográfica incorrecta por Gibb y colaboradores (2019), DOI `10.1111/2041-210X.13101`, sobre monitoreo acústico pasivo.
+- La licencia del código propio permanece sin declarar por decisión del dueño; modelos, fotografías y sonidos conservan sus licencias individuales. Se retiraron referencias a archivos locales ausentes de los clones y se tradujeron comentarios/mensajes de herramientas al inglés, sin modificar los algoritmos.
+
+Validación local: 667 pruebas unitarias web en 94 archivos, cobertura de líneas 80,22 % y 353 pruebas API con PostGIS correctas. Lint, tipos y build normal/E2E correctos; build normal final con 137 recursos precargados y 18.910.667 bytes, modelos excluidos. Edge: 42/43 en la corrida completa final; la vista a 1280 px/es agotó la espera de carga de 5 s y pasó al repetirse individualmente sin cambiar código ni aserciones. Las regresiones de clips y colecciones pasaron en la corrida completa. No hay cambios de dependencias, arquitectura, modelos, migraciones ni configuración remota. El historial existente se conserva. A14 continúa aplazado; cuentas reales, correo, Storage, Gemini/cuotas y pruebas de campo/batería requieren comprobación manual. Estos cambios no están publicados.
+
 ## Estado de los 20 puntos
 
 | ID | Mejora | Estado y alcance |
@@ -29,7 +41,7 @@ Dentro del cierre de S11, con autorización del dueño para aplicar la hoja de r
 
 ## Evidencia y límites
 
-La suite usa cuentas ficticias, API local, PostGIS temporal, IndexedDB real, Service Worker y Edge. No se modificaron variables remotas ni datos de producción. Los comandos y resultados finales quedan también en `PROGRESS.md` local.
+La suite usa cuentas ficticias, API local, PostGIS temporal, IndexedDB real, Service Worker y Edge. No se modificaron variables remotas ni datos de producción. Los resultados siguientes corresponden a esa ejecución local.
 
 - API: `python -m ruff check .`, `python -m mypy`, 186 pruebas con PostGIS y `python -m compileall -q birdnet_api api`: correctos. La suite conserva un aviso de deprecación de TestClient sobre httpx; no impide las pruebas.
 - Web: `npm run lint`, `npm run typecheck`, `npm run test:coverage` (595 pruebas, 86 archivos), `npm run build` y `npm run build:e2e`: correctos. Cobertura: 79,97 % de líneas, 74,81 % de ramas y 71,9 % de funciones; se mantiene el umbral de 70 %.

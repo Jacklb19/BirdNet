@@ -1,6 +1,6 @@
 # Validación de la beta de campo — 15 de noviembre de 2026
 
-Alcance aprobado: diario, línea temporal, importación local, observaciones visuales, colecciones, especies de interés, consultas de bitácora y tutor. ADR-46 registra las decisiones. Cambios preparados en `dev`; ninguna migración, variable ni configuración de producción se modificó.
+Alcance aprobado: diario, línea temporal, importación local, observaciones visuales, colecciones, especies de interés, consultas de bitácora y tutor. ADR-46 registra las decisiones. La evidencia siguiente corresponde a la validación previa a publicar; el cierre de publicación figura al final.
 
 ## Entorno y alcance de la evidencia
 
@@ -20,10 +20,14 @@ La cobertura mínima del proyecto permanece en 70 % para las cuatro métricas. N
 
 Resultados locales: lint y tipos sin errores; **664 pruebas en 94 archivos correctas**. Cobertura: sentencias 76,97 %, ramas 72,01 %, funciones 72,77 %, líneas 80,24 %. Builds normal y E2E correctos; shell de la build de pruebas: 137 recursos, 18.910.328 bytes, sin modelos. **42/42 E2E en Edge correctas** (3,9 min), incluidas diez beta y las regresiones de cuentas, micrófono, cola y modo sin conexión. La repetición final quedó **10/10 beta correcta** (1,1 min) tras ajustar el estado de carga y la aceptación idempotente de un borrado confirmado desde otro dispositivo; sus 14 pruebas de dominio también pasan.
 
-Minuto simulado de escucha en el PC: 37 ventanas analizadas, una descartada por contrapresión, mediana 121 ms, p90 135 ms, máximo 214 ms; no se observaron tareas del hilo principal de más de 50 ms. No equivale a una medición en teléfono ni prueba el consumo de batería. CI omite únicamente la E2E de decodificador/ONNX real porque requiere los modelos y el audio no versionados; todas las E2E citadas aquí sí se ejecutaron localmente.
+Minuto simulado de escucha en el PC: 37 ventanas analizadas, una descartada por contrapresión, mediana 121 ms, p90 135 ms, máximo 214 ms; no se observaron tareas del hilo principal de más de 50 ms. No equivale a una medición en teléfono ni prueba el consumo de batería. Estas 42 E2E sí se ejecutaron localmente; CI selecciona cuenta, beta sin decodificador real y ocho regresiones offline, y deja fuera otras pruebas offline y ambas de rendimiento. No equiparar la selección remota con la suite local completa.
 
 ## Pendiente de verificación real
 
 Teléfonos Android/iOS, Safari y sus códecs, micrófono/GPS físicos, batería, archivos largos, almacenamiento lleno, dos cuentas Supabase reales, segundo factor, sincronización entre dispositivos reales y cuotas/peticiones efectivas a Gemini. No se probó audio de usuarios ni se subieron grabaciones a servicios reales. La retirada de consentimiento no permite recuperar texto ya enviado al proveedor. Las fotos locales no tienen copia en la cuenta.
 
-El dueño aplica la migración beta y publica primero la API; después puede fusionar la web. CI fija la revisión anterior, pero no se ha observado una ejecución remota ni se han hecho push, merge o despliegues. A14 de los informes permanece aplazado por decisión del dueño.
+## Cierre de publicación — 15 de noviembre de 2026
+
+API `b9f627c` y web `dc46ff8` publicadas. El dueño confirmó ambas migraciones de noviembre. CI final API [43800452229](https://github.com/Jacklb19/Bird_Back/actions/runs/43800452229): 353 pruebas; CI web [43800994885](https://github.com/Jacklb19/BirdNet/actions/runs/43800994885): verificación web y 30 E2E. Son los resultados registrados al publicar, separados de la evidencia local anterior. La API corrigió el empaquetado de dependencias en Vercel y el workflow web fija esa revisión desplegable.
+
+La auditoría local del 15–16 de noviembre repitió 664 unitarias, 353 API/PostGIS y 42 E2E. Su minuto simulado dio 36 ventanas analizadas, dos descartadas y una tarea de 62 ms: los checks verdes no acreditan RNF-02/03. Las correcciones posteriores se comprueban por separado; estos números se conservan como evidencia histórica. A14 sigue aplazado y las pruebas reales enumeradas arriba siguen pendientes.

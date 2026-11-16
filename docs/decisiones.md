@@ -234,7 +234,7 @@ Elegida por el dueño entre dos propuestas (`diseno-s7/` en la carpeta de trabaj
 ## ADR-22. Ubicación a ~10 m, el GPS primero, y cada persona decide si comparte (Sprint 8, modifica ADR-04 y ADR-16)
 
 ### Contexto
-El dueño quiere un mapa donde cada ave quede en el punto en que se oyó al caminar. La celda de ~100 m (ADR-04) y la regla «el sitio manda sobre el GPS» (ADR-16) lo impedían. La decisión es suya (2026-10-10) y cambió también la regla de dominio de `AGENTS.md`.
+El dueño quiere un mapa donde cada ave quede en el punto en que se oyó al caminar. La celda de ~100 m (ADR-04) y la regla «el sitio manda sobre el GPS» (ADR-16) lo impedían. La decisión es suya (2026-10-10) y actualiza la regla de dominio de ubicación en este ADR.
 
 ### Decisión
 - La rejilla pasa de 3 a 4 decimales (celda de ~10 m), en el teléfono y en la API. Sigue sin guardarse ni enviarse la coordenada cruda del dispositivo.
@@ -318,7 +318,7 @@ El titular de la portada sigue siendo una sola frase llana y la barra es plana (
 ## ADR-28. Grabaciones guardadas: un clip por canto en el teléfono y, con permiso, en la cuenta (Sprint 9, modifica RNF-08)
 
 ### Contexto
-Hasta S8 solo las detecciones dudosas conservaban su audio, y solo hasta subirse. Sin poder oír lo que se registró no hay forma de comprobar una detección (RF-11) ni de que un biólogo confíe en el registro. El dueño autorizó el 2026-10-11 cambiar la regla de dominio del audio (`AGENTS.md`): puede salir del teléfono la grabación que la persona elija guardar en su cuenta, privada y con permiso explícito.
+Hasta S8 solo las detecciones dudosas conservaban su audio, y solo hasta subirse. Sin poder oír lo que se registró no hay forma de comprobar una detección (RF-11) ni de que un biólogo confíe en el registro. El dueño autorizó el 2026-10-11 cambiar la regla de dominio del audio: puede salir del teléfono la grabación que la persona elija guardar en su cuenta, privada y con permiso explícito.
 
 ### Decisión
 - **Un clip por canto, no por ventana.** Las ventanas se solapan y un ave se repite, así que un canto produce muchas detecciones de la misma especie. Un canto es una racha de detecciones de una especie (termina tras 15 s sin oírla, o al minuto si no calla) y conserva un solo clip: el de la ventana con más confianza (`recordingPolicy.ts`).
@@ -400,7 +400,7 @@ RF-09 pedía verificar en la nube las detecciones de confianza intermedia con un
 
 ### Decisión (del dueño, 2026-10-12)
 - **No se construye RF-09.** Una detección «por verificar» la revisa la persona oyendo su grabación: confirmar, corregir o descartar (RF-11, ADR-29).
-- **Ningún fragmento sale del teléfono para verificarse.** Se quitan el interruptor, el fragmento WAV que se guardaba por cada canto dudoso, su subida y las rutas de la API que la recibían. El único audio que puede salir son las grabaciones que la persona elige guardar en su cuenta (ADR-28). `AGENTS.md` y la política de privacidad lo dicen así.
+- **Ningún fragmento sale del teléfono para verificarse.** Se quitan el interruptor, el fragmento WAV que se guardaba por cada canto dudoso, su subida y las rutas de la API que la recibían. El único audio que puede salir son las grabaciones que la persona elige guardar en su cuenta (ADR-28). La política de privacidad lo explica así.
 
 ### Consecuencias
 - La base local no cambia de versión (subirla rompe al Service Worker de la versión anterior durante una actualización): el almacén de fragmentos queda en el esquema sin usarse, y la app borra lo que hubiera en él la primera vez que abre la cola. Los registros que esperaban su fragmento se sincronizan como cualquier otro.
@@ -672,7 +672,7 @@ Una auditoría de la versión desplegada encontró lo siguiente:
 ## ADR-45. Trino solo se usa con cuenta (2026-11-04, decisión del dueño; modifica ADR-27 y ADR-22, completa ADR-21)
 
 ### Contexto
-Hasta aquí la cuenta era opcional (ADR-27): sin ella la app funcionaba entera y guardaba todo en el teléfono, y la portada lo prometía. El 2026-11-04 el dueño decidió que Trino solo se use con cuenta, con la puerta bien delimitada y el aspecto de una página profesional. Las reglas de dominio de `AGENTS.md` siguen: el audio y el modelo en el teléfono, la cola local con sincronización idempotente y el funcionamiento sin conexión.
+Hasta aquí la cuenta era opcional (ADR-27): sin ella la app funcionaba entera y guardaba todo en el teléfono, y la portada lo prometía. El 2026-11-04 el dueño decidió que Trino solo se use con cuenta, con la puerta bien delimitada y el aspecto de una página profesional. Se conservan el audio y el modelo en el teléfono, la cola local con sincronización idempotente y el funcionamiento sin conexión.
 
 ### Decisión (respuestas del dueño el 2026-11-04)
 - **Lo público sin sesión**: la portada, la política de privacidad (`/privacy.html`), la pantalla de entrada (`#/signin` y `#/signup`) y la guía de aves (`#/guide` y cada ficha `#/species/…`). Todo lo demás es de la cuenta: Escuchar, Mapa (también el de todos), Bitácora y cada registro, Lugares, Caminatas, Cuenta y Ajustes.

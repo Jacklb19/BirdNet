@@ -71,7 +71,7 @@ export interface AppConfig {
   /** Base of the Trino API; "/api" is proxied to the API deployment by vercel.json and by Vite in development. */
   readonly apiBaseUrl: string;
   readonly apiTimeoutMs: number;
-  /** Null when the build has no cloud account configuration; the app then works fully on the device. */
+  /** Null without account configuration: only public screens are available (ADR-45). */
   readonly supabase: { readonly url: string; readonly anonKey: string } | null;
   /** Where e-mail confirmation links return; null means the origin the person signed up from. */
   readonly authRedirectUrl: string | null;

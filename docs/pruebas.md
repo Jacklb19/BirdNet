@@ -1,6 +1,6 @@
 # Pruebas de campo y pruebas manuales
 
-Lo que las pruebas automáticas no pueden comprobar: un teléfono real, un micrófono real, cuentas reales y una hora caminando. Cada prueba dice qué hacer, qué debe pasar y qué anotar. Al terminar, se copian los resultados en la última sección y se resumen en `PROGRESS.md`.
+Lo que las pruebas automáticas no pueden comprobar: un teléfono real, un micrófono real, cuentas reales y una hora caminando. Cada prueba dice qué hacer, qué debe pasar y qué anotar. Al terminar, registrar los resultados en la última sección sin incluir contraseñas, tokens ni datos personales.
 
 ## Beta: diario y asistentes
 

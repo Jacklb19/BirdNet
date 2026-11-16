@@ -19,7 +19,7 @@ Documento de definición técnica del proyecto
 > | RF-15: informes periódicos | Informes redactados solo cuando la persona los pide, a partir de cifras ya calculadas | ADR-37 |
 > | Uso de la aplicación: la definición no lo restringe y hasta S11 la cuenta fue opcional | Solo se usa con cuenta. Sin ella se ven la portada, la privacidad y la guía de aves. Con la sesión iniciada sigue funcionando sin conexión | ADR-45 |
 > | Ampliación beta aprobada el 14–15 de noviembre de 2026 | Diario y línea temporal, importación local, observaciones visuales, colecciones, especies de interés, consultas de bitácora y tutor; complementan RF-03/05/06/08/10/11/14 y RNF-06/08 | ADR-46; amplía ADR-37 solo para texto explícito con consentimiento |
-> | Plan de sprints (tabla 22) | Once sprints; S8 a S11 añadieron caminatas, grabaciones, revisión, segundo modelo, cuentas completas, verificación en dos pasos, notas y cantos de referencia | `PROGRESS.md` |
+> | Plan de sprints (tabla 22) | Once sprints; S8 a S11 añadieron caminatas, grabaciones, revisión, segundo modelo, cuentas completas, verificación en dos pasos, notas y cantos de referencia | `docs/decisiones.md`, ADR-22 a ADR-46 |
 >
 > Pendiente de la definición de terminado: las dos pruebas de campo de una hora (RNF-01, RNF-02, RNF-04) y las pruebas manuales con dispositivos y cuentas reales, que se guían con `docs/pruebas.md`.
 
@@ -561,7 +561,7 @@ Brown, S. (2018). *Software architecture for developers: Volume 2 — Visualise,
 
 Cohn, M. (2009). *Succeeding with agile: Software development using Scrum*. Addison-Wesley.
 
-Gómez-Bahamón, V., y colaboradores. (2024). Passive acoustic monitoring in biodiversity research: Opportunities and limitations. *Ecological Indicators*, 158, 111412. https://doi.org/10.1016/j.ecolind.2023.111412
+Gibb, R., Browning, E., Glover-Kapfer, P., y Jones, K. E. (2019). Emerging opportunities and challenges for passive acoustics in ecological assessment and monitoring. *Methods in Ecology and Evolution*, 10(2), 169–185. https://doi.org/10.1111/2041-210X.13101
 
 Kahl, S., Wood, C. M., Eibl, M., y Klinck, H. (2021). BirdNET: A deep learning solution for avian diversity monitoring. *Ecological Informatics*, 61, 101236. https://doi.org/10.1016/j.ecoinf.2021.101236
 
