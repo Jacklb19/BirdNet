@@ -110,6 +110,66 @@
   content: '';
 }
 
+/* Rules of a new password: requirements first, suggestions apart and quieter, each with a mark that fills when met. */
+.bn-password-checks {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-m);
+  background: var(--color-bg-sunken);
+}
+
+.bn-password-checks__heading {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.bn-password-checks__list {
+  display: grid;
+  margin: 0 0 var(--space-1);
+  padding: 0;
+  gap: var(--space-1);
+  list-style: none;
+}
+
+.bn-password-checks__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-password-checks__item--suggested {
+  color: var(--color-text-secondary);
+}
+
+.bn-password-checks__mark {
+  display: inline-flex;
+  width: var(--icon-size-s);
+  height: var(--icon-size-s);
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: var(--border-width-strong) solid var(--color-text-secondary);
+  border-radius: var(--radius-pill);
+}
+
+.bn-password-checks__mark .bn-icon {
+  width: calc(var(--icon-size-s) - var(--space-2));
+  height: calc(var(--icon-size-s) - var(--space-2));
+}
+
+.bn-password-checks__item--met .bn-password-checks__mark {
+  border-color: var(--color-status-confirmed);
+  background: var(--color-status-confirmed);
+  color: var(--color-bg-surface);
+}
+
+.bn-password-checks__item--met.bn-password-checks__item--required {
+  color: var(--color-status-confirmed);
+}
+
 /* What the account service said, under the message it explains; it may be a long unbroken string. */
 .bn-account-signin__detail {
   display: block;

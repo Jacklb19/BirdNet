@@ -8,6 +8,7 @@ import { useOnline } from '../offline/useQueueStatus';
 import { AUTH_ERROR_CODES, EMAIL_CODE_LENGTH, PASSWORD_MIN_LENGTH, passwordsMatch } from './account.constants';
 import { PasswordField, TextField } from './FormField';
 import { GoogleMark } from './GoogleMark';
+import { PasswordChecklist } from './PasswordChecklist';
 import { CodeField } from './SecondStepForm';
 import type { AccountState } from './useAccount';
 import './SignInForm.css';
@@ -43,6 +44,7 @@ export function SignInForm({ account, requestedMode = 'signIn' }: {
   const [codeResent, setCodeResent] = useState(false);
   const [resetSentTo, setResetSentTo] = useState<string | null>(null);
   const titleId = useId();
+  const checklistId = useId();
   const blocked = !online || account.working;
   const address = email.trim();
   // The code step replaces the whole form, so the focus goes to its title and comes back to the form after it.
@@ -138,12 +140,15 @@ export function SignInForm({ account, requestedMode = 'signIn' }: {
           <PasswordField label={texts.password} name="password" autoComplete={PASSWORD_AUTOCOMPLETE[mode]} value={password} onChange={setPassword}
             // The minimum only applies to new passwords, so a later change to it never locks out existing accounts.
             minLength={mode === 'signUp' ? PASSWORD_MIN_LENGTH : undefined}
-            hint={mode === 'signUp' ? texts.passwordHint(formatNumber(PASSWORD_MIN_LENGTH, locale)) : undefined} />
+            describedBy={mode === 'signUp' ? checklistId : undefined} />
         )}
         {mode === 'signUp' && (
-          <PasswordField label={texts.confirmPassword} name="password-confirmation" autoComplete="new-password" value={confirmation}
-            onChange={(value) => { setConfirmation(value); setMismatch(false); }} minLength={PASSWORD_MIN_LENGTH}
-            error={mismatch ? texts.mismatch : undefined} />
+          <>
+            <PasswordField label={texts.confirmPassword} name="password-confirmation" autoComplete="new-password" value={confirmation}
+              onChange={(value) => { setConfirmation(value); setMismatch(false); }} minLength={PASSWORD_MIN_LENGTH}
+              describedBy={checklistId} error={mismatch ? texts.mismatch : undefined} />
+            <PasswordChecklist id={checklistId} password={password} confirmation={confirmation} />
+          </>
         )}
         {mode === 'signIn' && (
           <button type="button" className="bn-account-signin__link" onClick={() => { changeMode('reset'); }}>{texts.forgot}</button>

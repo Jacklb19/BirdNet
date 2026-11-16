@@ -1,22 +1,15 @@
 import { useId } from 'react';
-import { routeHash } from '../../app/routes';
-import { PRIVACY_PAGE_URL } from '../../config/staticPages';
+import { useIsDesktop } from '../../config/layout';
 import { useI18n } from '../../i18n';
-import { Icon, type IconName } from '../../shared/ui/Icon';
 import { Notice } from '../../shared/ui/Notice';
 import { Sticker } from '../../shared/ui/Sticker';
+import { useSpeciesPhotoLoad } from '../../shared/ui/useSpeciesPhotoLoad';
 import { commonName, useSpeciesNames } from '../species/speciesNames';
 import { ENTRANCE_BIRDS } from './account.config';
 import { useAccountContext } from './accountContext';
 import { SecondStepForm } from './SecondStepForm';
 import { SignInForm, type PasswordMode } from './SignInForm';
 import './EntrancePage.css';
-
-const POINTS: readonly { readonly id: 'cloud' | 'offline' | 'privacy'; readonly icon: IconName }[] = [
-  { id: 'cloud', icon: 'synced' },
-  { id: 'offline', icon: 'offline' },
-  { id: 'privacy', icon: 'privacy' },
-];
 
 export interface EntrancePageProps {
   /** The side of the form the address asked for. */
@@ -25,16 +18,33 @@ export interface EntrancePageProps {
   readonly requested: string | null;
 }
 
+/** One bird of the notebook page: its sticker, its name and, once the photo shows, who took it and under what license. */
+function EntranceBird({ species, order }: { readonly species: string; readonly order: number }): React.JSX.Element {
+  const { dict, locale } = useI18n();
+  const names = useSpeciesNames();
+  const load = useSpeciesPhotoLoad(species);
+  return (
+    <li className="bn-entrance__bird">
+      <Sticker scientificName={species} alt="" size="m" load={load} drop order={order} className="bn-entrance__sticker" />
+      <span className="bn-entrance__bird-name display">{commonName(names, species, locale)}</span>
+      <span className="bn-entrance__bird-science">{species}</span>
+      {load.status === 'loaded' && (
+        <span className="bn-entrance__bird-credit">{dict.common.photoCredit(load.photo.author ?? dict.common.photoAuthorUnknown, load.photo.license)}</span>
+      )}
+    </li>
+  );
+}
+
 /**
- * The way in (ADR-45). Trino is used only with an account: every screen of it shows this one until the person signs
- * in, and then the screen that was asked for, so a link to the log still lands on the log. It says what the account
- * keeps and what leaves the phone, and leaves the guide of birds, which is public, one link away.
+ * The way in (ADR-45, ADR-47). Trino is used only with an account: every screen of it shows this one until the
+ * person signs in, and then the screen that was asked for. Beside the form, a page of the field notebook with birds
+ * of the guide; what the account keeps and shares is told where each permission is asked, not here.
  */
 export default function EntrancePage({ mode, requested }: EntrancePageProps): React.JSX.Element {
-  const { dict, locale } = useI18n();
+  const { dict } = useI18n();
   const texts = dict.account.entrance;
   const account = useAccountContext();
-  const names = useSpeciesNames();
+  const isDesktop = useIsDesktop();
   const titleId = useId();
   const birdsId = useId();
 
@@ -55,38 +65,17 @@ export default function EntrancePage({ mode, requested }: EntrancePageProps): Re
         {!account.configured
           ? <Notice tone="caution" icon="privacy" title={dict.account.unavailable.title}>{dict.account.unavailable.text}</Notice>
           : account.awaitingCode ? <SecondStepForm account={account} /> : <SignInForm account={account} requestedMode={mode} />}
-        <p className="bn-entrance__guide">
-          {texts.guideLead}{' '}
-          <a className="bn-entrance__link" href={routeHash({ name: 'album' })}>{texts.guide}</a>
-        </p>
       </div>
 
-      <aside className="bn-entrance__aside" aria-labelledby={titleId}>
-        <figure className="bn-entrance__birds" aria-labelledby={birdsId}>
-          <div className="bn-entrance__stickers">
-            {ENTRANCE_BIRDS.map((species, index) => (
-              <Sticker key={species} scientificName={species} alt="" size="m" drop order={index}
-                className="bn-entrance__sticker" />
-            ))}
-          </div>
-          <figcaption id={birdsId} className="bn-entrance__caption">
-            <span className="label">{texts.birds}</span>
-            <span>{ENTRANCE_BIRDS.map((species) => commonName(names, species, locale)).join(' · ')}</span>
-          </figcaption>
-        </figure>
-        <ul className="bn-entrance__points">
-          {POINTS.map((point) => (
-            <li key={point.id} className="bn-entrance__point">
-              <span className="bn-entrance__point-icon"><Icon name={point.icon} /></span>
-              <span>
-                <strong className="bn-entrance__point-title">{texts.points[point.id].title}</strong>
-                <span className="bn-entrance__point-text">{texts.points[point.id].text}</span>
-              </span>
-            </li>
-          ))}
-        </ul>
-        <a className="bn-entrance__link" href={PRIVACY_PAGE_URL}>{texts.privacy}</a>
-      </aside>
+      {/* Only beside the form: on a phone it would come after the form and add nothing to signing in (ADR-47). */}
+      {isDesktop && (
+        <section className="bn-entrance__notebook" aria-labelledby={birdsId}>
+          <h2 id={birdsId} className="label bn-entrance__notebook-title">{texts.birds}</h2>
+          <ul className="bn-entrance__birds">
+            {ENTRANCE_BIRDS.map((species, index) => <EntranceBird key={species} species={species} order={index} />)}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

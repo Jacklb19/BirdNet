@@ -4,7 +4,10 @@
 export const SYNC_AGE_REFRESH_MS = 60_000;
 
 /**
- * Birds pasted on the way in (ADR-45): common in Bogotá's gardens and parks, with photos in the index that ships with
- * the app, so the screen draws them without asking anyone else.
+ * Birds pasted on the way in (ADR-45, ADR-47): common in Bogotá's gardens and parks, with photos in the index that
+ * ships with the app, so the screen draws them and credits their photographers without asking anyone else.
  */
-export const ENTRANCE_BIRDS = Object.freeze(['Turdus fuscater', 'Colibri coruscans', 'Thraupis episcopus'] as const);
+export const ENTRANCE_BIRDS = Object.freeze(['Turdus fuscater', 'Colibri coruscans', 'Pyrocephalus rubinus', 'Thraupis episcopus'] as const);
+
+/** Length a new password is suggested to reach; only a suggestion, the requirement is PASSWORD_MIN_LENGTH. */
+export const PASSWORD_ROOMY_LENGTH = 12;

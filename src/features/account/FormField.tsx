@@ -12,14 +12,16 @@ export interface TextFieldProps extends NativeInput {
   readonly hint?: string;
   /** Problem with the value, announced and linked to the field. */
   readonly error?: string;
+  /** Another element that explains the value (the checklist of a new password). */
+  readonly describedBy?: string;
 }
 
 /** Labelled input of the account forms: the hint and the error are tied to it for assistive technology. */
-export function TextField({ label, value, onChange, hint, error, ...input }: TextFieldProps): React.JSX.Element {
+export function TextField({ label, value, onChange, hint, error, describedBy, ...input }: TextFieldProps): React.JSX.Element {
   const id = useId();
   const hintId = useId();
   const errorId = useId();
-  const described = [hint ? hintId : '', error ? errorId : ''].filter(Boolean).join(' ') || undefined;
+  const described = [hint ? hintId : '', describedBy ?? '', error ? errorId : ''].filter(Boolean).join(' ') || undefined;
   return (
     <div className="bn-account-signin__field">
       <label htmlFor={id} className="bn-account-signin__label">{label}</label>
