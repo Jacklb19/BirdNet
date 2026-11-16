@@ -734,3 +734,24 @@ No se adjuntan automáticamente audio, fotos, espectrogramas, notas, registros, 
 Las consultas guiadas no gastan cuota del modelo. Interpretación y tutor comparten los límites existentes con fichas/informes; una aclaración o rechazo válido también consume una unidad. No hay reintento automático del texto. No se añadió proveedor, SDK, dependencia, recurso de pago ni tarea programada. Se mantienen los informes de redacción libre: A14 sigue aplazado por decisión del dueño.
 
 La API necesita la migración nueva `20261114010000_private_field_journal.sql`, que aplica el dueño; v2 de texto no añade otra. Validación local y límites pendientes se registran en `docs/beta-validacion.md`.
+
+---
+
+## ADR-47. Una navegación para todo y un asistente con contexto acotado (2026-11-16, decisión del dueño; modifica ADR-44 y ADR-46)
+
+### Contexto
+La revisión manual del dueño en escritorio y móvil encontró que la portada y la entrada parecían dos sitios distintos, que las funciones beta vivían todas en la Bitácora con una matriz de enlaces repetida, que Caminatas costaba encontrarlas y que el asistente pedía muchos campos y dejaba la respuesta lejos de la pregunta. El dueño aprobó el 2026-11-16 las opciones recomendadas.
+
+### Decisión
+- **Cinco destinos** en la barra del teléfono y en la de escritorio: Escuchar, Mapa, Guía, Bitácora y Asistente. Cuenta, Ajustes, Créditos y Cerrar sesión pasan al menú del avatar. Lugares y Caminatas dejan de ser enlaces sueltos del menú (ADR-44): Lugares vive en el Mapa y las caminatas en Salidas.
+- **Cada función en su sección.** Importar una grabación es una acción de Escuchar. Las especies de interés pasan a la Guía (Todas las aves, Mi álbum, Me interesan). La Bitácora se organiza en Registros, Salidas y Colecciones; las caminatas antiguas aparecen como un tipo de salida y solo se unen a una salida beta por su `walk_id` explícito. Cada detalle vuelve a su lista con los filtros guardados en la dirección.
+- **Asistente conversacional.** Un solo campo de escritura, respuestas junto a cada pregunta y la consulta activa visible y editable sobre el campo.
+- **Consultas claras sin confirmación previa** (modifica ADR-46): una consulta de solo lectura bien definida se ejecuta directamente y muestra sus filtros editables. La aclaración se pide solo ante ambigüedad.
+- **Intérprete local primero.** Los ajustes reconocibles («¿y ayer?», «solo los provisionales», «abre el primero», «más») y las consultas simples se resuelven en el teléfono con reglas deterministas en español e inglés, sin llamar al modelo y sin el consentimiento de texto, porque el texto no sale del teléfono.
+- **Contexto acotado** (modifica ADR-46): si hace falta interpretar, la petición lleva, además del texto, el plan activo: intención, nombre científico público, periodo y estado de revisión. Nunca resultados, identificadores, notas, nombres de lugares o colecciones, rutas ni coordenadas. Como cambia lo que se envía, el consentimiento pasa a `assistant-text-v2` y una aceptación de la v1 no vale. Como máximo una llamada al modelo por acción.
+- **Comparar dos periodos**: intención nueva calculada en SQL con RLS (cantos, especies y observaciones de cada periodo y especies de solo uno), sin redacción del modelo. No se añade otro análisis.
+- **Proveedor en su lugar.** La interfaz de uso dice «Asistente»; el proveedor, sus condiciones y el tratamiento de datos del plan gratuito se detallan en el consentimiento y en Créditos. No se muestran el modelo ni los tokens.
+
+### Consecuencias
+- El hilo vive en memoria durante la sesión de la pestaña, por cuenta; «Nueva consulta», cerrar sesión, cambiar de cuenta o retirar el consentimiento lo borran y cancelan el trabajo en curso.
+- Las cuotas siguen siendo las de ADR-37 y ADR-46.
