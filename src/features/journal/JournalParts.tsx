@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { routeHash } from '../../app/routes';
 import { useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
 import { Notice } from '../../shared/ui/Notice';
@@ -14,12 +13,6 @@ import type { useJournal } from './useJournal';
 import './Journal.css';
 
 export type JournalState = ReturnType<typeof useJournal>;
-export function JournalLinks(): React.JSX.Element {
-  const t = journalMessages[useI18n().locale];
-  return <nav className="bn-journal__links" aria-label={t.title}>{([
-    ['journal', t.title], ['observations', t.observations], ['collections', t.collections], ['wishlist', t.wishlist], ['importAudio', t.importAudio], ['assistant', t.assistant],
-  ] as const).map(([name, label]) => <Button key={name} variant="quiet" href={routeHash({ name })}>{label}</Button>)}</nav>;
-}
 export function JournalNotices({ state }: { readonly state: JournalState }): React.JSX.Element {
   const t = journalMessages[useI18n().locale];
   return <>{(!state.ready || state.busy) && <p role="status">{t.loading}</p>}{state.error && <Notice tone="error" action={<Button variant="quiet" disabled={state.busy} onClick={() => { void state.refresh(); }}>{t.retry}</Button>}>{t.error}</Notice>}</>;

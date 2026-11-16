@@ -114,6 +114,11 @@ export const listenMessages = defineMessages({
       open: 'Ver la guía',
       text: 'Las aves más probables de tu zona que aún no has oído, según el modelo geográfico.',
     },
+    importFile: {
+      title: 'Analizar una grabación',
+      text: 'Un audio que ya tienes, analizado en este teléfono con el mismo modelo. El archivo no se sube.',
+      action: 'Elegir un archivo',
+    },
     walk: {
       title: 'Sal a caminar',
       text: (distance: string) => `En modo caminata el mapa dibuja tu recorrido y deja cada ave donde la oíste, a unos ${distance}.`,
@@ -260,6 +265,11 @@ export const listenMessages = defineMessages({
       title: 'To look for this week',
       open: 'See the guide',
       text: 'The likeliest birds of your area that you have not heard yet, according to the geographic model.',
+    },
+    importFile: {
+      title: 'Analyze a recording',
+      text: 'An audio file you already have, analyzed on this phone with the same model. The file is not uploaded.',
+      action: 'Choose a file',
     },
     walk: {
       title: 'Go for a walk',

@@ -1,0 +1,92 @@
+.bn-tablinks__list {
+  display: flex;
+  margin: 0;
+  padding: var(--space-1);
+  gap: var(--space-1);
+  border-radius: var(--radius-m);
+  background: var(--color-bg-sunken);
+  list-style: none;
+}
+
+.bn-tablinks--track li {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+}
+
+.bn-tablinks__link {
+  display: inline-flex;
+  width: 100%;
+  min-width: 0;
+  min-height: var(--touch-min);
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-s);
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.bn-tablinks__link span:not(.bn-tablinks__count) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bn-tablinks__link[aria-current='page'] {
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-raised);
+  color: var(--color-text-primary);
+}
+
+.bn-tablinks__link:hover:not([aria-current='page']) {
+  color: var(--color-text-primary);
+}
+
+.bn-tablinks__link:focus-visible {
+  outline: var(--focus-width) solid var(--color-brand);
+  outline-offset: var(--focus-offset);
+}
+
+.bn-tablinks__count {
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  font-weight: var(--font-weight-medium);
+}
+
+/* At 360 px three parts fit by their words alone; the icons come back where there is room. */
+@media not all and (min-width: 30rem) {
+  .bn-tablinks--track .bn-tablinks__link .bn-icon {
+    display: none;
+  }
+}
+
+/* A filter inside one part: separate pills that wrap instead of squeezing. */
+.bn-tablinks--chips .bn-tablinks__list {
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: 0;
+  background: transparent;
+}
+
+.bn-tablinks--chips .bn-tablinks__link {
+  padding: 0 var(--space-4);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+
+.bn-tablinks--chips .bn-tablinks__link[aria-current='page'] {
+  border-color: var(--color-bg-inverse);
+  background: var(--color-bg-inverse);
+  color: var(--color-text-inverse);
+}
+
+.bn-tablinks--chips .bn-tablinks__link[aria-current='page'] .bn-tablinks__count {
+  color: inherit;
+}

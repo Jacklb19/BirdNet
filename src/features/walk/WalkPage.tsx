@@ -75,7 +75,7 @@ export default function WalkPage({ id }: { readonly id: string }): React.JSX.Ele
   const [deleting, setDeleting] = useState<'idle' | 'working' | 'failed'>('idle');
   const [, renameBackRef] = useStepFocus<HTMLElement, HTMLDivElement>(renaming);
   const [deleteAskRef, deleteBackRef] = useStepFocus<HTMLParagraphElement, HTMLElement>(confirming);
-  const back = { href: routeHash({ name: 'walks' }), label: t.back };
+  const back = { href: routeHash({ name: 'log', tab: 'outings', kind: 'walk' }), label: t.back };
 
   if (detail.status !== 'ready') {
     if (detail.status === 'loading') {
@@ -128,7 +128,7 @@ export default function WalkPage({ id }: { readonly id: string }): React.JSX.Ele
     setDeleting('working');
     try {
       await removeWalk(walk, token);
-      navigateTo({ name: 'walks' });
+      navigateTo({ name: 'log', tab: 'outings', kind: 'walk' });
     } catch {
       setDeleting('failed');
     }

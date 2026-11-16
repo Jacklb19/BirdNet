@@ -15,7 +15,7 @@ import type { JournalState } from './JournalParts';
 import { loadRemoteEvents } from './journalSync';
 import type { TimelineEvent } from './types';
 
-function EventCard({ event, online }: { readonly event: TimelineEvent; readonly online: boolean }): React.JSX.Element {
+function EventCard({ event, online, onRemove, busy }: { readonly event: TimelineEvent; readonly online: boolean; readonly onRemove?: (event: TimelineEvent) => void; readonly busy: boolean }): React.JSX.Element {
   const { locale, dict } = useI18n(); const t = journalMessages[locale]; const names = useSpeciesNames(); const { session } = useAccountContext();
   const recording = useLocalRecording(event.kind === 'detection' ? event.id : '');
   return <li className="bn-journal__card"><time dateTime={event.recorded_at}>{new Date(event.recorded_at).toLocaleString(locale)}</time>
@@ -24,10 +24,14 @@ function EventCard({ event, online }: { readonly event: TimelineEvent; readonly 
     {event.kind === 'detection' ? <><p>{t.confidence}: {new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 1 }).format(event.confidence)} · {t.status}: {t.states[event.status]}</p>
       {recording ? <audio controls preload="none" src={recording.url} /> : event.has_recording && session && online ? <AccountRecordingButton detectionId={event.id} token={session.access_token} labels={dict.log.detail.account} /> : <p className="bn-journal__muted">{t.noClip}</p>}
     </> : event.individuals !== null && <p>{t.individuals}: {event.individuals}</p>}
-    <a href={routeHash(event.kind === 'detection' ? { name: 'detection', id: event.id } : { name: 'observations', id: event.id })}>{t.openRecord}</a>
+    <div className="bn-journal__actions">
+      <Button variant="quiet" href={routeHash(event.kind === 'detection' ? { name: 'detection', id: event.id } : { name: 'observations', id: event.id })}>{t.openRecord}</Button>
+      {onRemove && <Button variant="quiet" disabled={busy} onClick={() => { onRemove(event); }}>{t.removeItem}</Button>}
+    </div>
   </li>;
 }
-export function Timeline({ kind, id, state }: { readonly kind: 'outing' | 'collection'; readonly id: string; readonly state: JournalState }): React.JSX.Element {
+/** A collection's records can be taken out of it here; removing one keeps the record itself (ADR-46). */
+export function Timeline({ kind, id, state, onRemove }: { readonly kind: 'outing' | 'collection'; readonly id: string; readonly state: JournalState; readonly onRemove?: (event: TimelineEvent) => void }): React.JSX.Element {
   const t = journalMessages[useI18n().locale]; const records = useLogRecords().everything; const [remote, setRemote] = useState<TimelineEvent[]>([]); const [failed, setFailed] = useState(false); const [attempt, setAttempt] = useState(0);
   const [limit, setLimit] = useState(JOURNAL_PAGE_SIZE);
   const parent = state.entities.find((row) => row.kind === kind && row.id === id);
@@ -60,6 +64,6 @@ export function Timeline({ kind, id, state }: { readonly kind: 'outing' | 'colle
   }, [remote, state.relations, state.entities, records, kind, id]);
   return <section className="bn-journal"><h2>{t.timeline}</h2><p>{t.approximate}</p>{failed && <Notice tone="error">{t.error}</Notice>}
     <Button variant="quiet" onClick={() => { setAttempt((value) => value + 1); }}>{t.retry}</Button>
-    <ol className="bn-journal__list bn-journal__timeline">{events.slice(0, limit).map((event) => <EventCard key={`${event.kind}:${event.id}`} event={event} online={state.online} />)}</ol>{!events.length && <p>{t.empty}</p>}{events.length > limit && <Button variant="secondary" onClick={() => { setLimit((value) => value + JOURNAL_PAGE_SIZE); }}>{t.showMore}</Button>}
+    <ol className="bn-journal__list bn-journal__timeline">{events.slice(0, limit).map((event) => <EventCard key={`${event.kind}:${event.id}`} event={event} online={state.online} onRemove={onRemove} busy={state.busy} />)}</ol>{!events.length && <p>{t.empty}</p>}{events.length > limit && <Button variant="secondary" onClick={() => { setLimit((value) => value + JOURNAL_PAGE_SIZE); }}>{t.showMore}</Button>}
   </section>;
 }

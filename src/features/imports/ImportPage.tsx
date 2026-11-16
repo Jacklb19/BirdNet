@@ -14,7 +14,6 @@ import { useOfflineSettings } from '../offline/useOfflineSettings';
 import { approximateLocation } from '../offline/queuePolicy';
 import { commonName, useSpeciesNames } from '../species/speciesNames';
 import { journalMessages } from '../journal/i18n';
-import { JournalLinks } from '../journal/JournalParts';
 import { JOURNAL_NAME_LIMIT } from '../journal/journal.config';
 import { cleanName } from '../journal/validation';
 import { IMPORT_FILE_ACCEPT, IMPORT_UTC_OFFSETS } from './import.config';
@@ -45,7 +44,8 @@ export default function ImportPage(): React.JSX.Element {
     } catch (failure) { if (alive.current) setError(failure instanceof ImportError ? failure.reason : 'metadata'); }
     finally { if (operation.current === controller) operation.current = null; }
   };
-  return <Page width="narrow" className="bn-journal"><PageHeader title={t.title} subtitle={t.intro} back={{ href: routeHash({ name: 'journal' }), label: journal.back }} /><JournalLinks />
+  // Analyzing a file is another way of listening (ADR-47): it opens from Listen and goes back there.
+  return <Page width="narrow" className="bn-journal"><PageHeader title={t.title} subtitle={t.intro} back={{ href: routeHash({ name: 'listen' }), label: t.backToListen }} />
     {listening.active && <Notice tone="caution" action={<Button onClick={() => { void listening.stop(); }}>{t.stopListen}</Button>}>{t.stopHelp}</Notice>}
     <form className="bn-journal__form" onSubmit={(event) => { event.preventDefault(); void run(); }}>
       <FilePicker label={t.file} accept={IMPORT_FILE_ACCEPT} file={file} required disabled={active} icon="download" hint={t.formats}

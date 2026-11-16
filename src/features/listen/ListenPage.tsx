@@ -26,6 +26,7 @@ import { SessionErrorNotice } from './SessionErrorNotice';
 import { SessionSince } from './SessionSince';
 import { SingingPlate } from './SingingPlate';
 import { SitePicker } from './SitePicker';
+import { ImportInvite } from './ImportInvite';
 import { WalkInvite } from './WalkInvite';
 import './ListenPage.css';
 import { useImportActive } from '../imports/importActivity';
@@ -108,6 +109,7 @@ export default function ListenPage(): React.JSX.Element {
           {!active && <ShareChoiceCard />}
           {active && <PocketInvite />}
           {!active && <WalkInvite blockedReason={blockedReason} />}
+          {!active && <ImportInvite />}
           {species.length === 0 && <RecentAlbum />}
           {!active && <LikelyBirds />}
           <PrivacyNote />

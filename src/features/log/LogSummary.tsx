@@ -79,7 +79,7 @@ export function LogSummary({ records, walks, now }: LogSummaryProps): React.JSX.
               </li>
             ))}
           </ul>
-          <a className="bn-log-summary__more" href={routeHash({ name: 'walks' })}>{dict.walk.seeAll}</a>
+          <a className="bn-log-summary__more" href={routeHash({ name: 'log', tab: 'outings', kind: 'walk' })}>{dict.walk.seeAll}</a>
         </div>
       )}
     </section>

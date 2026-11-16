@@ -75,12 +75,12 @@ test.describe('private journal API integration', () => {
       } })).ok()).toBe(true);
       await page.goto(`/#/collections/${collection}`); await checks(page, session);
       await page.getByRole('searchbox').fill('Colibri coruscans');
-      const picker = page.getByRole('combobox', { name: t.record, exact: true }); const oldest = observations[0] ?? '';
-      await expect(picker.locator('option[value^="observation:"]')).toHaveCount(20);
-      await expect(picker.locator(`option[value="observation:${oldest}"]`)).toHaveCount(0);
-      await picker.locator('..').locator('..').getByRole('button', { name: t.showMore, exact: true }).click();
-      await picker.selectOption(`observation:${oldest}`);
-      await page.getByRole('button', { name: t.add, exact: true }).click();
+      // Matching records are listed a page at a time, each with its own "Add" button (ADR-47).
+      const candidates = page.locator('[data-record^="observation:"]'); const oldest = observations[0] ?? '';
+      await expect(candidates).toHaveCount(20);
+      await expect(page.locator(`[data-record="observation:${oldest}"]`)).toHaveCount(0);
+      await page.getByRole('button', { name: t.showMore, exact: true }).first().click();
+      await page.locator(`[data-record="observation:${oldest}"]`).click();
       await expect(page.locator(`a[href="#/observations/${oldest}"]`).first()).toBeVisible();
       // This describe blocks service workers; flush the real outbox explicitly, as in its other integration cases.
       await page.evaluate((owner) => window.offlineChecks.synchronizeJournal(owner), session.userId);
@@ -142,7 +142,8 @@ test.describe('private journal API integration', () => {
         await page.goto(`/#/${route}`); await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
         if (['journal', 'observations', 'collections', 'wishlist'].includes(route.split('/')[0] ?? '')) await expect(page.getByText(journalMessages[locale].loading, { exact: true })).toHaveCount(0);
         if (route.includes(outing) || route.includes(collection)) await expect(page.getByText(journalMessages[locale].manual, { exact: true }).last()).toBeVisible();
-        if (route.includes(observation)) await expect(page.getByLabel(journalMessages[locale].species, { exact: true })).toBeVisible();
+        // The species field and its list of matches share their name; the field is the combobox.
+        if (route.includes(observation)) await expect(page.getByRole('combobox', { name: journalMessages[locale].species, exact: true })).toBeVisible();
         await page.screenshot({ path: `tmp/beta-ui/${String(index)}-${route.split('/')[0] ?? ''}-${String(width)}-${locale}.png`, fullPage: true, animations: 'disabled' });
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       }

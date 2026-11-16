@@ -9,6 +9,12 @@
   color: var(--plumage-azulejo-on);
 }
 
+/* Analyzing a file wears another plumage, so the two invitations do not read as one. */
+.bn-listen-walk--file {
+  background: var(--plumage-copeton);
+  color: var(--plumage-copeton-on);
+}
+
 .bn-listen-walk__icon {
   display: inline-flex;
   width: var(--touch-min);

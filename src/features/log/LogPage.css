@@ -1,8 +1,15 @@
 /* The design keeps the log's blocks closer together than the page rhythm: header, notice, chips and days read as one list. */
-.bn-page.bn-log {
+.bn-page.bn-log-page,
+.bn-log {
   --log-block-gap: var(--space-5);
 
+  display: grid;
   gap: var(--log-block-gap);
+}
+
+.bn-log__today {
+  margin: 0;
+  color: var(--color-text-secondary);
 }
 
 .bn-log__status {

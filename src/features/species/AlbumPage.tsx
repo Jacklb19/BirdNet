@@ -1,6 +1,8 @@
 import { useId, useMemo, useState } from 'react';
 import { AccountDataNotice } from '../../shared/AccountDataNotice';
-import { routeHash } from '../../app/routes';
+import { routeHash, type GuideTab } from '../../app/routes';
+import { TabLinks } from '../../shared/ui/TabLinks';
+import { WishlistPart } from '../journal/Wishlist';
 import { useIsDesktop } from '../../config/layout';
 import { formatBytes, formatCount, formatDate, formatNumber, formatPercent, formatRelativeTime, useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
@@ -57,9 +59,24 @@ function SelectedCard({ slot, name, now }: { readonly slot: AlbumSlot; readonly 
  * (phone and account together) and, faded, the likely birds of the area still to find. The open book shows the
  * card of the chosen bird on its right page; on a phone a sticker opens the bird's own screen.
  */
-export default function AlbumPage({ initialQuery = '' }: { readonly initialQuery?: string }): React.JSX.Element {
-  // The guide is open to everyone (ADR-45); the album in it is the signed-in person's.
-  return useAccountContext().identity ? <OwnAlbum initialQuery={initialQuery} /> : <PublicGuide initialQuery={initialQuery} />;
+export default function AlbumPage({ tab, initialQuery = '' }: { readonly tab: GuideTab; readonly initialQuery?: string }): React.JSX.Element {
+  const { dict } = useI18n();
+  const texts = dict.species.guideParts;
+  // The guide is open to everyone (ADR-45); the album and the birds of interest in it are the signed-in person's.
+  if (!useAccountContext().identity) return <PublicGuide initialQuery={initialQuery} />;
+  return (
+    <Page className="bn-album">
+      <PageHeader title={texts.title} subtitle={texts.intro[tab]} />
+      <TabLinks label={texts.label} links={[
+        { key: 'catalog', label: texts.catalog, icon: 'book', href: routeHash({ name: 'album', tab: 'catalog' }), current: tab === 'catalog' },
+        { key: 'album', label: texts.album, icon: 'album', href: routeHash({ name: 'album' }), current: tab === 'album' },
+        { key: 'wishlist', label: texts.wishlist, icon: 'bird', href: routeHash({ name: 'album', tab: 'wishlist' }), current: tab === 'wishlist' },
+      ]} />
+      {tab === 'catalog' && <PublicGuide initialQuery={initialQuery} embedded />}
+      {tab === 'album' && <OwnAlbum initialQuery={initialQuery} />}
+      {tab === 'wishlist' && <WishlistPart />}
+    </Page>
+  );
 }
 
 function OwnAlbum({ initialQuery }: { readonly initialQuery: string }): React.JSX.Element {
@@ -111,8 +128,8 @@ function OwnAlbum({ initialQuery }: { readonly initialQuery: string }): React.JS
   const changeScope = (next: AlbumScope): void => { setScope(next); turnTo(1); };
 
   return (
-    <Page className="bn-album">
-      <PageHeader title={texts.title} subtitle={entries.length > 0 || cloud.status === 'ready' ? formatCount(texts.subtitle, entries.length, locale) : undefined} />
+    <>
+      {(entries.length > 0 || cloud.status === 'ready') && <p className="bn-album__muted">{formatCount(texts.subtitle, entries.length, locale)}</p>}
       <AccountDataNotice resource={cloud} />
 
       <div className="bn-album__search">
@@ -180,6 +197,6 @@ function OwnAlbum({ initialQuery }: { readonly initialQuery: string }): React.JS
       )}
 
       <p className="bn-album__muted">{dict.common.absenceCaveat}</p>
-    </Page>
+    </>
   );
 }

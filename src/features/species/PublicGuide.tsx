@@ -32,7 +32,7 @@ function ChosenCard({ species, name }: { readonly species: string; readonly name
  * The guide without a session (ADR-45): the birds of the region as a book anyone can leaf through, each leading to
  * its public card. It shows nothing of anyone's records, and invites to an account to fill one's own album.
  */
-export function PublicGuide({ initialQuery }: { readonly initialQuery: string }): React.JSX.Element {
+export function PublicGuide({ initialQuery, embedded = false }: { readonly initialQuery: string; readonly embedded?: boolean }): React.JSX.Element {
   const { dict, locale } = useI18n();
   const texts = dict.species.publicGuide;
   const album = dict.species.album;
@@ -61,10 +61,10 @@ export function PublicGuide({ initialQuery }: { readonly initialQuery: string })
       : { href: routeHash({ name: 'species', species: bird.species }) }),
   }));
 
-  return (
-    <Page className="bn-album">
-      <PageHeader title={texts.title} subtitle={catalog ? formatCount(texts.subtitle, catalog.length, locale) : undefined} />
-
+  const subtitle = catalog ? formatCount(texts.subtitle, catalog.length, locale) : undefined;
+  const body = (
+    <>
+      {embedded && subtitle && <p className="bn-album__muted">{subtitle}</p>}
       <div className="bn-album__search">
         <label htmlFor={searchId} className="visually-hidden">{album.search}</label>
         <Icon name="search" size="s" />
@@ -85,10 +85,14 @@ export function PublicGuide({ initialQuery }: { readonly initialQuery: string })
           right={isDesktop && selected ? <ChosenCard species={selected.species} name={selected.name} /> : undefined} />
       </section>
 
-      <Notice icon="album" title={texts.join.title} action={<Button href={routeHash({ name: 'signUp' })}>{texts.join.action}</Button>}>
-        {texts.join.text}
-      </Notice>
+      {!embedded && (
+        <Notice icon="album" title={texts.join.title} action={<Button href={routeHash({ name: 'signUp' })}>{texts.join.action}</Button>}>
+          {texts.join.text}
+        </Notice>
+      )}
       <p className="bn-album__muted">{dict.common.absenceCaveat}</p>
-    </Page>
+    </>
   );
+  // Inside the signed-in guide the catalog is one of its parts, under that page's own title.
+  return embedded ? body : <Page className="bn-album"><PageHeader title={texts.title} subtitle={subtitle} />{body}</Page>;
 }

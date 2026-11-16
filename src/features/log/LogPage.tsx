@@ -1,132 +1,51 @@
-import { useId, useMemo, useState } from 'react';
-import { routeHash } from '../../app/routes';
-import { useIsDesktop } from '../../config/layout';
-import { formatCount, useI18n } from '../../i18n';
+import { routeHash, type LogTab, type OutingFilter, type RecordKind } from '../../app/routes';
+import { useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
-import { Dropdown } from '../../shared/ui/Dropdown';
-import { EmptyState } from '../../shared/ui/EmptyState';
-import { Icon } from '../../shared/ui/Icon';
-import { Notice } from '../../shared/ui/Notice';
 import { Page } from '../../shared/ui/Page';
 import { PageHeader } from '../../shared/ui/PageHeader';
-import { useQueueStatus } from '../offline/useQueueStatus';
-import { useSites } from '../sites/useSites';
-import { matchesSearch } from '../species/album';
-import { commonName, useSpeciesNames } from '../species/speciesNames';
-import { useWalkData } from '../walk/useWalkData';
-import { AccountSongsCard } from './AccountSongsCard';
-import { AssignSiteCard } from './AssignSiteCard';
-import { ExportAllCard } from './ExportAllCard';
-import { LOG_PAGE_SIZE } from './log.config';
-import { LogDay } from './LogDay';
-import { LogFilters } from './LogFilters';
-import { groupByDay, matchesFilter, syncCounts, todaySummary, type LogFilter } from './logRecords';
-import { LogSummary } from './LogSummary';
-import { LogSyncNotice } from './LogSyncNotice';
-import { useLogRecords } from './useLogRecords';
+import { TabLinks } from '../../shared/ui/TabLinks';
+import { CollectionsPart } from '../journal/CollectionsPart';
+import { ObservationsPart } from '../journal/ObservationsPart';
+import { OutingsPart } from '../journal/OutingsPart';
+import { SongsPart } from './SongsPart';
 import './LogPage.css';
-import { JournalLinks } from '../journal/JournalParts';
 
-/** Site filter of the log: every record, one site, or the records without a site. */
-const ALL_SITES = 'all';
-const NO_SITE = 'none';
+export interface LogPageProps {
+  readonly tab: LogTab;
+  readonly show: RecordKind;
+  readonly kind: OutingFilter;
+}
 
-/** The field log: every detection kept on this phone, newest first and grouped by local day, searchable by species and site. */
-export default function LogPage(): React.JSX.Element {
-  const { dict, locale } = useI18n();
-  const queue = useQueueStatus();
-  const names = useSpeciesNames();
-  const { sites, active } = useSites();
-  const { records, everything, readAt, error, reload } = useLogRecords();
-  const { walks } = useWalkData();
-  const isDesktop = useIsDesktop();
-  const [filter, setFilter] = useState<LogFilter>('all');
-  const [query, setQuery] = useState('');
-  const [site, setSite] = useState(ALL_SITES);
-  const [limit, setLimit] = useState(LOG_PAGE_SIZE);
-  const searchId = useId();
-  const siteId = useId();
-  // The list shows discarded records too, marked as such; the summaries above it count only presence.
-  const visible = useMemo(() => (everything ?? []).filter((record) =>
-    matchesFilter(record, filter) &&
-    (site === ALL_SITES || (site === NO_SITE ? record.siteId === null : record.siteId === site)) &&
-    matchesSearch(query, record.species, commonName(names, record.species, locale)),
-  ), [everything, filter, site, query, names, locale]);
-  // Only the shown slice is grouped and rendered; "show more" extends it.
-  const groups = useMemo(() => groupByDay(visible.slice(0, limit), readAt), [visible, limit, readAt]);
-  const unlocated = everything ? syncCounts(everything).noLocation : 0;
-  const searching = query.trim() !== '' || site !== ALL_SITES;
-  const localIds = useMemo(() => new Set((everything ?? []).map((record) => record.id)), [everything]);
-
-  const restart = (): void => { setLimit(LOG_PAGE_SIZE); };
-
-  let subtitle: string | undefined;
-  if (records?.length) {
-    const today = todaySummary(records, readAt);
-    subtitle = today.detections
-      ? dict.log.today.summary(formatCount(dict.log.today.detections, today.detections, locale), formatCount(dict.log.today.species, today.species, locale))
-      : dict.log.today.none;
-  }
-
+/**
+ * The log (ADR-47): the person's records, outings and collections, each a part with its own address, so a record
+ * opened from a part returns to that part with its filter. The songs part is the log that came before the beta,
+ * unchanged; visual observations sit beside it and never count in its acoustic summaries.
+ */
+export default function LogPage({ tab, show, kind }: LogPageProps): React.JSX.Element {
+  const { dict } = useI18n();
+  const t = dict.log;
+  const action = tab === 'records'
+    ? <Button variant="secondary" icon="camera" href={routeHash({ name: 'observations' })}>{t.addObservation}</Button>
+    : undefined;
   return (
-    <Page width="narrow" className="bn-log">
-      {/* Wide screens have no menu: the walks are reached from here, whatever the log holds (ADR-44). */}
-      <PageHeader title={dict.log.title} subtitle={subtitle}
-        actions={isDesktop ? <Button variant="quiet" icon="walk" href={routeHash({ name: 'walks' })}>{dict.log.empty.walks}</Button> : undefined} />
-      <JournalLinks />
-      {error && (
-        <Notice tone="error" action={<Button variant="quiet" onClick={reload}>{dict.common.actions.retry}</Button>}>{dict.log.loadError}</Notice>
-      )}
-      {records === null && !error && <p className="bn-log__status" role="status">{dict.common.loading}</p>}
-      {/* The account's songs this phone does not keep, so they can be reviewed from here too (ADR-44). */}
-      {records !== null && <AccountSongsCard local={localIds} online={queue.online} now={readAt} />}
-      {everything?.length === 0 && (
-        <EmptyState icon="log" title={dict.log.empty.title}
-          action={(
-            <div className="bn-log__empty-actions">
-              <Button href={routeHash({ name: 'listen' })} icon="listen">{dict.log.empty.action}</Button>
-              <Button variant="secondary" href={routeHash({ name: 'map' })} icon="walk">{dict.log.empty.walk}</Button>
-              {/* A walk can be saved without any song, and the log is where walks are looked for; wide screens have it in the header. */}
-              {!isDesktop && <Button variant="quiet" href={routeHash({ name: 'walks' })}>{dict.log.empty.walks}</Button>}
-            </div>
-          )}>
-          {dict.log.empty.text}
-        </EmptyState>
-      )}
-      {everything && everything.length > 0 && (
+    <Page width="narrow" className="bn-log-page">
+      <PageHeader title={t.title} subtitle={t.parts.intro[tab]} actions={action} />
+      <TabLinks label={t.parts.label} links={[
+        { key: 'records', label: t.parts.records, icon: 'log', href: routeHash({ name: 'log' }), current: tab === 'records' },
+        { key: 'outings', label: t.parts.outings, icon: 'walk', href: routeHash({ name: 'log', tab: 'outings' }), current: tab === 'outings' },
+        { key: 'collections', label: t.parts.collections, icon: 'album', href: routeHash({ name: 'log', tab: 'collections' }), current: tab === 'collections' },
+      ]} />
+      {tab === 'records' && (
         <>
-          {unlocated > 0 && <AssignSiteCard count={unlocated} sites={sites} activeSiteId={active?.id ?? null} />}
-          {records && records.length > 0 && <LogSummary records={records} walks={walks} now={readAt} />}
-          <LogSyncNotice records={everything} online={queue.online} syncFailed={queue.syncFailed} syncing={queue.syncing} onRetry={() => { void queue.syncNow(); }} />
-          <div className="bn-log__search" role="search" aria-label={dict.log.search.label}>
-            <div className="bn-log__query">
-              <label htmlFor={searchId} className="visually-hidden">{dict.log.search.placeholder}</label>
-              <Icon name="search" size="s" />
-              <input id={searchId} type="search" className="bn-log__query-input" placeholder={dict.log.search.placeholder} value={query}
-                autoComplete="off" spellCheck={false} onChange={(event) => { setQuery(event.target.value); restart(); }} />
-            </div>
-            {sites.length > 0 && (
-              <>
-                <span id={siteId} className="visually-hidden">{dict.log.search.site}</span>
-                <Dropdown labelId={siteId} className="bn-log__site" icon="sites" value={site} onChange={(next) => { setSite(next); restart(); }}
-                  options={[
-                    { value: ALL_SITES, label: dict.log.search.allSites },
-                    ...sites.map((entry) => ({ value: entry.id, label: entry.name })),
-                    { value: NO_SITE, label: dict.log.search.noSite },
-                  ]} />
-              </>
-            )}
-          </div>
-          <LogFilters value={filter} onChange={(next) => { setFilter(next); restart(); }} />
-          {groups.length
-            ? groups.map((group) => <LogDay key={group.day.getTime()} group={group} names={names} now={readAt} />)
-            : <p className="bn-log__status">{searching ? dict.log.search.empty : dict.log.filters.empty[filter]}</p>}
-          {visible.length > limit && (
-            <Button variant="secondary" block onClick={() => { setLimit((current) => current + LOG_PAGE_SIZE); }}>{dict.log.showMore}</Button>
-          )}
+          <TabLinks variant="chips" label={t.kinds.label} links={[
+            { key: 'songs', label: t.kinds.songs, icon: 'listen', href: routeHash({ name: 'log' }), current: show === 'songs' },
+            { key: 'observations', label: t.kinds.observations, icon: 'camera', href: routeHash({ name: 'log', show: 'observations' }), current: show === 'observations' },
+          ]} />
+          {show === 'songs' ? <SongsPart /> : <ObservationsPart />}
         </>
       )}
-      <ExportAllCard hasLocalRecords={Boolean(everything?.length)} />
+      {tab === 'outings' && <OutingsPart kind={kind} />}
+      {tab === 'collections' && <CollectionsPart />}
     </Page>
   );
 }

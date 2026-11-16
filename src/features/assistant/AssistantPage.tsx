@@ -8,7 +8,7 @@ import { Page } from '../../shared/ui/Page';
 import { PageHeader } from '../../shared/ui/PageHeader';
 import { useAccountContext } from '../account/accountContext';
 import { journalMessages } from '../journal/i18n';
-import { JournalLinks, SpeciesField } from '../journal/JournalParts';
+import { SpeciesField } from '../journal/JournalParts';
 import { localDateTime } from '../journal/validation';
 import { commonName, useSpeciesNames } from '../species/speciesNames';
 import { ASSISTANT_LIMITS, CONSENT_VERSION, INTENTS, TOPICS } from './assistant.config';
@@ -54,7 +54,7 @@ function PlanReview({ question, state }: { readonly question: Question; readonly
 function ResultCard({ row }: { readonly row: ResultRow }): React.JSX.Element {
   const { locale } = useI18n(); const t = assistantMessages[locale]; const journal = journalMessages[locale]; const names = useSpeciesNames();
   const title = row.kind === 'collection' ? row.name : row.kind === 'outing' ? row.title ?? new Date(row.at).toLocaleString(locale) : commonName(names, row.species, locale);
-  const href = routeHash(row.kind === 'detection' ? { name: 'detection', id: row.id } : row.kind === 'observation' ? { name: 'observations', id: row.id } : row.kind === 'outing' ? { name: 'outing', id: row.id } : row.kind === 'collection' ? { name: 'collections', id: row.id } : { name: 'species', species: row.species });
+  const href = routeHash(row.kind === 'detection' ? { name: 'detection', id: row.id } : row.kind === 'observation' ? { name: 'observations', id: row.id } : row.kind === 'outing' ? { name: 'outing', id: row.id } : row.kind === 'collection' ? { name: 'collection', id: row.id } : { name: 'species', species: row.species });
   return <li className="bn-journal__card"><h3><a href={href}>{title}</a></h3>
     {row.kind === 'detection' && <p>{new Date(row.at).toLocaleString(locale)} · {t.confidence}: {new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 1 }).format(row.confidence)} · {journal.states[row.status]}</p>}
     {row.kind === 'observation' && <p>{t.manual} · {new Date(row.at).toLocaleString(locale)}{row.individuals !== null ? ` · ${String(row.individuals)}` : ''}</p>}
@@ -67,10 +67,10 @@ function TutorText({ answer }: { readonly answer: TutorAnswer }): React.JSX.Elem
   return <section className="bn-journal__card">{answer.paragraphs.map((paragraph, index) => <p key={String(index)}>{paragraph}</p>)}<h3>{t.sources}</h3><ul>{answer.sources.map((source, index) => <li key={String(index)}>{source.url ? <a href={source.url} target="_blank" rel="noreferrer">{source.name}</a> : source.name}{source.license ? ` · ${source.license}` : ''}</li>)}</ul><MeasurementDetails value={answer} /></section>;
 }
 function AssistantContents({ owner, token }: { readonly owner: string; readonly token: string | null }): React.JSX.Element {
-  const { locale } = useI18n(); const t = assistantMessages[locale]; const journal = journalMessages[locale]; const state = useAssistant(owner, token, locale);
+  const { locale } = useI18n(); const t = assistantMessages[locale]; const state = useAssistant(owner, token, locale);
   const [mode, setMode] = useState<'records' | 'tutor'>('records'); const [topic, setTopic] = useState<TutorTopic>('confidence'); const [species, setSpecies] = useState('');
   const policy = state.policy;
-  return <Page width="narrow" className="bn-journal"><PageHeader title={t.title} subtitle={t.intro} back={{ href: routeHash({ name: 'journal' }), label: journal.back }} /><JournalLinks />
+  return <Page width="narrow" className="bn-journal"><PageHeader title={t.title} subtitle={t.intro} />
     <div className="bn-journal__actions">{(['records', 'tutor'] as const).map((next) => <Button key={next} variant={mode === next ? 'primary' : 'secondary'} aria-pressed={mode === next} onClick={() => { state.cancel(); state.clearText(); setMode(next); }}>{t[next]}</Button>)}</div>
     {!state.online && <Notice tone="caution">{t.errors.network}</Notice>}{state.error && <Notice tone="error">{t.errors[state.error]}</Notice>}
     {mode === 'records' && <GuidedQuery state={state} />}

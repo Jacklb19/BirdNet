@@ -1,9 +1,23 @@
 .bn-journal { display: grid; gap: var(--space-5); }
-.bn-journal__links, .bn-journal__actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
-.bn-journal__links { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--journal-link-min-width)), 1fr)); }
+.bn-journal__actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 .bn-journal__form, .bn-journal__card { display: grid; gap: var(--space-3); padding: var(--space-5); border: var(--border-width) solid var(--color-border-subtle); border-radius: var(--radius-l); background: var(--color-bg-surface); min-width: 0; }
 .bn-journal__form label { display: grid; gap: var(--space-2); color: var(--color-text-primary); }
 .bn-journal__field { display: grid; gap: var(--space-1); min-width: 0; }
+/* Rows of records in one rounded list, as in the log's days. */
+.bn-journal__rows { display: grid; margin: 0; padding: 0; list-style: none; border: var(--border-width) solid var(--color-border-subtle); border-radius: var(--radius-xl); background: var(--color-bg-surface); overflow: hidden; }
+.bn-journal__rows li + li { border-block-start: var(--border-width) solid var(--color-border-subtle); }
+/* A secondary form that opens in place (a new outing, a new collection), so the list stays first. */
+.bn-journal__disclosure { border: var(--border-width) dashed var(--color-border-strong); border-radius: var(--radius-l); }
+.bn-journal__disclosure[open] { border-style: solid; border-color: var(--color-border-subtle); background: var(--color-bg-surface); }
+.bn-journal__summary { display: flex; min-height: var(--touch-min); align-items: center; gap: var(--space-2); padding: 0 var(--space-4); font-weight: var(--font-weight-semibold); cursor: pointer; list-style: none; }
+.bn-journal__summary::-webkit-details-marker { display: none; }
+.bn-journal__disclosure > .bn-journal__form { border: 0; border-radius: 0 0 var(--radius-l) var(--radius-l); }
+/* A row with an action at its end: a record to add, a bird of interest to take out. */
+.bn-journal__candidate { display: flex; min-width: 0; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); }
+.bn-journal__candidate-text { display: grid; min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.bn-journal__grow { min-width: 0; flex: 1; }
+.bn-journal__inline-form { align-items: end; }
+@media (min-width: 40rem) { .bn-journal__inline-form { grid-template-columns: minmax(0, 1fr) auto; } }
 .bn-journal__field > span:first-child { font-weight: var(--font-weight-semibold); }
 .bn-journal__form input, .bn-journal__form textarea, .bn-journal__form select { width: 100%; box-sizing: border-box; min-height: var(--touch-min); padding: var(--space-3); border: var(--border-width) solid var(--color-border-strong); border-radius: var(--radius-s); background: var(--color-bg-surface); color: var(--color-text-primary); font: inherit; }
 .bn-journal__form textarea { min-height: var(--journal-note-height); resize: vertical; }

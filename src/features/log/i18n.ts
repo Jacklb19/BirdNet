@@ -4,6 +4,19 @@ import { defineMessages } from '../../i18n/defineMessages';
 export const logMessages = defineMessages({
   es: {
     title: 'Bitácora',
+    parts: {
+      label: 'Partes de la bitácora',
+      records: 'Registros', outings: 'Salidas', collections: 'Colecciones',
+      intro: {
+        records: 'Lo que oíste y lo que viste, día por día.',
+        outings: 'Cada vez que saliste a escuchar: caminatas, ratos en un punto y grabaciones importadas.',
+        collections: 'Grupos de registros que armas tú. Quitar algo de una colección no lo borra.',
+      },
+    },
+    kinds: { label: 'Qué registros ver', songs: 'Cantos', observations: 'Observaciones visuales' },
+    addObservation: 'Añadir observación',
+    newOuting: 'Nueva salida',
+    newCollection: 'Nueva colección',
     today: {
       summary: (detections: string, species: string) => `Hoy: ${detections} de ${species}`,
       detections: { one: (count: string) => `${count} canto`, other: (count: string) => `${count} cantos` },
@@ -200,6 +213,19 @@ export const logMessages = defineMessages({
   },
   en: {
     title: 'Log',
+    parts: {
+      label: 'Parts of the log',
+      records: 'Records', outings: 'Outings', collections: 'Collections',
+      intro: {
+        records: 'What you heard and what you saw, day by day.',
+        outings: 'Every time you went out to listen: walks, stays at one spot and imported recordings.',
+        collections: 'Groups of records you put together. Removing something from a collection does not delete it.',
+      },
+    },
+    kinds: { label: 'Which records to show', songs: 'Songs', observations: 'Visual observations' },
+    addObservation: 'Add observation',
+    newOuting: 'New outing',
+    newCollection: 'New collection',
     today: {
       summary: (detections: string, species: string) => `Today: ${detections} of ${species}`,
       detections: { one: (count: string) => `${count} song`, other: (count: string) => `${count} songs` },
