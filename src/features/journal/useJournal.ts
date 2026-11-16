@@ -34,7 +34,12 @@ export function useJournal() {
       await task;
       if (live(alive)) { await reload(); if (sync) void scheduleSynchronization().catch(() => { if (live(alive)) setError(true); }); }
       return true;
-    } catch { if (live(alive)) setError(true); return false; }
+    } catch (failure) {
+      // A refresh cancelled because its screen closed (or was mounted again) is not a failure to report.
+      const cancelled = failure instanceof DOMException && failure.name === 'AbortError';
+      if (live(alive) && !cancelled) setError(true);
+      return false;
+    }
     finally { tasks.current.delete(task); if (live(alive)) setBusy(false); }
   }, [owner, reload]);
   const refresh = useCallback(() => run(async () => { if (owner) await refreshJournal(owner, abort.current.signal); }, false), [owner, run]);
