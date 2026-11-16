@@ -165,7 +165,6 @@
   --touch-min: 2.75rem;
   --control-height: 3rem;
   --journal-note-height: 8rem;
-  --journal-link-min-width: 9rem;
   --journal-photo-max-height: 24rem;
   /* A list or calendar opened from a field never grows past these, and scrolls inside instead */
   --popover-max-height: 20rem;
@@ -174,6 +173,7 @@
   --calendar-max-height: 28rem;
   --calendar-max-width: 22rem;
   --time-field-width: 7rem;
+  --account-menu-width: 16rem;
   /* Stickers of the way in: one row beside the sign-in form, two larger rows beside the longer forms */
   --entrance-sticker-compact: 6rem;
   --entrance-sticker-roomy: 8.5rem;

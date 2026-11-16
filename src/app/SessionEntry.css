@@ -1,3 +1,7 @@
+.bn-session {
+  display: inline-flex;
+}
+
 /* The signed-in person: their profile photo as a small sticker, or their initials on the brand color. */
 .bn-session__avatar {
   display: inline-flex;
@@ -6,14 +10,16 @@
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
+  padding: 0;
   overflow: hidden;
   border: calc(var(--sticker-edge) / 2) solid var(--color-sticker-edge);
   border-radius: var(--radius-sticker);
   background: var(--color-brand);
   box-shadow: var(--shadow-raised);
   color: var(--color-on-brand);
+  font: inherit;
   font-weight: var(--font-weight-semibold);
-  text-decoration: none;
+  cursor: pointer;
 }
 
 .bn-session__photo {
@@ -22,11 +28,65 @@
   object-fit: cover;
 }
 
-.bn-session__avatar[aria-current='page'] {
+.bn-session__avatar[data-current],
+.bn-session__avatar[aria-expanded='true'] {
   outline: var(--border-width-strong) solid var(--color-border-strong);
   outline-offset: var(--focus-offset);
 }
 
-.bn-session__signin {
-  white-space: nowrap;
+.bn-session__avatar:focus-visible {
+  outline: var(--focus-width) solid var(--color-brand);
+  outline-offset: var(--focus-offset);
+}
+
+.bn-session__who {
+  margin: 0;
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  border-bottom: var(--border-width) solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+  overflow-wrap: anywhere;
+}
+
+.bn-session__list {
+  display: grid;
+  margin: 0;
+  padding: var(--space-1) 0 0;
+  list-style: none;
+}
+
+.bn-session__item {
+  display: flex;
+  width: 100%;
+  min-height: var(--touch-min);
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-s);
+  background: none;
+  color: var(--color-text-primary);
+  font: inherit;
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.bn-session__item:hover,
+.bn-session__item:focus-visible {
+  background: var(--color-brand-soft);
+}
+
+.bn-session__item:focus-visible {
+  outline: var(--focus-width) solid var(--color-brand);
+  outline-offset: calc(var(--focus-width) * -1);
+}
+
+.bn-session__item[aria-current='page'] {
+  font-weight: var(--font-weight-semibold);
+}
+
+.bn-session__item--danger {
+  color: var(--color-error);
 }

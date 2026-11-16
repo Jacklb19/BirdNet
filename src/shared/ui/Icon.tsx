@@ -36,6 +36,9 @@ const paths = {
   clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z M12 7.5V12l3 2',
   book: 'M4 5.5C6.5 4 9.5 4 12 5.5 14.5 4 17.5 4 20 5.5v13c-2.5-1.5-5.5-1.5-8 0-2.5-1.5-5.5-1.5-8 0Z M12 5.5v13',
   link: 'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1 M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1',
+  // A speech bubble with two lines of text: the assistant (ADR-47).
+  chat: 'M5 4.5h14a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2h-7l-4.5 3.5V17H5a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2Z M7.5 9.5h9 M7.5 12.5h5.5',
+  signOut: 'M14 4.5H6.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2H14 M10 12h10.5 M17 8.5l3.5 3.5-3.5 3.5',
 } as const;
 
 export type IconName = keyof typeof paths;

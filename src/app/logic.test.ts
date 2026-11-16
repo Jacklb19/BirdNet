@@ -13,8 +13,12 @@ const emptyDay = (): number[] => Array.from({ length: HOURS_PER_DAY }, () => 0);
 describe('routes', () => {
   it('round-trips every route and says so on an unknown address', () => {
     const routes: Route[] = [{ name: 'listen' }, { name: 'log' }, { name: 'detection', id }, { name: 'map' }, { name: 'sites' }, { name: 'site', id }, { name: 'account' }, { name: 'settings' }, { name: 'home' },
-      { name: 'album' }, { name: 'species', species: 'Turdus fuscater' }, { name: 'map', species: 'Colibri coruscans' }, { name: 'walks' }, { name: 'walk', id },
-      { name: 'signIn' }, { name: 'signUp' }, { name: 'notFound' }];
+      { name: 'album' }, { name: 'species', species: 'Turdus fuscater' }, { name: 'map', species: 'Colibri coruscans' }, { name: 'walk', id },
+      { name: 'signIn' }, { name: 'signUp' }, { name: 'notFound' }, { name: 'importAudio' }, { name: 'assistant' },
+      { name: 'log', tab: 'outings' }, { name: 'log', tab: 'outings', kind: 'walk' }, { name: 'log', tab: 'collections' }, { name: 'log', show: 'observations' },
+      { name: 'album', tab: 'wishlist' }, { name: 'album', tab: 'catalog', query: 'mirlo' }, { name: 'settings', section: 'credits' },
+      { name: 'outing', id }, { name: 'collection', id }, { name: 'observations' }, { name: 'observations', id }, { name: 'observations', outing: id },
+      { name: 'home', section: 'how' }];
     for (const route of routes) expect(parseRoute(routeHash(route))).toEqual(route);
     expect(parseRoute('#/log/not-a-uuid')).toEqual({ name: 'log' });
     // 36 characters is not enough: the identifier must have the UUID layout the API issues.
@@ -28,7 +32,21 @@ describe('routes', () => {
     expect([isSiteRoot(''), isSiteRoot('#'), isSiteRoot('#/'), isSiteRoot('#/home')]).toEqual([true, true, true, false]);
     expect(sectionOf({ name: 'site', id })).toBe('map');
     expect(sectionOf({ name: 'walk', id })).toBe('log');
-    expect(parseRoute('#/walks/not-a-uuid')).toEqual({ name: 'walks' });
+    // The lists that had their own screens before ADR-47 open their part of the log or the guide.
+    expect(parseRoute('#/walks/not-a-uuid')).toEqual({ name: 'log', tab: 'outings', kind: 'walk' });
+    expect(parseRoute('#/journal')).toEqual({ name: 'log', tab: 'outings' });
+    expect(parseRoute('#/collections')).toEqual({ name: 'log', tab: 'collections' });
+    expect(parseRoute('#/wishlist')).toEqual({ name: 'album', tab: 'wishlist' });
+    expect(parseRoute('#/import')).toEqual({ name: 'importAudio' });
+    expect(parseRoute(`#/collections/${id}`)).toEqual({ name: 'collection', id });
+    // Unknown or default parts stay out of the address, and a malformed outing is ignored.
+    expect(parseRoute('#/log?tab=everything&kind=walk')).toEqual({ name: 'log' });
+    expect(parseRoute('#/log?tab=outings&kind=all')).toEqual({ name: 'log', tab: 'outings' });
+    expect(parseRoute('#/guide?tab=album')).toEqual({ name: 'album' });
+    expect(parseRoute('#/observations?outing=x')).toEqual({ name: 'observations' });
+    expect(sectionOf({ name: 'importAudio' })).toBe('listen');
+    expect(sectionOf({ name: 'assistant' })).toBe('assistant');
+    expect(sectionOf({ name: 'settings' })).toBeNull();
     expect(sectionOf({ name: 'species', species: 'Turdus fuscater' })).toBe('guide');
     expect(parseRoute('#/log/album')).toEqual({ name: 'album' });
     // Links from before S7 and malformed species names still land somewhere sensible.
@@ -40,7 +58,8 @@ describe('routes', () => {
   it('opens only the home page, the way in and the guide without an account (ADR-45)', () => {
     const open: Route[] = [{ name: 'home' }, { name: 'signIn' }, { name: 'signUp' }, { name: 'album' }, { name: 'species', species: 'Turdus fuscater' }, { name: 'notFound' }];
     const own: Route[] = [{ name: 'listen' }, { name: 'log' }, { name: 'detection', id }, { name: 'map' }, { name: 'map', species: 'Turdus fuscater' },
-      { name: 'sites' }, { name: 'site', id }, { name: 'account' }, { name: 'settings' }, { name: 'walks' }, { name: 'walk', id }];
+      { name: 'sites' }, { name: 'site', id }, { name: 'account' }, { name: 'settings' }, { name: 'log', tab: 'outings' }, { name: 'walk', id },
+      { name: 'assistant' }, { name: 'importAudio' }, { name: 'collection', id }];
     expect(open.every(isPublicRoute)).toBe(true);
     expect(own.some(isPublicRoute)).toBe(false);
   });

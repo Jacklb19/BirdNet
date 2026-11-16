@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { routeHash } from '../../app/routes';
+import type { SettingsSection } from '../../app/routes';
 import { LOCALES, isLocale, useI18n } from '../../i18n';
 import { ListGroup, ListRow } from '../../shared/ui/ListGroup';
 import { Notice } from '../../shared/ui/Notice';
@@ -21,7 +21,7 @@ import { WalkSettings } from './WalkSettings';
 import './SettingsPage.css';
 
 /** Settings: what may leave the phone, the recordings and the walks, appearance and language first; the model and local space under technical options; credits last. */
-export default function SettingsPage(): React.JSX.Element {
+export default function SettingsPage({ section }: { readonly section: SettingsSection | null }): React.JSX.Element {
   const { dict, locale, setLocale } = useI18n();
   const texts = dict.settings;
   const { preference, setTheme } = useTheme();
@@ -39,10 +39,13 @@ export default function SettingsPage(): React.JSX.Element {
     group?.scrollIntoView({ block: 'start' });
     group?.focus({ preventScroll: true });
   }, []);
+  // The avatar's "Credits" opens Settings at its last group (ADR-47).
+  const creditsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (section === 'credits') creditsRef.current?.scrollIntoView({ block: 'start' }); }, [section]);
 
   return (
     <Page width="narrow">
-      <PageHeader title={texts.title} back={{ href: routeHash({ name: 'account' }), label: texts.back }} />
+      <PageHeader title={texts.title} />
 
       {offline.error && <Notice tone="error">{texts.saveError}</Notice>}
 
@@ -76,14 +79,17 @@ export default function SettingsPage(): React.JSX.Element {
         </div>
       </details>
 
-      <ListGroup title={texts.credits.title}>
-        <ListRow label={texts.credits.model} description={texts.credits.modelDetail} />
-        <ListRow label={texts.credits.preview} description={texts.credits.previewDetail} />
-        <ListRow label={texts.credits.names} description={texts.credits.namesDetail} />
-        <ListRow label={texts.credits.photos} description={texts.credits.photosDetail} />
-        <ListRow label={texts.credits.range} description={texts.credits.rangeDetail} />
-        <ListRow label={texts.credits.sounds} description={texts.credits.soundsDetail} />
-      </ListGroup>
+      <div ref={creditsRef} className="bn-settings-credits">
+        <ListGroup title={texts.credits.title}>
+          <ListRow label={texts.credits.model} description={texts.credits.modelDetail} />
+          <ListRow label={texts.credits.preview} description={texts.credits.previewDetail} />
+          <ListRow label={texts.credits.names} description={texts.credits.namesDetail} />
+          <ListRow label={texts.credits.photos} description={texts.credits.photosDetail} />
+          <ListRow label={texts.credits.range} description={texts.credits.rangeDetail} />
+          <ListRow label={texts.credits.sounds} description={texts.credits.soundsDetail} />
+          <ListRow label={texts.credits.writer} description={texts.credits.writerDetail} />
+        </ListGroup>
+      </div>
 
     </Page>
   );

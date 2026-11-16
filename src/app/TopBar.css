@@ -1,5 +1,4 @@
-/* Phones reach settings from the menu and keep the live player above the tab bar, so the bar stays short. */
-.bn-topbar__settings,
+/* Phones keep the live player above the tab bar, so the bar stays short. */
 .bn-sitebar .bn-live--chip {
   display: none;
 }
@@ -7,27 +6,5 @@
 @media (min-width: 64rem) {
   .bn-sitebar .bn-live--chip {
     display: flex;
-  }
-
-  .bn-topbar__settings {
-    display: inline-flex;
-    width: var(--touch-min);
-    height: var(--touch-min);
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--radius-pill);
-    color: var(--color-text-primary);
-  }
-
-  .bn-topbar__settings[aria-current='page'] {
-    background: var(--color-bg-surface);
-    box-shadow: var(--shadow-raised);
-  }
-}
-
-@media (min-width: 64rem) and (hover: hover) {
-  .bn-topbar__settings:hover {
-    background: var(--color-bg-surface);
   }
 }

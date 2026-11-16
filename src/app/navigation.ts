@@ -12,18 +12,13 @@ export interface NavItem {
 const item = (section: Section, route: Route, icon: IconName): NavItem => ({ section, href: routeHash(route), icon });
 
 /**
- * Top-level sections in display order (tab bar on phones, the bar on wide screens). Places open from the map, where
- * they belong since songs are pinned to the walk (ADR-22), and with walks from the menu (ADR-44).
+ * The five destinations of the app (ADR-47), in the phone's tab bar and in the bar on wide screens. Places open from
+ * the map and walks from the log's outings; the account, the settings and the credits from the avatar.
  */
 export const NAV_ITEMS: readonly NavItem[] = Object.freeze([
   item('listen', { name: 'listen' }, 'listen'),
   item('map', { name: 'map' }, 'map'),
   item('guide', { name: 'album' }, 'book'),
   item('log', { name: 'log' }, 'log'),
-  item('account', { name: 'account' }, 'account'),
+  item('assistant', { name: 'assistant' }, 'chat'),
 ]);
-
-/** The sections written in the bar; the account is reached from the session's corner of it, not from these links. */
-export const TOP_BAR_ITEMS: readonly NavItem[] = NAV_ITEMS.filter((entry) => entry.section !== 'account');
-
-

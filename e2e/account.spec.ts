@@ -157,7 +157,7 @@ test('without a session every screen of the app shows the way in, and signing in
     else await route.fulfill({ status: 404, json: { message: 'Not part of the e2e double' } });
   });
 
-  for (const route of [{ name: 'listen' }, { name: 'map' }, { name: 'log' }, { name: 'settings' }, { name: 'account' }, { name: 'walks' }] as const) {
+  for (const route of [{ name: 'listen' }, { name: 'map' }, { name: 'log' }, { name: 'settings' }, { name: 'account' }, { name: 'assistant' }] as const) {
     await page.goto(`/${routeHash(route)}`);
     await expect(page.getByRole('heading', { level: 1, name: entrance.title })).toBeVisible();
     await expect(page.getByText(entrance.requested(texts.app.screens[route.name]))).toBeVisible();
