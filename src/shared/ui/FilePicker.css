@@ -4,6 +4,15 @@
   gap: var(--space-2);
 }
 
+/* Stays hidden inside forms whose own rules size every input (a form's `input { width: 100% }` would widen the page). */
+.bn-file-picker .bn-file-picker__input {
+  width: 1px;
+  min-height: 0;
+  height: 1px;
+  padding: 0;
+  border: 0;
+}
+
 .bn-file-picker__label {
   font-weight: var(--font-weight-semibold);
 }
