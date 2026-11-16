@@ -28,15 +28,17 @@ function CollectionForm({ row, state }: { readonly row?: EntityRecord<'collectio
 function CollectionItems({ row, state }: { readonly row: EntityRecord<'collection'>; readonly state: JournalState }): React.JSX.Element {
   const { locale } = useI18n(); const t = journalMessages[locale]; const names = useSpeciesNames(); const records = useLogRecords().everything;
   const [search, setSearch] = useState(''); const [record, setRecord] = useState('');
+  const [candidateLimit, setCandidateLimit] = useState(JOURNAL_PAGE_SIZE);
   const candidates = useMemo(() => [
     ...(records ?? []).map((entry) => ({ id: entry.id, species: entry.species, kind: 'detection' as const, at: entry.recordedAt })),
     ...state.entities.filter((entry) => entry.kind === 'observation' && !entry.deleted).flatMap((entry) => entry.kind === 'observation' ? [{ id: entry.id, species: entry.data.species, kind: 'observation' as const, at: Date.parse(entry.data.observed_at) }] : []),
-  ].filter((entry) => `${entry.species} ${commonName(names, entry.species, locale)}`.toLocaleLowerCase(locale).includes(search.toLocaleLowerCase(locale))).sort((a, b) => b.at - a.at).slice(0, JOURNAL_PAGE_SIZE), [records, state.entities, search, names, locale]);
+  ].filter((entry) => `${entry.species} ${commonName(names, entry.species, locale)}`.toLocaleLowerCase(locale).includes(search.toLocaleLowerCase(locale))).sort((a, b) => b.at - a.at || a.id.localeCompare(b.id)), [records, state.entities, search, names, locale]);
   const links = state.relations.filter((entry) => entry.kind === 'collectionItem' && entry.parent === row.id && entry.present);
   return <><form className="bn-journal__form" onSubmit={(event) => { event.preventDefault(); const candidate = candidates.find((entry) => `${entry.kind}:${entry.id}` === record); if (!candidate) return;
     void state.run(() => setRelation(row.owner, 'collectionItem', row.id, candidate.id, true, candidate.kind));
-  }}><label>{t.chooseSpecies}<input type="search" value={search} onChange={(event) => { setSearch(event.target.value); }} /></label>
-    <label>{t.record}<select required value={record} onChange={(event) => { setRecord(event.target.value); }}><option value="">{t.none}</option>{candidates.map((entry) => <option key={`${entry.kind}:${entry.id}`} value={`${entry.kind}:${entry.id}`}>{commonName(names, entry.species, locale)} · {entry.kind === 'detection' ? t.detection : t.manual} · {new Date(entry.at).toLocaleString(locale)}</option>)}</select></label>
+  }}><label>{t.chooseSpecies}<input type="search" value={search} onChange={(event) => { setSearch(event.target.value); setRecord(''); setCandidateLimit(JOURNAL_PAGE_SIZE); }} /></label>
+    <label>{t.record}<select required value={record} onChange={(event) => { setRecord(event.target.value); }}><option value="">{t.none}</option>{candidates.slice(0, candidateLimit).map((entry) => <option key={`${entry.kind}:${entry.id}`} value={`${entry.kind}:${entry.id}`}>{commonName(names, entry.species, locale)} · {entry.kind === 'detection' ? t.detection : t.manual} · {new Date(entry.at).toLocaleString(locale)}</option>)}</select></label>
+    {candidates.length > candidateLimit && <Button variant="secondary" onClick={() => { setCandidateLimit((value) => value + JOURNAL_PAGE_SIZE); }}>{t.showMore}</Button>}
     <Button type="submit" disabled={state.busy || !record}>{t.add}</Button></form>
     <ul className="bn-journal__list">{links.map((link) => {
       const candidate = candidates.find((entry) => entry.id === link.recordId && entry.kind === link.recordKind);

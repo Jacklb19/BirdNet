@@ -65,6 +65,33 @@ test.describe('private journal API integration', () => {
     }, { owner: session.userId, other });
     expect(remaining).toEqual({ own: 0, other: 1, ownPhoto: false, otherPhoto: true });
   });
+  test('a collection can include an observation beyond the first page of the same species', async ({ page }) => {
+    const session = await signedIn(page); const headers = bearer(session); const collection = randomUUID();
+    const observations = Array.from({ length: 21 }, () => randomUUID());
+    expect((await page.request.put(`${API_PROXY_PREFIX}/v1/collections/${collection}`, { headers, data: { expected_version: null, name: 'Older observations', note: null } })).ok()).toBe(true);
+    try {
+      for (const [index, id] of observations.entries()) expect((await page.request.put(`${API_PROXY_PREFIX}/v1/observations/${id}`, { headers, data: {
+        expected_version: null, species: 'Colibri coruscans', observed_at: new Date(Date.UTC(2027, 0, 1, 12, index)).toISOString(), location: null, individuals: 1, note: null, outing_id: null,
+      } })).ok()).toBe(true);
+      await page.goto(`/#/collections/${collection}`); await checks(page, session);
+      await page.getByRole('searchbox').fill('Colibri coruscans');
+      const picker = page.getByRole('combobox', { name: t.record, exact: true }); const oldest = observations[0] ?? '';
+      await expect(picker.locator('option[value^="observation:"]')).toHaveCount(20);
+      await expect(picker.locator(`option[value="observation:${oldest}"]`)).toHaveCount(0);
+      await picker.locator('..').locator('..').getByRole('button', { name: t.showMore, exact: true }).click();
+      await picker.selectOption(`observation:${oldest}`);
+      await page.getByRole('button', { name: t.add, exact: true }).click();
+      await expect(page.locator(`a[href="#/observations/${oldest}"]`).first()).toBeVisible();
+      // This describe blocks service workers; flush the real outbox explicitly, as in its other integration cases.
+      await page.evaluate((owner) => window.offlineChecks.synchronizeJournal(owner), session.userId);
+      const response = await page.request.get(`${API_PROXY_PREFIX}/v1/collections/${collection}/items`, { headers });
+      const body = await response.json() as { items: { id: string }[] };
+      expect(body.items.some((item) => item.id === oldest)).toBe(true);
+    } finally {
+      await page.request.delete(`${API_PROXY_PREFIX}/v1/collections/${collection}?expected_version=1`, { headers });
+      for (const id of observations) await page.request.delete(`${API_PROXY_PREFIX}/v1/observations/${id}?expected_version=1`, { headers });
+    }
+  });
   test('a visual photo is recoded locally while only its explicit metadata reaches the API', async ({ page }) => {
     const session = await signedIn(page); await page.goto('/#/observations'); await checks(page, session);
     await page.getByLabel(t.species, { exact: true }).fill('Turdus fuscater'); await page.getByLabel(t.note, { exact: true }).fill('Photo observation');
