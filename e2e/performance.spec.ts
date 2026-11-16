@@ -49,8 +49,9 @@ test('signing out stops every microphone track before leaving the account', asyn
   const start = page.getByRole('button', { name: texts.listen.record.start });
   await expect(start).toBeEnabled({ timeout: MODEL_READY_TIMEOUT_MS });
   await start.click();
+  // Starting also loads the cached model into its worker; use the existing model-readiness budget for that phase.
   await expect.poll(() => page.evaluate(() => (window as unknown as { captureStreams: MediaStream[] }).captureStreams
-    .flatMap((stream) => stream.getTracks()).some((track) => track.readyState === 'live'))).toBe(true);
+    .flatMap((stream) => stream.getTracks()).some((track) => track.readyState === 'live')), { timeout: MODEL_READY_TIMEOUT_MS }).toBe(true);
   await page.goto(`/${routeHash({ name: 'account' })}`);
   await page.getByRole('button', { name: texts.account.signOut, exact: true }).click();
   await expect.poll(() => page.evaluate(() => (window as unknown as { captureStreams: MediaStream[] }).captureStreams
