@@ -7,6 +7,7 @@ import { Notice } from '../../shared/ui/Notice';
 import { Page } from '../../shared/ui/Page';
 import { PageHeader } from '../../shared/ui/PageHeader';
 import { ShareChoiceCard } from '../account/ShareChoiceCard';
+import { WishlistNotice } from '../journal/WishlistNotice';
 import { useOfflineSettings } from '../offline/useOfflineSettings';
 import { useModel } from '../offline/useModel';
 import { useSites } from '../sites/useSites';
@@ -27,6 +28,8 @@ import { SingingPlate } from './SingingPlate';
 import { SitePicker } from './SitePicker';
 import { WalkInvite } from './WalkInvite';
 import './ListenPage.css';
+import { useImportActive } from '../imports/importActivity';
+import { importMessages } from '../imports/i18n';
 
 type AnnouncedPhase = Extract<SessionPhase, 'preparingModel' | 'waitingMicrophone' | 'listening'>;
 
@@ -47,6 +50,7 @@ export default function ListenPage(): React.JSX.Element {
   const { settings, update } = useOfflineSettings();
   const [locationFailed, setLocationFailed] = useState(false);
   const isDesktop = useIsDesktop();
+  const importing = useImportActive();
   const { species, active, startedAt, sessionError, regionSpecies, tooSlowForTwo } = session;
   const phase = sessionPhase(session);
   const siteName = sites.active?.name ?? null;
@@ -63,9 +67,10 @@ export default function ListenPage(): React.JSX.Element {
   const announcement = status && species.length > 0 ? t.announce.withCount(status, count) : status;
 
   const blocker = startBlocker(model.state);
+  const blockedReason = importing ? importMessages[locale].busy : blocker ? t.record[blocker] : null;
   const record = (
     <RecordButton variant={isDesktop ? 'inline' : 'large'} active={active} startedAt={startedAt}
-      blockedReason={blocker ? t.record[blocker] : null}
+      blockedReason={blockedReason}
       onStart={() => { void session.start(); }} onStop={() => { void session.stop(); }} />
   );
   const picker = <SitePicker sites={sites.sites} ready={sites.ready} activeId={sites.active?.id ?? null} onSelect={sites.select} />;
@@ -82,6 +87,7 @@ export default function ListenPage(): React.JSX.Element {
 
       {sessionError !== null && showsSessionError(sessionError, model.state) && <SessionErrorNotice error={sessionError} />}
       <ModelNotice model={model} active={active} />
+      <WishlistNotice />
       {tooSlowForTwo && <Notice tone="info" live>{t.tooSlowForTwo}</Notice>}
       <div className="bn-listen__stage">
         <div className="bn-listen__main">
@@ -101,7 +107,7 @@ export default function ListenPage(): React.JSX.Element {
               for, and nothing is shared until it is answered (ADR-22, ADR-44). Account asks it first. */}
           {!active && <ShareChoiceCard />}
           {active && <PocketInvite />}
-          {!active && <WalkInvite blockedReason={blocker ? t.record[blocker] : null} />}
+          {!active && <WalkInvite blockedReason={blockedReason} />}
           {species.length === 0 && <RecentAlbum />}
           {!active && <LikelyBirds />}
           <PrivacyNote />

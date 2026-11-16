@@ -8,6 +8,7 @@ import { Icon } from '../../shared/ui/Icon';
 import { Page } from '../../shared/ui/Page';
 import { Segmented } from '../../shared/ui/Segmented';
 import { useAccountContext } from '../account/accountContext';
+import { WishButton } from '../journal/WishlistPage';
 import { AccountRecordingButton } from '../recordings/AccountRecordingButton';
 import { useLocalRecordingUsage } from '../recordings/useRecordings';
 import { formatConfidence, formatDayTime, formatTime } from '../log/logFormat';
@@ -163,6 +164,7 @@ export default function SpeciesPage({ species }: { readonly species: string }): 
       </a>
       <SpeciesPlate scientificName={species} name={name} headingLevel={1} notes={notes} drop
         eyebrow={<><Icon name="book" size="s" />{texts.eyebrow}</>} />
+      {signedIn && <WishButton key={`${account.identity.userId}:${species}`} species={species} />}
 
       {signedIn && (
 

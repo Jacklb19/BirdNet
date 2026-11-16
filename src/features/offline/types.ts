@@ -15,6 +15,7 @@ export interface StoredDetection {
   bytes: number;
   /** Monitoring site chosen when the window was captured; absent on records from before sites existed. */
   siteId?: string | null;
+  outingId?: string | null;
 }
 /** Lightweight record kept after the server acknowledged a detection, so the log survives synchronization. */
 export interface HistoryEntry {
@@ -25,6 +26,7 @@ export interface HistoryEntry {
   recorded_at: string;
   siteId: string | null;
   syncedAt: string;
+  outingId?: string | null;
   /** Cell the song was filed under, kept so the person's own map works without the server; absent on entries from before S8. */
   location?: ApproximateLocation | null;
   /**
@@ -96,9 +98,14 @@ export interface OfflineSettings {
 }
 export interface QueueStats { count: number; bytes: number; waitingLocation: number; waitingAccount: number }
 export interface PersistenceContext {
-  recordedAt: string;
+  recordedAt: string | null;
+  outingId?: string | null;
+  historical?: boolean;
+  store?: boolean;
   location: ApproximateLocation | null;
   modelVersion: string;
+  /** The account that started capture; absent only on legacy callers and test fixtures. */
+  owner?: string | null;
 }
 export interface ModelDownloadState {
   status: 'missing' | 'downloading' | 'cached' | 'error';

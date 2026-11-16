@@ -24,6 +24,7 @@ import { LogSummary } from './LogSummary';
 import { LogSyncNotice } from './LogSyncNotice';
 import { useLogRecords } from './useLogRecords';
 import './LogPage.css';
+import { JournalLinks } from '../journal/JournalParts';
 
 /** Site filter of the log: every record, one site, or the records without a site. */
 const ALL_SITES = 'all';
@@ -71,6 +72,7 @@ export default function LogPage(): React.JSX.Element {
       {/* Wide screens have no menu: the walks are reached from here, whatever the log holds (ADR-44). */}
       <PageHeader title={dict.log.title} subtitle={subtitle}
         actions={isDesktop ? <Button variant="quiet" icon="walk" href={routeHash({ name: 'walks' })}>{dict.log.empty.walks}</Button> : undefined} />
+      <JournalLinks />
       {error && (
         <Notice tone="error" action={<Button variant="quiet" onClick={reload}>{dict.common.actions.retry}</Button>}>{dict.log.loadError}</Notice>
       )}

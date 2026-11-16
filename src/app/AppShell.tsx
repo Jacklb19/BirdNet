@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef } from 'react';
+import { Suspense, lazy, useEffect, useRef, type ReactNode } from 'react';
 import { useI18n } from '../i18n';
 import { useAccountContext } from '../features/account/accountContext';
 import { useListening } from '../features/listen/listeningContext';
@@ -20,6 +20,11 @@ import './AppShell.css';
 
 const HomePage = lazy(() => import('../features/home/HomePage'));
 const EntrancePage = lazy(() => import('../features/account/EntrancePage'));
+
+/** Mounted inside Suspense, so the entrance starts when the screen's code is ready. */
+function ScreenEntrance({ children }: { readonly children: ReactNode }): React.JSX.Element {
+  return <div className="bn-screen-entrance">{children}</div>;
+}
 
 function useDocumentMetadata(title: string, description: string): void {
   useEffect(() => {
@@ -54,7 +59,7 @@ export function AppShell(): React.JSX.Element {
   // A new screen takes the focus to its heading, so the keyboard and screen readers start there instead of in the
   // bar (audit F08). Not on the first screen of a visit, nor when only the query of the same screen changes.
   // Signing in replaces the way in with the screen that was asked for, at the same address: that is a new screen too.
-  const screenKey = `${'id' in route ? `${route.name}:${route.id}` : route.name}:${signedIn ? 'in' : 'out'}`;
+  const screenKey = `${route.name}:${'id' in route ? route.id ?? '' : 'species' in route ? route.species ?? '' : ''}:${signedIn ? 'in' : 'out'}`;
   const firstScreen = useRef(true);
   useEffect(() => {
     if (firstScreen.current) { firstScreen.current = false; return; }
@@ -106,7 +111,7 @@ export function AppShell(): React.JSX.Element {
   if (route.name === 'home') {
     return (
       <main id="main" className="bn-shell__home">
-        {withTexts(<Suspense fallback={loading}><HomePage /></Suspense>)}
+        {withTexts(<Suspense fallback={loading}><ScreenEntrance key={screenKey}><HomePage /></ScreenEntrance></Suspense>)}
       </main>
     );
   }
@@ -125,7 +130,7 @@ export function AppShell(): React.JSX.Element {
         <PublicBar route={titled} />
         <main id="main" ref={mainRef} tabIndex={-1} className="bn-shell__main">
           <PageErrorBoundary key={titled} message={dict.app.pageError} actionLabel={dict.app.reload}>
-            {withTexts(<Suspense fallback={loading}>{page}</Suspense>)}
+            {withTexts(<Suspense fallback={loading}><ScreenEntrance key={screenKey}>{page}</ScreenEntrance></Suspense>)}
           </PageErrorBoundary>
         </main>
       </div>
@@ -153,7 +158,7 @@ export function AppShell(): React.JSX.Element {
           )}
           <PageErrorBoundary key={route.name} message={dict.app.pageError} actionLabel={dict.app.reload}>
             {/* The way in leads to Listen once signed in (above); until the address changes there is nothing to show. */}
-            {route.name === 'signIn' || route.name === 'signUp' ? loading : withTexts(<Suspense fallback={loading}><RoutePage route={route} /></Suspense>)}
+            {route.name === 'signIn' || route.name === 'signUp' ? loading : withTexts(<Suspense fallback={loading}><ScreenEntrance key={screenKey}><RoutePage route={route} /></ScreenEntrance></Suspense>)}
           </PageErrorBoundary>
         </main>
         {player && <LivePlayer variant="bar" />}

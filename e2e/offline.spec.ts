@@ -87,6 +87,26 @@ test('response loss after commit retains queue; retry against PostgreSQL produce
   expect(after.detections - before.detections).toBe(3);
 });
 
+test('a large local history remains readable and clip listings omit audio blobs', async ({ page }) => {
+  await ready(page);
+  const measurement = await page.evaluate(async () => {
+    await window.offlineChecks.seedWindow(5000);
+    const records = await window.offlineChecks.listDetections();
+    await window.offlineChecks.acknowledge(records.map((row) => row.id));
+    const started = performance.now();
+    const history = await window.offlineChecks.listHistory();
+    const historyMs = performance.now() - started;
+    await window.offlineChecks.seedRelated(records[0]?.id ?? '');
+    const clips = await window.offlineChecks.listRecordings();
+    return { rows: history.length, historyMs: Math.round(historyMs), clips: clips.length, retainsBlob: clips.some((row) => 'blob' in row) };
+  });
+  expect(measurement.rows).toBe(5000);
+  expect(measurement.clips).toBe(1);
+  expect(measurement.retainsBlob).toBe(false);
+  test.info().annotations.push({ type: 'measurement', description: JSON.stringify(measurement) });
+  fs.writeFileSync(test.info().outputPath('local-history.json'), JSON.stringify(measurement));
+});
+
 test('a walk goes to the account only with the permission, once, and is marked saved only with the answer', async ({ page }) => {
   await ready(page);
   const id = await page.evaluate(async () => { await window.offlineChecks.bind(); return window.offlineChecks.seedWalk(); });
@@ -169,10 +189,15 @@ test('deleting an account forgets its records on the phone and keeps those of an
   const other = '00000000-0000-4000-8000-0000000000ff';
   const foreign = await page.evaluate(async (owner) => {
     const kept = await window.offlineChecks.seedForeign(owner);
+    await window.offlineChecks.seedRelated(kept);
+    await window.offlineChecks.acknowledge([kept]);
     // Records of the account, records that had none, and the account's walk: all of them go.
     await window.offlineChecks.seed(1);
     await window.offlineChecks.bind(false);
     await window.offlineChecks.seed(2);
+    const owned = (await window.offlineChecks.listDetections()).find((record) => record.owner && record.owner !== owner);
+    if (!owned) throw new Error('The account has no test record.');
+    await window.offlineChecks.seedRelated(owned.id);
     await window.offlineChecks.seedWalk();
     await window.offlineChecks.updateSettings({ saveWalks: true, shareMap: true });
     return kept;
@@ -182,10 +207,18 @@ test('deleting an account forgets its records on the phone and keeps those of an
   await page.evaluate((userId) => window.offlineChecks.forgetAccountOnPhone(userId), owner ?? '');
   const left = await page.evaluate(async () => ({
     records: (await window.offlineChecks.listDetections()).map((row) => ({ id: row.id, owner: row.owner })),
+    history: (await window.offlineChecks.listHistory()).map((row) => ({ id: row.id, owner: row.owner })),
+    notes: (await window.offlineChecks.listNotes()).map((row) => row.id),
+    reviews: (await window.offlineChecks.listReviews()).map((row) => row.id),
+    recordings: (await window.offlineChecks.listRecordings()).map((row) => row.id),
     walks: (await window.offlineChecks.listWalks()).length,
     settings: await window.offlineChecks.getSettings(),
   }));
-  expect(left.records).toEqual([{ id: foreign, owner: other }]);
+  expect(left.records).toEqual([]);
+  expect(left.history).toEqual([{ id: foreign, owner: other }]);
+  expect(left.notes).toEqual([foreign]);
+  expect(left.reviews).toEqual([foreign]);
+  expect(left.recordings).toEqual([foreign]);
   expect(left.walks).toBe(0);
   expect(left.settings.session).toBeNull();
   expect(left.settings.saveWalks).toBeUndefined();

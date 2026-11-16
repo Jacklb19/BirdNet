@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import { routeHash } from '../../app/routes';
+import { AccountDataNotice } from '../../shared/AccountDataNotice';
 import { DEFAULT_PERIOD, type Period } from '../../config/contract';
 import { useIsDesktop } from '../../config/layout';
 import { useI18n } from '../../i18n';
@@ -66,6 +67,8 @@ function MapScreen({ initialSpecies }: { readonly initialSpecies: string | null 
   const own = useWalkData();
   const accountWalks = useAccountWalkPaths(token, session?.user.id ?? null, online);
   const accountSongs = useAccountSongs(token, session?.user.id ?? null, online);
+  const accountStatus = accountWalks.status === 'error' || accountSongs.status === 'error' ? 'error'
+    : accountWalks.status === 'loading' || accountSongs.status === 'loading' ? 'loading' : accountSongs.status;
   const isDesktop = useIsDesktop();
   const [map, setMap] = useState<MapLibreMap | null>(null);
   // A species card opens the map already filtered to its species (`#/map?species=…`).
@@ -100,14 +103,14 @@ function MapScreen({ initialSpecies }: { readonly initialSpecies: string | null 
   const shown = enabled ? result : null;
 
   const view = useMemo(
-    () => ownMap(own.pins ?? [], own.walks, { species, walking: walk.walking }, accountWalks, accountSongs),
-    [own.pins, own.walks, species, walk.walking, accountWalks, accountSongs],
+    () => ownMap(own.pins ?? [], own.walks, { species, walking: walk.walking }, accountWalks.data, accountSongs.data),
+    [own.pins, own.walks, species, walk.walking, accountWalks.data, accountSongs.data],
   );
   // Walks and distance count every path drawn, those of the account too; songs are the ones this phone holds.
   const totals = useMemo(() => {
     const onPhone = new Set(own.walks.map((stored) => stored.id));
-    return walkTotals([...own.walks, ...accountWalks.filter((path) => !onPhone.has(path.id))], own.pins ?? []);
-  }, [own.walks, own.pins, accountWalks]);
+    return walkTotals([...own.walks, ...accountWalks.data.filter((path) => !onPhone.has(path.id))], own.pins ?? []);
+  }, [own.walks, own.pins, accountWalks.data]);
   const overlayData = useMemo<WalkOverlay>(() => (mine ? {
     tracks: walk.walking ? [...view.tracks, walk.track] : view.tracks,
     territories: territoriesOn ? territories(view.result.detections, TERRITORY_HEX_METERS) : [],
@@ -116,9 +119,9 @@ function MapScreen({ initialSpecies }: { readonly initialSpecies: string | null 
   // Opens on what the person has covered, once: after that the camera is theirs.
   useEffect(() => {
     if (!map || framed.current || !mine || walk.walking || own.pins === null) return;
-    framed.current = true;
     const extent = ownExtent(view);
     if (!extent) return;
+    framed.current = true;
     const hidden = covered();
     map.fitBounds(extent, {
       padding: { top: MAP_OWN_FIT.paddingPx, left: MAP_OWN_FIT.paddingPx, right: hidden.right + MAP_OWN_FIT.paddingPx, bottom: hidden.bottom + MAP_OWN_FIT.paddingPx },
@@ -210,7 +213,13 @@ function MapScreen({ initialSpecies }: { readonly initialSpecies: string | null 
         control={locate.supported ? <LocateButton busy={locate.busy} onLocate={centre} /> : null} />
       {mine ? (
         <WalkPanel ref={sheetRef} result={own.pins === null ? null : view.result} totals={totals} territoriesShown={territoriesOn}
-          loadError={own.error} expanded={listExpanded} onExpandedChange={setListExpanded} />
+          loadError={own.error} expanded={listExpanded} onExpandedChange={setListExpanded}
+          accountStatus={accountStatus}
+          accountNotice={<AccountDataNotice resource={{
+            status: accountStatus,
+            limited: accountWalks.limited || accountSongs.limited,
+            retry: () => { accountWalks.retry(); accountSongs.retry(); },
+          }} />} />
       ) : (
         <MapSheet ref={sheetRef} mode={mode} result={shown} updating={mode === 'ready' && status === 'loading'}
           failure={failure} expanded={listExpanded} onExpandedChange={setListExpanded} onRetry={retryLoad} />

@@ -4,16 +4,16 @@ import { JSON_HEADERS } from '../offline/offline.constants';
 import { getSettings, listHistory } from '../offline/queueStore';
 import { isTrustedStorageUrl } from '../offline/trustedStorage';
 import type { OfflineSettings, SyncSession } from '../offline/types';
-import { listRecordings, markRecording } from './recordingStore';
+import { getRecording, listRecordings, markRecording } from './recordingStore';
 import { RECORDING_MAX_UPLOAD_BYTES, RECORDING_MIME_TYPE, recordingObjectPath, SONG_MAX_MS } from './recordings.config';
 import type { StoredRecording } from './types';
 
 const HTTP_NOT_FOUND = 404;
 const HTTP_UNPROCESSABLE = 422;
 const HTTP_INSUFFICIENT_STORAGE = 507;
+const HTTP_CONFLICT = 409;
+const HTTP_BAD_REQUEST = 400;
 const MILLISECONDS_PER_SECOND = 1000;
-/** Signed Storage uploads overwrite the same object, so a retry after a lost answer cannot fail. */
-const UPSERT_HEADERS = { 'x-upsert': 'true' } as const;
 
 /**
  * Whether the person's recordings go to their account (ADR-28). It is a choice they make explicitly: until they
@@ -37,6 +37,15 @@ function uploadAuthorization(result: unknown, expectedPath: string): URL {
   return uploadUrl;
 }
 
+async function alreadyStored(response: Response): Promise<boolean> {
+  if (response.status === HTTP_CONFLICT) return true;
+  if (response.status !== HTTP_BAD_REQUEST) return false;
+  const body: unknown = await response.json().catch(() => null);
+  if (!body || typeof body !== 'object') return false;
+  // Older Storage versions report duplicate objects as 400; other invalid requests must remain retryable.
+  return ('error' in body && body.error === 'Duplicate') || ('code' in body && (body.code === 'KeyAlreadyExists' || body.code === 'ResourceAlreadyExists'));
+}
+
 /** `full`: the account's quota is used up, so this clip and the rest wait. */
 async function upload(clip: StoredRecording, session: SyncSession): Promise<'uploaded' | 'rejected' | 'full'> {
   if (clip.bytes > RECORDING_MAX_UPLOAD_BYTES) return 'rejected';
@@ -47,8 +56,9 @@ async function upload(clip: StoredRecording, session: SyncSession): Promise<'upl
     });
     const uploadUrl = uploadAuthorization(await signed.json(), path);
     // The signed URL is the credential; the API token must not travel to Storage.
-    const sent = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': RECORDING_MIME_TYPE, ...UPSERT_HEADERS }, body: clip.blob, signal: AbortSignal.timeout(config.apiTimeoutMs) });
-    if (!sent.ok) throw new Error('Recording upload failed.');
+    const sent = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': RECORDING_MIME_TYPE }, body: clip.blob, signal: AbortSignal.timeout(config.apiTimeoutMs) });
+    // A lost answer can leave the immutable object in Storage. The API verifies it before accepting this retry.
+    if (!sent.ok && !await alreadyStored(sent)) throw new Error('Recording upload failed.');
     await apiFetch(API_ROUTES.detectionRecording(clip.id), { method: 'PUT', token: session.accessToken, headers: JSON_HEADERS, body: JSON.stringify({ recording_path: path }) });
     return 'uploaded';
   } catch (error) {
@@ -74,12 +84,14 @@ export function isSettled(clip: Pick<StoredRecording, 'recordedAt'>, now: number
  */
 export async function uploadRecordings(userId: string): Promise<void> {
   if (!uploadSession(await getSettings(), userId)) return;
-  const acknowledged = new Set((await listHistory()).map((entry) => entry.id));
+  const acknowledged = new Set((await listHistory()).filter((entry) => entry.owner === userId).map((entry) => entry.id));
   const now = Date.now();
   const clips = (await listRecordings()).filter((clip) => clip.upload === 'pending' && acknowledged.has(clip.id) && isSettled(clip, now));
-  for (const clip of clips) {
+  for (const pending of clips) {
     const session = uploadSession(await getSettings(), userId);
     if (!session) return;
+    const clip = await getRecording(pending.id);
+    if (!clip || clip.upload !== 'pending' || !isSettled(clip, now)) continue;
     const outcome = await upload(clip, session);
     if (outcome === 'full') return;
     await markRecording(clip.id, outcome);

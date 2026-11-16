@@ -104,6 +104,14 @@ Ajustes opcionales de la API (tiempos de espera, límites de resultados y export
 
 ## Desarrollo local
 
+### Beta del diario y asistentes (2026-11-15)
+
+Preparado en `dev`, sin aplicar cambios remotos. Antes de publicar la web, el dueño aplica `backend/supabase/migrations/20261114010000_private_field_journal.sql` en el SQL Editor y publica la API `a9753b436524a630acf8c0826c9bbc28f47ca6de` o una revisión posterior compatible. La migración del índice del mapa de la auditoría (`20261114000000_map_geometry_index.sql`) también sigue pendiente si no se aplicó. No modificar migraciones anteriores. Comprobar RLS con una cuenta de prueba antes de fusionar la web.
+
+No hay variables nuevas obligatorias ni recursos de Storage para las fotos de observaciones: permanecen locales. Gemini conserva su clave y modelo solo en la API; no se añaden claves al cliente. `GET /v1/assistant/text-policy` requiere autenticación y devuelve la versión de aviso que la web debe comprobar antes de enviar texto. Revisar en AI Studio las cuotas efectivas de la cuenta; no se verificaron peticiones reales al proveedor durante estas pruebas.
+
+El workflow de navegador fija la API anterior y ejecuta `e2e/beta.spec.ts` además de las regresiones de cuentas/cola. Su fixture de interpretación sustituye al proveedor; la consulta confirmada, versiones, enlaces y RLS usan la API y PostGIS locales reales. CI excluye la prueba «real browser decoder»: necesita modelos y audio locales que no se versionan. Esa prueba se ejecuta localmente con los recursos ya preparados y usa el decodificador del navegador y ONNX reales sin conexión.
+
 - Web: `npm ci`, `npm run dev` (Vite reenvía `/api` a `API_PROXY_TARGET`, por defecto `http://127.0.0.1:8000`). En desarrollo no hay Service Worker: el modelo se carga directamente al empezar a escuchar.
 - API: ver el README del repositorio de la API (`uvicorn birdnet_api.app:app --port 8000`).
 - Verificación: `npm run lint`, `npm run typecheck`, `npm run test`, `npm run build`.

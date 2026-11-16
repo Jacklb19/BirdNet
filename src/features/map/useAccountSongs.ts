@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useAccountResource, type AccountResource } from '../../shared/useAccountResource';
 import { API_ROUTES, apiFetch } from '../../config/api';
 import { isDetectionStatus } from '../../config/contract';
 import { MAP_ACCOUNT_SONGS } from './map.config';
@@ -24,31 +24,24 @@ export function parseOwnSong(value: unknown): MapDetection | null {
  * their cell (before S8), or recorded on another phone. Kept in memory only; without a session or a connection the map
  * shows what the phone has.
  */
-export function useAccountSongs(token: string | null, userId: string | null, online: boolean): readonly MapDetection[] {
-  const [loaded, setLoaded] = useState<{ readonly userId: string; readonly songs: readonly MapDetection[] } | null>(null);
-  const known = loaded !== null && loaded.userId === userId;
+async function load(token: string, signal: AbortSignal): Promise<{ data: readonly MapDetection[]; limited: boolean }> {
+  const songs: MapDetection[] = [];
+  const params = new URLSearchParams();
+  const cursors = new Set<string>();
+  for (;;) {
+    const body = await (await apiFetch(API_ROUTES.meDetections, { token, params, signal })).json() as { detections?: unknown; has_more?: unknown };
+    if (!Array.isArray(body.detections) || typeof body.has_more !== 'boolean') throw new Error('Invalid songs of the account.');
+    const page = body.detections.map(parseOwnSong);
+    const last = page.at(-1);
+    songs.push(...page.filter((song): song is MapDetection => song !== null));
+    if (!body.has_more || songs.length >= MAP_ACCOUNT_SONGS) return { data: songs.slice(0, MAP_ACCOUNT_SONGS), limited: body.has_more || songs.length > MAP_ACCOUNT_SONGS };
+    if (!last || cursors.has(last.id)) throw new Error('Song pagination did not advance.');
+    cursors.add(last.id);
+    params.set('before', last.recorded_at);
+    params.set('after_id', last.id);
+  }
+}
 
-  useEffect(() => {
-    // Read once per account and visit; a token refresh alone does not read it again.
-    if (!token || !userId || !online || known) return;
-    const controller = new AbortController();
-    void (async () => {
-      const songs: MapDetection[] = [];
-      const params = new URLSearchParams();
-      for (;;) {
-        const body = await (await apiFetch(API_ROUTES.meDetections, { token, params, signal: controller.signal })).json() as { detections?: unknown; has_more?: unknown };
-        if (!Array.isArray(body.detections) || typeof body.has_more !== 'boolean') throw new Error('Invalid songs of the account.');
-        const page = body.detections.map(parseOwnSong);
-        const last = page.at(-1);
-        songs.push(...page.filter((song): song is MapDetection => song !== null));
-        if (!body.has_more || !last || songs.length >= MAP_ACCOUNT_SONGS) break;
-        params.set('before', last.recorded_at);
-        params.set('after_id', last.id);
-      }
-      setLoaded({ userId, songs: songs.slice(0, MAP_ACCOUNT_SONGS) });
-    })().catch(() => undefined);
-    return () => { controller.abort(); };
-  }, [token, userId, online, known]);
-
-  return known ? loaded.songs : NONE;
+export function useAccountSongs(token: string | null, userId: string | null, online: boolean): AccountResource<readonly MapDetection[]> {
+  return useAccountResource(token, userId, online, NONE, load);
 }

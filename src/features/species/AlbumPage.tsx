@@ -1,4 +1,5 @@
 import { useId, useMemo, useState } from 'react';
+import { AccountDataNotice } from '../../shared/AccountDataNotice';
 import { routeHash } from '../../app/routes';
 import { useIsDesktop } from '../../config/layout';
 import { formatBytes, formatCount, formatDate, formatNumber, formatPercent, formatRelativeTime, useI18n } from '../../i18n';
@@ -78,7 +79,7 @@ function OwnAlbum(): React.JSX.Element {
   const bookId = useId();
   const guideId = useId();
 
-  const entries = useMemo(() => albumEntries(records ?? [], cloud), [records, cloud]);
+  const entries = useMemo(() => albumEntries(records ?? [], cloud.data), [records, cloud.data]);
   // The region is the active place's, a saved one's or where the latest song was heard: the album never asks for the device position.
   const site = active ?? sites[0] ?? null;
   const place = useRegionPlace();
@@ -111,7 +112,8 @@ function OwnAlbum(): React.JSX.Element {
 
   return (
     <Page className="bn-album">
-      <PageHeader title={texts.title} subtitle={formatCount(texts.subtitle, entries.length, locale)} />
+      <PageHeader title={texts.title} subtitle={entries.length > 0 || cloud.status === 'ready' ? formatCount(texts.subtitle, entries.length, locale) : undefined} />
+      <AccountDataNotice resource={cloud} />
 
       <div className="bn-album__search">
         <label htmlFor={searchId} className="visually-hidden">{texts.search}</label>
@@ -123,9 +125,9 @@ function OwnAlbum(): React.JSX.Element {
       <section aria-labelledby={bookId}>
         <AlbumBook titleId={bookId}
           eyebrow={texts.book.page(formatNumber(view.page, locale), formatNumber(view.pages, locale))}
-          title={texts.book.onPage(formatNumber(foundOnPage, locale), formatNumber(view.slots.length, locale))}
+          title={view.slots.length > 0 || cloud.status === 'ready' ? texts.book.onPage(formatNumber(foundOnPage, locale), formatNumber(view.slots.length, locale)) : texts.title}
           slots={bookSlots} leaf={`${scope}:${String(view.page)}:${query}`}
-          empty={<p className="bn-album__muted">{query.trim() ? texts.noMatches : records === null ? dict.common.loading : texts.book.emptyScope[scope]}</p>}
+          empty={<p className="bn-album__muted">{query.trim() ? texts.noMatches : records === null || cloud.status === 'loading' ? dict.common.loading : cloud.status === 'ready' ? texts.book.emptyScope[scope] : dict.common.accountData[cloud.status === 'none' ? 'offline' : cloud.status]}</p>}
           tabsLabel={texts.book.scopeLabel}
           tabs={ALBUM_SCOPES.map((value) => ({
             key: value, label: texts.book.scopes[value], plumage: SCOPE_PLUMAGE[value], current: value === scope, onSelect: () => { changeScope(value); },
@@ -139,7 +141,7 @@ function OwnAlbum(): React.JSX.Element {
           right={isDesktop && selected ? <SelectedCard slot={selected} name={nameOf(selected)} now={readAt} /> : undefined} />
       </section>
 
-      {entries.length === 0 && records !== null && (
+      {entries.length === 0 && records !== null && cloud.status === 'ready' && (
         <Notice icon="album" title={texts.empty.title}
           action={<Button variant="quiet" href={routeHash({ name: 'listen' })} icon="listen">{texts.empty.action}</Button>}>
           {texts.empty.text}

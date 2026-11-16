@@ -1,3 +1,4 @@
+import { storeOutingDetections } from '../journal/outingSession';
 import * as ort from 'onnxruntime-web/wasm';
 import wasmUrl from 'onnxruntime-web/ort-wasm-simd-threaded.wasm?url';
 import wasmModuleUrl from 'onnxruntime-web/ort-wasm-simd-threaded.mjs?url';
@@ -64,9 +65,9 @@ function pooledScores(scores: WindowScores<number>, windowIndex: number, rule: P
  */
 async function regionFor(member: Member, persistence: InferRequest['persistence']): Promise<Uint8Array | null> {
   const { geo } = member;
-  if (!geo) return null;
+  if (!geo || (persistence?.historical && (!persistence.recordedAt || !persistence.location))) return null;
   try {
-    const location = recordingLocation(await getSettings(), persistence?.location ?? null);
+    const location = persistence?.historical ? persistence.location : recordingLocation(await getSettings(), persistence?.location ?? null);
     if (!location) return null;
     const week = birdnetWeek(new Date(persistence?.recordedAt ?? Date.now()));
     const key = `${String(location.latitude)},${String(location.longitude)},${String(week)}`;
@@ -216,9 +217,10 @@ async function infer(message: InferRequest): Promise<void> {
       pooledScores(averageScores(heard.map((result) => result.scores), positions, POOLING_SCORE_FLOOR), message.windowIndex, rule),
       message.topK ?? TOP_K, message.minConfidence ?? MIN_CANDIDATE_CONFIDENCE, labels,
     );
-    if (message.persistence) {
+    if (message.persistence && message.persistence.store !== false) {
       persistenceStarted = true;
       const stored = await persistDetections(applyDetectionPolicy(detections), message.persistence);
+      await storeOutingDetections(stored, message.persistence.outingId);
       persistenceStarted = false;
       // Not awaited: the clip is an extra, and neither its encoding nor a failure may hold back the result.
       keepSongClips(stored, message.audioBuffer);

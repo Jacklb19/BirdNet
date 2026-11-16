@@ -52,6 +52,7 @@ export const WRITING_TIMEOUT_MS = 60_000;
 
 /** Response header set by the export endpoint when the row cap was reached. */
 export const TRUNCATED_HEADER = 'X-Truncated';
+export const EXPORT_CURSOR_HEADERS = Object.freeze({ after: 'X-Next-After', id: 'X-Next-Id' });
 
 export function apiUrl(path: string, params?: URLSearchParams): string {
   const query = params?.toString();

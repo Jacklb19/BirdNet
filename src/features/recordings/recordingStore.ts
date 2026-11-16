@@ -5,6 +5,7 @@ import { RECORDINGS_DATABASE, RECORDINGS_STORE } from './recordings.config';
 import type { RecordingUpload, StoredRecording } from './types';
 
 const KEY_PATH = 'id' satisfies keyof StoredRecording;
+export type RecordingMetadata = Omit<StoredRecording, 'blob'>;
 
 function request<T>(operation: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -42,6 +43,22 @@ async function transact<T>(mode: IDBTransactionMode, action: (store: IDBObjectSt
   }
 }
 
+/** Iterate without retaining every audio Blob in memory; eviction and usage only need metadata. */
+function metadata(store: IDBObjectStore): Promise<RecordingMetadata[]> {
+  return new Promise((resolve, reject) => {
+    const rows: RecordingMetadata[] = [];
+    const operation = store.openCursor();
+    operation.onerror = () => { reject(operation.error ?? new Error('Recording metadata could not be read.')); };
+    operation.onsuccess = () => {
+      const cursor = operation.result;
+      if (!cursor) { resolve(rows); return; }
+      const { id, species, recordedAt, bytes, upload } = cursor.value as StoredRecording;
+      rows.push({ id, species, recordedAt, bytes, upload });
+      cursor.continue();
+    };
+  });
+}
+
 /**
  * Stores a clip, first dropping `replaces` (the clip the same song kept until now) and then the oldest clips
  * that no longer fit in `maxBytes`.
@@ -50,7 +67,7 @@ export async function saveRecording(recording: StoredRecording, maxBytes: number
   if (!isUuid(recording.id) || !Number.isFinite(Date.parse(recording.recordedAt)) || recording.bytes !== recording.blob.size || recording.bytes > maxBytes) throw new Error('Invalid recording.');
   await transact('readwrite', async (store) => {
     if (replaces) await request(store.delete(replaces));
-    const stored = (await request(store.getAll() as IDBRequest<StoredRecording[]>)).filter((clip) => clip.id !== recording.id);
+    const stored = (await metadata(store)).filter((clip) => clip.id !== recording.id);
     for (const id of clipsToEvict(stored, recording.bytes, maxBytes)) await request(store.delete(id));
     await request(store.put(recording));
   });
@@ -61,9 +78,9 @@ export async function getRecording(id: string): Promise<StoredRecording | undefi
   return transact('readonly', (store) => request(store.get(id) as IDBRequest<StoredRecording | undefined>));
 }
 
-/** Every clip kept on this phone, oldest first. */
-export async function listRecordings(): Promise<StoredRecording[]> {
-  const clips = await transact('readonly', (store) => request(store.getAll() as IDBRequest<StoredRecording[]>));
+/** Metadata of every clip on this phone, oldest first. Load a Blob only when playing or sending that clip. */
+export async function listRecordings(): Promise<RecordingMetadata[]> {
+  const clips = await transact('readonly', metadata);
   return clips.sort((left, right) => left.recordedAt.localeCompare(right.recordedAt));
 }
 
@@ -83,5 +100,15 @@ export async function deleteRecording(id: string): Promise<void> {
 
 export async function deleteAllRecordings(): Promise<void> {
   await transact('readwrite', (store) => request(store.clear()));
+  announceQueueChange(['recordings']);
+}
+
+/** Account cleanup retains the clips of every other account on this phone, including unsent ones. */
+export async function deleteRecordingsExcept(retained: ReadonlySet<string>): Promise<void> {
+  await transact('readwrite', async (store) => {
+    for (const id of await request(store.getAllKeys())) {
+      if (typeof id !== 'string' || !retained.has(id)) await request(store.delete(id));
+    }
+  });
   announceQueueChange(['recordings']);
 }

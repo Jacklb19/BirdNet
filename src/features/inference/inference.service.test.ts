@@ -316,6 +316,19 @@ describe('InferenceService', () => {
     expect(service.getManifest()).toBeNull();
   });
 
+  it('waits for the final persistence transaction before account cleanup continues', async () => {
+    const service = new InferenceService();
+    await service.loadModel();
+    let finished = false;
+    const disposal = service.disposeAndWait().then(() => { finished = true; });
+    await Promise.resolve();
+    expect(finished).toBe(false);
+    mockWorkerInstance.simulateMessage({ type: 'DISPOSED' });
+    await disposal;
+    expect(finished).toBe(true);
+    expect(mockWorkerInstance.terminate).toHaveBeenCalled();
+  });
+
   it('keeps only the latest pending inference and includes queue time in latency', async () => {
     const onWindowDropped = vi.fn();
     const onInferenceResult = vi.fn();

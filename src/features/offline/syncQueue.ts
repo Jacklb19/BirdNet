@@ -1,3 +1,4 @@
+import { synchronizeJournal } from '../journal/journalSync';
 import { API_ROUTES, apiFetch } from '../../config/api';
 import { SYNC_BATCH_SIZE } from '../../config/contract';
 import { acknowledgedIds, sharesMap } from './queuePolicy';
@@ -50,6 +51,7 @@ export async function synchronizeQueue(): Promise<void> {
     await uploadRecordings(session.userId);
     // A walk only needs its own path; its songs are counted from the detections whenever it is read.
     await uploadWalks(session.userId);
+    await synchronizeJournal(session.userId);
   };
   if ('locks' in navigator) await navigator.locks.request(SYNC_LOCK_NAME, run);
   else await run();

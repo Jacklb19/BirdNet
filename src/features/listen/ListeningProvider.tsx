@@ -1,4 +1,7 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { beginOuting, endOuting } from '../journal/outingSession';
+import { importIsActive } from '../imports/importActivity';
+import { registerAccountActivity } from '../account/sessionActivity';
 import { useAudioCapture } from '../audio/hooks/useAudioCapture';
 import type { ClassifiedDetection } from '../inference/detectionPolicy';
 import { mergeSession, type SessionSpecies } from './session';
@@ -7,10 +10,14 @@ import {
 } from './listeningContext';
 
 /** Owns the one listening session of the app; screens read it through useListening() / useListeningSignal(). */
-export function ListeningProvider({ children }: { readonly children: ReactNode }): React.JSX.Element {
+export function ListeningProvider({ children, ownerId }: { readonly children: ReactNode; readonly ownerId: string | null }): React.JSX.Element {
   const [species, setSpecies] = useState<readonly SessionSpecies[]>([]);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [mode, setMode] = useState<ListeningMode>('listen');
+  const starting = useRef(false);
+  const generation = useRef(0);
+  const diaryTask = useRef<Promise<void> | null>(null);
+  const [diaryError, setDiaryError] = useState(false);
 
   // Every analysed window, including silent ones, refreshes who is singing now.
   const onWindowAnalysed = useCallback((detections: readonly ClassifiedDetection[], analysedAt: number): void => {
@@ -18,21 +25,37 @@ export function ListeningProvider({ children }: { readonly children: ReactNode }
   }, []);
 
   const {
-    state: captureState, modelStatus, sessionError, tooSlowForTwo, regionSpecies, startListening, stopListening,
+    state: captureState, modelStatus, sessionError: captureError, tooSlowForTwo, regionSpecies, startListening, stopListening,
     rmsLevel, peakLevel, latestSpectrogram, sampleRate, windowCount, droppedWindows, spectrogramLatencyMs, inferenceLatencyMs, endToEndLatencyMs,
-  } = useAudioCapture({ onWindowAnalysed });
+  } = useAudioCapture({ onWindowAnalysed, ownerId });
+  const sessionError = diaryError ? 'storage' : captureError;
 
   const start = useCallback(async (next: ListeningMode = 'listen'): Promise<void> => {
-    setSpecies([]);
-    setMode(next);
-    setStartedAt(Date.now());
-    await startListening();
-  }, [startListening]);
+    if (!ownerId || importIsActive() || starting.current || (startedAt !== null && sessionError === null)) return;
+    starting.current = true; setDiaryError(false);
+    const current = ++generation.current;
+    try {
+      const task = (async () => { await endOuting(ownerId); await beginOuting(ownerId, next === 'walk'); })();
+      diaryTask.current = task;
+      await task;
+      if (current !== generation.current) return;
+      setSpecies([]); setMode(next); setStartedAt(Date.now());
+      await startListening();
+    } catch { setDiaryError(true); }
+    finally { starting.current = false; diaryTask.current = null; }
+  }, [startListening, ownerId, startedAt, sessionError]);
 
   const stop = useCallback(async (): Promise<void> => {
-    setStartedAt(null);
+    generation.current++;
     await stopListening();
-  }, [stopListening]);
+    await diaryTask.current?.catch(() => undefined);
+    if (ownerId) await endOuting(ownerId);
+    setStartedAt(null);
+  }, [stopListening, ownerId]);
+
+  useEffect(() => { if (captureError && ownerId) void endOuting(ownerId).catch(() => { setDiaryError(true); }); }, [captureError, ownerId]);
+
+  useEffect(() => registerAccountActivity(stop), [stop]);
 
   // A failed session is over: the timer and the live player stop with it (the error stays visible).
   const active = startedAt !== null && sessionError === null;

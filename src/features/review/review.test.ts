@@ -81,7 +81,7 @@ describe('searchSpecies', () => {
 
 describe('syncReviews', () => {
   const review = (id: string, changes: Partial<StoredReview> = {}): StoredReview => ({ id, action: 'correct', species: 'Zonotrichia capensis', reviewedAt: '2026-10-11T12:05:00.000Z', sync: 'pending', ...changes });
-  const synced = (id: string): HistoryEntry => ({ id, species: 'Turdus fuscater', confidence: 0.9, status: 'confirmed', recorded_at: '2026-10-11T12:00:00.000Z', siteId: null, syncedAt: '2026-10-11T12:01:00.000Z' });
+  const synced = (id: string): HistoryEntry => ({ id, owner: userId, species: 'Turdus fuscater', confidence: 0.9, status: 'confirmed', recorded_at: '2026-10-11T12:00:00.000Z', siteId: null, syncedAt: '2026-10-11T12:01:00.000Z' });
   let settings: OfflineSettings;
 
   beforeEach(() => {
@@ -100,6 +100,18 @@ describe('syncReviews', () => {
     const sent = vi.mocked(fetch).mock.calls.map(([url, init]) => [(url as string).split('/').pop(), init?.method, JSON.parse(init?.body as string) as unknown]);
     expect(sent).toEqual([[first, 'PATCH', { action: 'correct', species: 'Zonotrichia capensis' }], [second, 'PATCH', { action: 'discard' }]]);
     expect(vi.mocked(markReview).mock.calls.map(([sentReview, state]) => [sentReview.id, state])).toEqual([[first, 'done'], [second, 'done']]);
+  });
+
+  it('keeps another account\'s pending verdict untouched until its owner returns', async () => {
+    vi.mocked(listReviews).mockResolvedValue([review(first)]);
+    vi.mocked(listHistory).mockResolvedValue([{ ...synced(first), owner: second }]);
+    await syncReviews(userId);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(markReview).not.toHaveBeenCalled();
+    if (settings.session) settings.session.userId = second;
+    await syncReviews(second);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(markReview).toHaveBeenCalledWith(review(first), 'done');
   });
 
   it.each(['signed-out', 'expired', 'other-account', 'already-sent'])('sends nothing when it must not: %s', async (reason) => {

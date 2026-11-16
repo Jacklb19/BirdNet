@@ -2,7 +2,7 @@ import { isDetectionModel, isDetectionStyle } from '../inference/detectionChoice
 import type { ClassifiedDetection } from '../inference/detectionPolicy';
 import { CONFIDENCE_THRESHOLDS, FIELD_LIMITS, isUuid } from '../../config/contract';
 import { announceQueueChange } from './queueChanges';
-import { assertQueueCapacity, choicesFor, recordingLocation, recordingSite, unlocatedAssignment } from './queuePolicy';
+import { approximateLocation, assertQueueCapacity, choicesFor, recordingLocation, recordingSite, unlocatedAssignment } from './queuePolicy';
 import {
   DATABASE_NAME, DATABASE_VERSION, DEFAULT_QUEUE_BYTES, isEditableSettingsKey, QUEUED_STATUS_BY_LOCAL_STATUS,
   SETTINGS_RECORD_KEY, STORES, type EditableSettings, type StoreName,
@@ -168,24 +168,34 @@ export async function keepChoicesOf(userId: string | null): Promise<void> {
 }
 /**
  * After the account was deleted (ADR-38): its records waiting to upload and those without an owner (which any account
- * signing in here would claim) go, the history of uploaded songs goes (it keeps no owner, and on this phone it is the
- * account's), and so do the session, the account's sites and the choices about what to save in it. Records another
- * account left waiting stay; device preferences (queue size, location, models) stay too.
+ * signing in here would claim) go, together with its history, session, sites and sharing choices. Returns the ids of
+ * other accounts' records, whose clips, notes and verdicts must stay too. Repeating a partial cleanup remains safe:
+ * those other records still identify everything that must be retained.
  */
-export async function forgetAccountRecords(userId: string): Promise<void> {
+export async function forgetAccountRecords(userId: string): Promise<ReadonlySet<string>> {
   if (!isUuid(userId)) throw new Error('Invalid account.');
-  await transact([STORES.settings, STORES.detections, STORES.history], 'readwrite', async (tx) => {
-    const records = await request(tx.objectStore(STORES.detections).getAll()) as StoredDetection[];
-    for (const row of records) if (!row.owner || row.owner === userId) await request(tx.objectStore(STORES.detections).delete(row.id));
-    await request(tx.objectStore(STORES.history).clear());
-    const next: OfflineSettings = { ...await readSettings(tx), session: null, sites: [], sitesOwner: null, activeSiteId: null, choicesOwner: null };
+  const retained = await transact([STORES.settings, STORES.detections, STORES.history], 'readwrite', async (tx) => {
+    const kept = new Set<string>();
+    for (const name of [STORES.detections, STORES.history]) {
+      const store = tx.objectStore(name);
+      for (const row of await request(store.getAll()) as (StoredDetection | HistoryEntry)[]) {
+        if (row.owner && row.owner !== userId) kept.add(row.id);
+        else await request(store.delete(row.id));
+      }
+    }
+    const settings = await readSettings(tx);
+    // Another tab may have signed into a different account while the deletion request was in flight.
+    if (settings.session && settings.session.userId !== userId) return kept;
+    const next: OfflineSettings = { ...settings, session: null, sites: [], sitesOwner: null, activeSiteId: null, choicesOwner: null };
     // Unanswered again: a later account on this phone is asked anew.
     delete next.shareMap;
     delete next.saveRecordings;
     delete next.saveWalks;
     await writeSettings(tx, next);
+    return kept;
   });
   announceQueueChange(['settings', 'records']);
+  return retained;
 }
 export async function listHistory(): Promise<HistoryEntry[]> {
   const rows = await transact([STORES.history], 'readonly', async (tx) => request(tx.objectStore(STORES.history).getAll()) as Promise<HistoryEntry[]>);
@@ -210,16 +220,19 @@ function isStorable(candidate: ClassifiedDetection): boolean {
 /** Called by the inference worker before it publishes a successful classification; returns the records it stored. */
 export async function persistDetections(candidates: readonly ClassifiedDetection[], context: PersistenceContext): Promise<StoredDetection[]> {
   if (candidates.length === 0) return [];
+  if (!context.recordedAt) throw new Error('Capture date is required to save a detection.');
   const recordedAt = new Date(context.recordedAt).toISOString();
   if (!context.modelVersion || context.modelVersion.length > FIELD_LIMITS.modelVersion || !candidates.every(isStorable)) throw new Error('Invalid detection context.');
   const stored = await transact([STORES.settings, STORES.detections], 'readwrite', async (tx) => {
     const settings = await readSettings(tx);
+    // A worker can finish after sign-out or a different account's sign-in. Never file that window under its successor.
+    if (context.owner !== undefined && context.owner !== (settings.session?.userId ?? null)) return [];
     // Read with the active site inside the transaction, so a site chosen mid-session applies to the next window.
-    const location = recordingLocation(settings, context.location);
-    const siteId = recordingSite(settings, location);
+    const location = context.historical ? context.location ? approximateLocation(context.location.latitude, context.location.longitude) : null : recordingLocation(settings, context.location);
+    const siteId = context.historical ? null : recordingSite(settings, location);
     const existing = await request(tx.objectStore(STORES.detections).getAll()) as StoredDetection[];
     const records = candidates.map((candidate): StoredDetection => {
-      const record: StoredDetection = { id: crypto.randomUUID(), species: candidate.scientificName, confidence: candidate.confidence, status: QUEUED_STATUS_BY_LOCAL_STATUS[candidate.status], recorded_at: recordedAt, location, model_version: context.modelVersion, owner: settings.session?.userId ?? null, bytes: 0, siteId };
+      const record: StoredDetection = { id: crypto.randomUUID(), species: candidate.scientificName, confidence: candidate.confidence, status: QUEUED_STATUS_BY_LOCAL_STATUS[candidate.status], recorded_at: recordedAt, location, model_version: context.modelVersion, owner: settings.session?.userId ?? null, bytes: 0, siteId, ...(context.outingId ? { outingId: context.outingId } : {}) };
       measureRecord(record);
       return record;
     });
@@ -282,7 +295,7 @@ export async function acknowledge(ids: readonly string[]): Promise<void> {
     for (const id of ids) {
       const row = await request(store.get(id)) as StoredDetection | undefined;
       if (!row) continue;
-      await request(history.put({ id: row.id, species: row.species, confidence: row.confidence, status: row.status, recorded_at: row.recorded_at, siteId: row.siteId ?? null, syncedAt, location: row.location, owner: row.owner } satisfies HistoryEntry));
+      await request(history.put({ id: row.id, species: row.species, confidence: row.confidence, status: row.status, recorded_at: row.recorded_at, siteId: row.siteId ?? null, syncedAt, location: row.location, owner: row.owner, ...(row.outingId ? { outingId: row.outingId } : {}) } satisfies HistoryEntry));
       await request(store.delete(id));
     }
   });

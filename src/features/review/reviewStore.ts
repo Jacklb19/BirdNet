@@ -66,8 +66,12 @@ export async function markReview(sent: Pick<StoredReview, 'id' | 'reviewedAt'>, 
   announceQueueChange(['reviews']);
 }
 
-/** After the account was deleted (ADR-38): verdicts keep no owner, and on this phone they are the account's. */
-export async function deleteAllReviews(): Promise<void> {
-  await transact('readwrite', (store) => request(store.clear()));
+/** Account cleanup retains verdicts whose detections belong to another account. */
+export async function deleteReviewsExcept(retained: ReadonlySet<string>): Promise<void> {
+  await transact('readwrite', async (store) => {
+    for (const id of await request(store.getAllKeys())) {
+      if (typeof id !== 'string' || !retained.has(id)) await request(store.delete(id));
+    }
+  });
   announceQueueChange(['reviews']);
 }

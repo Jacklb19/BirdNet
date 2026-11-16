@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/test';
+import { E2E_SUPABASE } from '../build.config.mjs';
 import { STORAGE_KEYS } from '../src/config/storage';
 import { routeHash } from '../src/app/routes';
 import { DEFAULT_LOCALE } from '../src/i18n/locales';
 import { dictionaries } from '../src/i18n/allMessages';
 import { buildHasAccounts } from './builds';
-import { storeSession, testSession } from './session';
+import { storeSession, testSession, testUser } from './session';
 
 /**
  * Evidence for RNF-03 (no main-thread task over 50 ms while listening) and RNF-01 (time per window), measured with the
@@ -24,6 +25,38 @@ interface Summary { readonly analysed: number; readonly dropped: number; readonl
 test.skip(!buildHasAccounts, 'Build with `npm run build:e2e` to run the e2e checks.');
 test.use({ launchOptions: { args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] }, permissions: ['microphone'] });
 test.setTimeout(MODEL_READY_TIMEOUT_MS + LISTENING_MS + 60_000);
+
+test('signing out stops every microphone track before leaving the account', async ({ page }) => {
+  const session = await testSession(page);
+  await storeSession(page, session);
+  await page.route(`${E2E_SUPABASE.url}/auth/v1/**`, async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/logout')) await route.fulfill({ status: 204 });
+    else if (path.endsWith('/user')) await route.fulfill({ json: testUser(session) });
+    else await route.fulfill({ json: { totp: [], phone: [], all: [] } });
+  });
+  await page.addInitScript(() => {
+    const streams: MediaStream[] = [];
+    const original = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+    navigator.mediaDevices.getUserMedia = async (constraints) => {
+      const stream = await original(constraints);
+      streams.push(stream);
+      return stream;
+    };
+    (window as unknown as { captureStreams: MediaStream[] }).captureStreams = streams;
+  });
+  await page.goto(`/${routeHash({ name: 'listen' })}`);
+  const start = page.getByRole('button', { name: texts.listen.record.start });
+  await expect(start).toBeEnabled({ timeout: MODEL_READY_TIMEOUT_MS });
+  await start.click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { captureStreams: MediaStream[] }).captureStreams
+    .flatMap((stream) => stream.getTracks()).some((track) => track.readyState === 'live'))).toBe(true);
+  await page.goto(`/${routeHash({ name: 'account' })}`);
+  await page.getByRole('button', { name: texts.account.signOut, exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { captureStreams: MediaStream[] }).captureStreams
+    .flatMap((stream) => stream.getTracks()).every((track) => track.readyState === 'ended'))).toBe(true);
+  await expect(page.getByRole('button', { name: texts.account.signOut, exact: true })).toHaveCount(0);
+});
 
 test('a minute of listening reports its main-thread long tasks and time per window (RNF-01, RNF-03)', async ({ page }) => {
   // Listening is part of the account (ADR-45).

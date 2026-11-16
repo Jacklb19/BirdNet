@@ -46,6 +46,7 @@ describe('useAudioCapture listening session', () => {
       this.getModelVersion = () => (manifest ? formatModelVersion(manifest) : null);
       this.infer = infer;
       this.dispose = dispose;
+      this.disposeAndWait = vi.fn(() => { dispose(); return Promise.resolve(); });
     });
   });
 
@@ -110,13 +111,14 @@ describe('useAudioCapture listening session', () => {
       window_samples: AUDIO_CONSTANTS.WINDOW_SAMPLES, window_seconds: AUDIO_CONSTANTS.WINDOW_DURATION_SEC,
       num_classes: 1, size_bytes: 1, labels_file: 'labels.txt', model_file: 'model.onnx', updated_at: '2026-10-07',
     };
-    const { result } = renderHook(() => useAudioCapture());
+    const ownerId = '00000000-0000-4000-8000-000000000001';
+    const { result } = renderHook(() => useAudioCapture({ ownerId }));
     await act(async () => { await result.current.startListening(); });
     await ready();
     const buffer = new Float32Array(AUDIO_CONSTANTS.WINDOW_SAMPLES);
     act(() => { captureCallbacks.onWindowReady?.(buffer, 2, 100); });
     expect(infer).toHaveBeenCalledWith(buffer, 2, 100, TOP_K, MIN_CANDIDATE_CONFIDENCE, expect.objectContaining({
-      location: null, modelVersion: formatModelVersion(manifest),
+      location: null, modelVersion: formatModelVersion(manifest), owner: ownerId,
     }));
   });
 

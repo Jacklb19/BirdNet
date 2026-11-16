@@ -2,12 +2,16 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { screenAwakeSupported, useScreenAwake } from '../../shared/useScreenAwake';
 import { watchApproximateLocation } from '../audio/location';
 import { useListening } from '../listen/listeningContext';
-import { getSettings, updateSettings } from '../offline/queueStore';
+import { updateSettings } from '../offline/queueStore';
+import { useAccountContext } from '../account/accountContext';
+import { registerAccountActivity } from '../account/sessionActivity';
 import type { ApproximateLocation, TrackPoint } from '../offline/types';
 import { WALK_HEARTBEAT_MS, WALK_TRACK_MAX_POINTS, WALKS_KEPT_MAX } from './walk.config';
 import { WalkContext, type WalkContextValue, type WalkFix } from './walkContext';
 import { appendTrackPoint } from './walkGeometry';
 import { saveWalk } from './walkStore';
+import { activeOutingId } from '../journal/outingSession';
+import { changeEntry, entityKey } from '../journal/journalStore';
 
 const MILLISECONDS_PER_SECOND = 1000;
 
@@ -27,6 +31,7 @@ interface LiveWalk {
  */
 export function WalkProvider({ children }: { readonly children: ReactNode }): React.JSX.Element {
   const session = useListening();
+  const owner = useAccountContext().identity?.userId ?? null;
   const { walking, startedAt } = session;
   const [live, setLive] = useState<LiveWalk | null>(null);
   const [finished, setFinished] = useState<string | null>(null);
@@ -35,12 +40,14 @@ export function WalkProvider({ children }: { readonly children: ReactNode }): Re
   useEffect(() => {
     if (!walking || startedAt === null) return;
     const id = crypto.randomUUID();
+    const outingId = activeOutingId(owner);
+    if (owner && outingId) void changeEntry(entityKey(owner, 'outing', outingId), (entry) => entry?.tag === 'entity' ? { ...entry, localWalkId: id } : entry).catch(() => undefined);
     const started = new Date(startedAt).toISOString();
     let track: readonly TrackPoint[] = [];
     // The account signed in when the walk starts is the one it can be saved to.
-    let owner: string | null = null;
     // Writes go one after another, so a late refresh can never overwrite the closed walk.
-    let writes = getSettings().then((settings) => { owner = settings.session?.userId ?? null; }, () => undefined);
+    let writes = Promise.resolve();
+    let stopped = false;
     // The path is a convenience on top of the songs, which are stored on their own: a failed write loses a line
     // on the map, never a detection, so it does not interrupt the walk.
     const store = (endedAt: string | null): void => {
@@ -49,6 +56,7 @@ export function WalkProvider({ children }: { readonly children: ReactNode }): Re
       writes = writes.then(() => saveWalk({ id, startedAt: started, endedAt, track: points, lastAt, owner }, WALKS_KEPT_MAX)).catch(() => undefined);
     };
     const stopWatch = watchApproximateLocation((cell) => {
+      if (stopped) return;
       if (!cell) {
         setLive((previous) => ({ startedAt, track, position: previous?.startedAt === startedAt ? previous.position : null, fix: 'lost' }));
         return;
@@ -63,15 +71,20 @@ export function WalkProvider({ children }: { readonly children: ReactNode }): Re
     // Standing still stores nothing new, so the walk is refreshed now and then: an interrupted one still knows
     // roughly when it ended.
     const heartbeat = window.setInterval(() => { if (track.length > 0) store(null); }, WALK_HEARTBEAT_MS);
-    return () => {
+    const finish = (): Promise<void> => {
+      if (stopped) return writes;
+      stopped = true;
       stopWatch();
       window.clearInterval(heartbeat);
       if (track.length > 0) {
         store(new Date().toISOString());
         setFinished(id);
       }
+      return writes;
     };
-  }, [walking, startedAt]);
+    const unregister = registerAccountActivity(finish);
+    return () => { unregister(); void finish(); };
+  }, [walking, startedAt, owner]);
 
   useScreenAwake(walking);
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type Ref } from 'react';
+import { useEffect, useMemo, useState, type ReactNode, type Ref } from 'react';
 import { routeHash } from '../../app/routes';
 import { APPROX_CELL_METERS } from '../../config/contract';
 import { formatCount, formatDistance, formatMeters, formatNumber, useI18n } from '../../i18n';
@@ -9,6 +9,7 @@ import { Sticker } from '../../shared/ui/Sticker';
 import { formatClock } from '../../shared/time';
 import { useElapsed } from '../../shared/useElapsed';
 import { useNow } from '../../shared/useNow';
+import type { AccountResource } from '../../shared/useAccountResource';
 import { useListening } from '../listen/listeningContext';
 import { enterPocketMode } from '../listen/pocketMode';
 import { showsSessionError, startBlocker } from '../listen/listenState';
@@ -38,6 +39,8 @@ export interface WalkPanelProps {
   readonly totals: WalkTotals;
   readonly territoriesShown: boolean;
   readonly loadError: boolean;
+  readonly accountNotice?: ReactNode;
+  readonly accountStatus?: AccountResource<unknown>['status'];
   readonly expanded: boolean;
   readonly onExpandedChange: (expanded: boolean) => void;
 }
@@ -77,7 +80,7 @@ function WalkNow(): React.JSX.Element {
  * control. Otherwise: the door to a walk, what has been covered so far, and the birds heard, so a first visit
  * explains itself instead of showing an empty list.
  */
-export function WalkPanel({ ref, result, totals, territoriesShown, loadError, expanded, onExpandedChange }: WalkPanelProps): React.JSX.Element {
+export function WalkPanel({ ref, result, totals, territoriesShown, loadError, accountNotice, accountStatus = 'ready', expanded, onExpandedChange }: WalkPanelProps): React.JSX.Element {
   const { dict, locale } = useI18n();
   const t = dict.map.walk;
   const names = useSpeciesNames();
@@ -126,13 +129,14 @@ export function WalkPanel({ ref, result, totals, territoriesShown, loadError, ex
   // Songs heard in place have a pin but no path, so walks are counted only once there is one.
   const totalsLine = totals.walks > 0
     ? t.totals(formatCount(t.walks, totals.walks, locale), formatDistance(totals.meters, locale), formatCount(dict.map.sheet.species, totals.species, locale))
-    : totals.songs > 0 ? heardLine : t.noWalks;
+    : totals.songs > 0 ? heardLine : accountStatus === 'ready' || accountStatus === 'none' ? t.noWalks : dict.common.accountData[accountStatus];
   const sharing = sharesMap(settings ?? {}) ? t.sharing.shared : t.sharing.own;
 
   return (
     <SheetShell ref={ref} title={t.title} summary={result === null && !loadError ? dict.common.loading : totalsLine}
       expandable={listed || finished !== null} expanded={expanded} onExpandedChange={onExpandedChange}>
       {loadError && <Notice tone="error">{t.loadError}</Notice>}
+      {accountNotice}
       {finished && <WalkDoneCard id={finished} onDismiss={walk.dismissFinished} />}
       {/* A session already running in place keeps its own control (the live player); a walk starts from idle. */}
       {!session.active && (

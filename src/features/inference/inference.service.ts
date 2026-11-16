@@ -16,7 +16,7 @@ import {
   type AlternateModel,
   type InferenceWorkerMessage,
 } from './inference.types';
-import { MIN_CANDIDATE_CONFIDENCE, TOP_K } from './inference.constants';
+import { MIN_CANDIDATE_CONFIDENCE, TOP_K, WORKER_STOP_TIMEOUT_MS } from './inference.constants';
 import { planLoad, type DetectionChoices } from './loadPlan';
 import { STATIC_MANIFEST_URL, validateManifest } from './modelManifest';
 import { AUDIO_CONSTANTS } from '../audio/dsp/audio.constants';
@@ -57,6 +57,7 @@ export class InferenceService {
   private byDefaultWithTwo = false;
   private generation = 0;
   private activeWindowIndex: number | null = null;
+  private released: Promise<void> = Promise.resolve();
   private readonly queue = new LatestWindowQueue<InferRequest>(
     (request) => {
       this.activeWindowIndex = request.windowIndex;
@@ -152,13 +153,17 @@ export class InferenceService {
       );
 
       const currentWorker = this.worker;
+      let release = (): void => undefined;
+      this.released = new Promise<void>((resolve) => { release = resolve; });
       this.worker.onmessage = (event: MessageEvent<InferenceWorkerMessage>) => {
-        if (event.data.type === INFERENCE_WORKER_MESSAGES.disposed) { currentWorker.terminate(); return; }
+        if (event.data.type === INFERENCE_WORKER_MESSAGES.disposed) { currentWorker.terminate(); release(); return; }
         if (generation !== this.generation) return;
         this.handleWorkerMessage(event.data);
       };
 
       this.worker.onerror = (event: ErrorEvent) => {
+        currentWorker.terminate();
+        release();
         if (generation !== this.generation) return;
         this.queue.clear();
         this.setStatus('error');
@@ -221,6 +226,20 @@ export class InferenceService {
     this.manifest = null;
     this.modelVersion = null;
     this.expectedClasses = null;
+  }
+
+  /** Account deletion waits until the old worker can no longer write to the stores being cleaned. */
+  public async disposeAndWait(): Promise<void> {
+    const worker = this.worker;
+    const released = this.released;
+    this.dispose();
+    if (!worker) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([released, new Promise<void>((resolve) => {
+        timer = setTimeout(() => { worker.terminate(); resolve(); }, WORKER_STOP_TIMEOUT_MS);
+      })]);
+    } finally { clearTimeout(timer); }
   }
 
   private handleWorkerMessage(msg: InferenceWorkerOutbound): void {

@@ -4,14 +4,17 @@ import { MIN_CANDIDATE_CONFIDENCE, TOP_K } from '../../features/inference/infere
 import { AUDIO_CONSTANTS } from '../../features/audio/dsp/audio.constants';
 import { normalizeAudio } from '../../features/audio/dsp/normalize';
 import { applyDetectionPolicy, type ClassifiedDetection } from '../../features/inference/detectionPolicy';
-import { bindSyncSession, getSettings, persistDetections, queueStats, listDetections, updateSettings } from '../../features/offline/queueStore';
+import { acknowledge, bindSyncSession, getSettings, persistDetections, queueStats, listDetections, listHistory, updateSettings } from '../../features/offline/queueStore';
 import { offlineOperation } from '../../features/offline/offlineClient';
 import { DATABASE_NAME, MODEL_CACHE_NAME, MODEL_RESOURCE_EXTENSIONS, OFFLINE_OPERATIONS, STORES } from '../../features/offline/offline.constants';
 import type { PersistenceContext, SyncSession } from '../../features/offline/types';
 import { listWalks, saveWalk } from '../../features/walk/walkStore';
 import { listNotes, saveNote } from '../../features/notes/noteStore';
+import { listReviews, saveReview } from '../../features/review/reviewStore';
+import { listRecordings, saveRecording } from '../../features/recordings/recordingStore';
 import { forgetAccountOnPhone } from '../../features/account/accountDeletion';
 import referenceRecordings from '../../../public/test-audio/metadata.json';
+import { journalChecks } from './journal';
 
 /** Public path of the reference recordings and of their metadata.json, both written by scripts/prepare-model.py. */
 const REFERENCE_AUDIO_DIR = '/test-audio';
@@ -42,7 +45,7 @@ async function seedWalk(): Promise<string> {
   return id;
 }
 
-const context: PersistenceContext = { recordedAt: '2026-10-06T12:00:00Z', location: { latitude: 4.679, longitude: -74.123 }, modelVersion: 'birdnet-v2.4:arm' };
+const context = { recordedAt: '2026-10-06T12:00:00Z', location: { latitude: 4.679, longitude: -74.123 }, modelVersion: 'birdnet-v2.4:arm' } satisfies PersistenceContext;
 /** Size of the WAV fragment (one PCM16 window and its header) that versions before the upload was removed kept. */
 const LEGACY_FRAGMENT_BYTES = 288_044;
 
@@ -93,6 +96,14 @@ async function seedForeign(owner: string): Promise<string> {
   await inQueue('readwrite', (transaction) => transaction.objectStore(STORES.detections).put({ ...record, owner }));
   return record.id;
 }
+
+/** Every dependent entity of a song, so account cleanup is exercised across all local databases. */
+async function seedRelated(id: string): Promise<void> {
+  await saveNote(id, { note: 'Heard at dawn', individuals: 2 });
+  await saveReview(id, { action: 'confirm', species: null });
+  const blob = new Blob([new Uint8Array(64)], { type: 'audio/webm' });
+  await saveRecording({ id, species: 'Turdus fuscater', recordedAt: context.recordedAt, blob, bytes: blob.size, upload: 'pending' }, 1024);
+}
 async function loadReference(): Promise<void> {
   const cache = await caches.open(REFERENCE_CACHE_NAME);
   await cache.add(referenceRecording().url);
@@ -120,8 +131,15 @@ async function inferReference(): Promise<string[]> {
   });
 }
 const checks = {
+  ...journalChecks,
+  referenceSamples: async (): Promise<number[]> => {
+    const { url, startSample } = referenceRecording();
+    const response = await fetch(url); const audio = new AudioContext({ sampleRate: AUDIO_CONSTANTS.TARGET_SAMPLE_RATE });
+    try { const decoded = await audio.decodeAudioData(await response.arrayBuffer()); return Array.from(decoded.getChannelData(0).slice(startSample, startSample + AUDIO_CONSTANTS.WINDOW_SAMPLES)); }
+    finally { await audio.close(); }
+  },
   seed, seedWindow, queueStats, listDetections, updateSettings, getSettings, loadReference, inferReference, leaveLegacyFragment, seedWalk, listWalks,
-  seedForeign, forgetAccountOnPhone, saveNote, listNotes,
+  seedForeign, seedRelated, acknowledge, listHistory, listReviews, listRecordings, forgetAccountOnPhone, saveNote, listNotes,
   legacyFragments: (): Promise<number> => inQueue('readonly', (transaction) => transaction.objectStore(STORES.audio).count()),
   synchronizeQueue: async (): Promise<void> => { await offlineOperation(OFFLINE_OPERATIONS.sync); },
   bind: async (claimUnowned = true): Promise<void> => {

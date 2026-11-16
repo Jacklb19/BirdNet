@@ -21,7 +21,7 @@ function liveSession(settings: OfflineSettings, userId: string): SyncSession | n
 export async function syncReviews(userId: string): Promise<void> {
   const pending = (await listReviews()).filter((review) => review.sync === 'pending');
   if (pending.length === 0) return;
-  const acknowledged = new Set((await listHistory()).map((entry) => entry.id));
+  const acknowledged = new Set((await listHistory()).filter((entry) => entry.owner === userId).map((entry) => entry.id));
   for (const review of pending.filter((candidate) => acknowledged.has(candidate.id))) {
     const session = liveSession(await getSettings(), userId);
     if (!session) return;

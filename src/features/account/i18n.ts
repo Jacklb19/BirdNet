@@ -203,12 +203,14 @@ export const accountMessages = defineMessages({
         'Todos tus registros, también los que se ven en el mapa de todos.',
         'Tus lugares, tus caminatas y los informes de tus lugares.',
         'Las grabaciones que guardaste en la cuenta.',
+        'Tus salidas, observaciones visuales, colecciones y especies de interés.',
       ],
       phoneTitle: 'En este teléfono',
       phone: [
         'Los registros de esta cuenta, subidos o por subir, y los que el teléfono guardaba sin dueño.',
         'Las grabaciones, las revisiones y las caminatas guardadas aquí.',
         'La sesión, tus lugares y tus elecciones sobre qué guardar en la cuenta.',
+        'El diario, las fotos locales de observaciones y el consentimiento del asistente de esta cuenta.',
       ],
       keptTitle: 'Se conserva',
       kept: [
@@ -438,12 +440,14 @@ export const accountMessages = defineMessages({
         'All your records, also those shown on everyone’s map.',
         'Your places, your walks and the reports of your places.',
         'The recordings you saved in the account.',
+        'Your outings, visual observations, collections and wishlist.',
       ],
       phoneTitle: 'On this phone',
       phone: [
         'The records of this account, uploaded or waiting, and those the phone kept with no owner.',
         'The recordings, reviews and walks kept here.',
         'The session, your places and your choices about what to save in the account.',
+        'This account’s journal, local observation photos and assistant consent.',
       ],
       keptTitle: 'Kept',
       kept: [
