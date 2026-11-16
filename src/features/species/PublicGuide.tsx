@@ -32,14 +32,14 @@ function ChosenCard({ species, name }: { readonly species: string; readonly name
  * The guide without a session (ADR-45): the birds of the region as a book anyone can leaf through, each leading to
  * its public card. It shows nothing of anyone's records, and invites to an account to fill one's own album.
  */
-export function PublicGuide(): React.JSX.Element {
+export function PublicGuide({ initialQuery }: { readonly initialQuery: string }): React.JSX.Element {
   const { dict, locale } = useI18n();
   const texts = dict.species.publicGuide;
   const album = dict.species.album;
   const names = useSpeciesNames();
   const catalog = useRegionCatalog();
   const isDesktop = useIsDesktop();
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery);
   const [page, setPage] = useState(1);
   const [chosen, setChosen] = useState<string | null>(null);
   const searchId = useId();

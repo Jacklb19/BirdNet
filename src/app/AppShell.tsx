@@ -111,7 +111,7 @@ export function AppShell(): React.JSX.Element {
   if (route.name === 'home') {
     return (
       <main id="main" className="bn-shell__home">
-        {withTexts(<Suspense fallback={loading}><ScreenEntrance key={screenKey}><HomePage /></ScreenEntrance></Suspense>)}
+        {withTexts(<Suspense fallback={loading}><ScreenEntrance key={screenKey}><HomePage section={route.section ?? null} /></ScreenEntrance></Suspense>)}
       </main>
     );
   }
@@ -127,7 +127,7 @@ export function AppShell(): React.JSX.Element {
         <a className="bn-shell__skip" href="#main" onClick={(event) => { event.preventDefault(); mainRef.current?.focus(); }}>
           {dict.app.skipToContent}
         </a>
-        <PublicBar route={titled} />
+        <PublicBar place={titled} />
         <main id="main" ref={mainRef} tabIndex={-1} className="bn-shell__main">
           <PageErrorBoundary key={titled} message={dict.app.pageError} actionLabel={dict.app.reload}>
             {withTexts(<Suspense fallback={loading}><ScreenEntrance key={screenKey}>{page}</ScreenEntrance></Suspense>)}

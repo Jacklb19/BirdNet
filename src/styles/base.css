@@ -15,7 +15,7 @@ body {
   isolation: isolate;
   margin: 0;
   min-height: 100dvh;
-  background: var(--color-bg-canvas);
+  background: var(--texture-motif) var(--color-bg-canvas);
   color: var(--color-text-primary);
   font-family: var(--font-family);
   font-size: var(--text-body);
@@ -25,13 +25,16 @@ body {
   transition: --sky-top var(--duration-sky) var(--ease-standard);
 }
 
-/* The sky of the current hour, fading into the paper below the page header. */
+/*
+ * The sky of the current hour, fading into the paper below the page header. The motif is drawn over it too, from
+ * the same origin as the body's, so the tiles line up across the edge of the band.
+ */
 body::before {
   position: absolute;
   inset: 0 0 auto;
   z-index: -1;
   height: var(--sky-band-height);
-  background: linear-gradient(var(--sky-top), var(--color-bg-canvas));
+  background: var(--texture-motif), linear-gradient(var(--sky-top), var(--color-bg-canvas));
   content: '';
   pointer-events: none;
 }

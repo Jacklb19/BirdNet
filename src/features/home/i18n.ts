@@ -4,13 +4,18 @@ import type { HomeMapPoint, HomePromise, HomeSection, HomeStep } from './home.co
 /** Texts of the home page (ADR-15, ADR-24). Sizes and distances arrive already formatted. */
 export const homeMessages = defineMessages({
   es: {
-    navLabel: 'Secciones de la página',
     nav: { guide: 'La guía', how: 'Cómo funciona', map: 'El mapa', privacy: 'Privacidad' } satisfies Record<HomeSection, string>,
     open: 'Abrir Trino',
     createAccount: 'Crea tu cuenta gratis',
     title: 'Trino reconoce las aves por su canto.',
     lede: 'Sal a caminar, escucha sin conexión y descubre qué ave pudo cantar. Guarda tus hallazgos en tu cuaderno de campo.',
-    guide: 'Explorar la guía',
+    guideSearch: {
+      title: 'La guía de aves de la región',
+      text: 'Abierta para todos: fotos, cantos y fichas de las aves que pueden oírse por aquí, sin crear una cuenta.',
+      label: 'Buscar un ave en la guía',
+      placeholder: 'Mirlo, colibrí, Turdus…',
+      action: 'Abrir la guía',
+    },
     firstDownload: (size: string) => `La primera vez descarga ${size} para funcionar sin señal.`,
     scene: {
       label: 'Ejemplo de una caminata: cinco aves quedan pegadas a lo largo del camino',
@@ -62,13 +67,18 @@ export const homeMessages = defineMessages({
     credits: 'Modelo BirdNET (K. Lisa Yang Center, Cornell Lab of Ornithology) · Nombres de eBird · Fotos y textos de Wikimedia y Wikipedia · Distribución de GBIF · Fichas e informes redactados por Gemini (Google)',
   },
   en: {
-    navLabel: 'Sections of the page',
     nav: { guide: 'The guide', how: 'How it works', map: 'The map', privacy: 'Privacy' },
     open: 'Open Trino',
     createAccount: 'Create your free account',
     title: 'Trino recognizes birds by their song.',
     lede: 'Take a walk, listen offline and discover which bird may have sung. Keep your sightings in your field notebook.',
-    guide: 'Explore the bird guide',
+    guideSearch: {
+      title: 'The bird guide of the region',
+      text: 'Open to everyone: photos, songs and cards of the birds you may hear around here, no account needed.',
+      label: 'Search the guide for a bird',
+      placeholder: 'Thrush, hummingbird, Turdus…',
+      action: 'Open the guide',
+    },
     firstDownload: (size: string) => `The first time it downloads ${size} so it works without signal.`,
     scene: {
       label: 'Example of a walk: five birds are pinned along the path',

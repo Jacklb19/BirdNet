@@ -1,4 +1,6 @@
+import type { HomeSection } from '../features/home/home.config';
 import type { Messages } from '../i18n';
+import type { IconName } from '../shared/ui/Icon';
 import { TOP_BAR_ITEMS, type Section } from './navigation';
 import { routeHash, type Route } from './routes';
 import type { SiteBarGroup, SiteBarLink } from './SiteBar';
@@ -53,10 +55,31 @@ export function accountGroup(dict: Messages, signedIn: boolean, place: MenuPlace
   };
 }
 
-/** What the bar offers without a session (ADR-45): the home page and the guide of birds, the only screens open to all. */
-export function publicLinks(dict: Messages, place: MenuPlace): SiteBarLink[] {
+/** Sections of the home page written in the public bar, in page order; the home's album is the guide's own link. */
+const PUBLIC_HOME_SECTIONS = ['how', 'map', 'privacy'] as const satisfies readonly HomeSection[];
+const PUBLIC_SECTION_ICONS: Readonly<Record<(typeof PUBLIC_HOME_SECTIONS)[number], IconName>> = { how: 'listen', map: 'map', privacy: 'privacy' };
+
+export interface PublicPlace {
+  readonly place: MenuPlace;
+  /** The section of the home page in view; null at its top or on any other screen. */
+  readonly homeSection?: HomeSection | null;
+  /** On the home page itself a section link also scrolls in place, since following the same address changes nothing. */
+  readonly onHomeSection?: (section: HomeSection | null) => void;
+}
+
+/**
+ * The public site (ADR-45, ADR-47): the same links on the home page, the way in, the guide and every card, so moving
+ * between them never changes the bar. The guide is the real catalog; the other links lead back to the home's sections.
+ */
+export function publicLinks(dict: Messages, { place, homeSection = null, onHomeSection }: PublicPlace): SiteBarLink[] {
+  const atHome = place === 'home';
+  const select = (section: HomeSection | null): (() => void) | undefined => (onHomeSection ? () => { onHomeSection(section); } : undefined);
   return [
-    homeLink(dict),
-    { key: 'guide', label: dict.app.nav.guide, href: routeHash({ name: 'album' }), icon: 'book', current: place === 'album' || place === 'species' },
+    { ...homeLink(dict), current: atHome && homeSection === null, onSelect: select(null) },
+    { key: 'guide', label: dict.app.publicNav.guide, href: routeHash({ name: 'album' }), icon: 'book', current: place === 'album' || place === 'species' },
+    ...PUBLIC_HOME_SECTIONS.map((section) => ({
+      key: section, label: dict.app.publicNav[section], href: routeHash({ name: 'home', section }), icon: PUBLIC_SECTION_ICONS[section],
+      current: atHome && homeSection === section, onSelect: select(section),
+    })),
   ];
 }

@@ -1,8 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import { routeHash } from '../../app/routes';
-import { SessionEntry } from '../../app/SessionEntry';
-import { SiteBar, type SiteBarLink } from '../../app/SiteBar';
-import { accountGroup, appLinks, publicLinks } from '../../app/siteMenu';
+import { useEffect, useId, useRef, useState } from 'react';
+import { PublicBar } from '../../app/PublicBar';
+import { navigateTo, routeHash } from '../../app/routes';
 import { APPROX_CELL_METERS } from '../../config/contract';
 import { PRIVACY_PAGE_URL } from '../../config/staticPages';
 import { formatBytes, formatCount, formatMeters, formatNumber, formatPercent, useI18n } from '../../i18n';
@@ -14,6 +12,7 @@ import { formatTime } from '../log/logFormat';
 import { useModel } from '../offline/useModel';
 import { AlbumBook, BookCard } from '../species/AlbumBook';
 import { usePlumage } from '../species/plumage';
+import { GUIDE_QUERY_MAX_LENGTH } from '../species/species.config';
 import { commonName, useSpeciesNames } from '../species/speciesNames';
 import {
   HOME_ALBUM, HOME_BOOK_TABS, HOME_CARD_EXAMPLE, HOME_CARD_SPECIES, HOME_MAP_POINTS, HOME_PROMISES, HOME_SECTIONS, HOME_STEPS,
@@ -59,7 +58,7 @@ const exampleHour = new Date(2026, 0, 1, HOME_CARD_EXAMPLE.hour).getTime();
  * the guide of birds, which is public. It shows what the app does rather than announcing
  * it: a walk on which birds are pinned, the album they fill and a half-explored neighbourhood.
  */
-export default function HomePage(): React.JSX.Element {
+export default function HomePage({ section }: { readonly section: HomeSection | null }): React.JSX.Element {
   const { dict, locale } = useI18n();
   const texts = dict.home;
   const names = useSpeciesNames();
@@ -73,6 +72,9 @@ export default function HomePage(): React.JSX.Element {
   const privacy = useRef<HTMLElement>(null);
   const [sections] = useState<SectionRefs>(() => ({ guide, how, map, privacy }));
   const current = useCurrentSection(sections);
+  const [guideQuery, setGuideQuery] = useState('');
+  const guideSearchTitle = useId();
+  const guideSearchInput = useId();
   // A failed attempt (never with a usable model on the phone) is retried on entering, so it reads like a missing model.
   const needsDownload = model.state === 'missing' || model.state === 'error';
   const signedIn = account.identity !== null;
@@ -80,18 +82,22 @@ export default function HomePage(): React.JSX.Element {
   // The download runs in the service worker and its state is shared, so Listen shows its progress. Nothing of the
   // model is downloaded without an account, since nothing of the app opens.
   const prepare = (): void => { if (signedIn && needsDownload) void model.download(); };
-  // Someone signed in comes back to their app; a newcomer is invited to create an account (ADR-45).
+  // Signed in, the person comes back to the app. Signed out, signing in leads and creating an account follows (ADR-47).
   const enter = signedIn
     ? <Button variant="accent" icon="walk" href={listen} onClick={() => { prepare(); }}>{texts.open}</Button>
-    : <Button variant="accent" icon="account" href={routeHash({ name: 'signUp' })}>{texts.createAccount}</Button>;
+    : (
+      <>
+        <Button variant="accent" icon="account" href={routeHash({ name: 'signIn' })}>{dict.app.signIn}</Button>
+        <Button variant="secondary" icon="plus" href={routeHash({ name: 'signUp' })}>{texts.createAccount}</Button>
+      </>
+    );
 
-  const goTo = (section: HomeSection): void => { sections[section].current?.scrollIntoView({ block: 'start' }); };
-  const toTop = (): void => { window.scrollTo({ top: 0 }); };
-
-  const pageLinks: SiteBarLink[] = [
-    { key: 'top', label: dict.app.nav.home, icon: 'home', current: current === null, onSelect: toTop },
-    ...HOME_SECTIONS.map((section) => ({ key: section, label: texts.nav[section], current: current === section, onSelect: () => { goTo(section); } })),
-  ];
+  const goTo = (section: HomeSection | null): void => {
+    if (section) sections[section].current?.scrollIntoView({ block: 'start' });
+    else window.scrollTo({ top: 0 });
+  };
+  // A section asked for in the address (from the bar of another screen, or the back button) is scrolled to on arrival.
+  useEffect(() => { if (section) sections[section].current?.scrollIntoView({ block: 'start' }); }, [section, sections]);
   const albumTotal = HOME_ALBUM.found.length + HOME_ALBUM.missing.length;
 
   return (
@@ -99,37 +105,14 @@ export default function HomePage(): React.JSX.Element {
       <a className="bn-shell__skip" href="#main" onClick={(event) => { event.preventDefault(); heading.current?.focus(); }}>
         {dict.app.skipToContent}
       </a>
-      <SiteBar navLabel={texts.navLabel} brandHref={routeHash({ name: 'home' })} onBrand={toTop} links={pageLinks}
-        menu={[
-          { key: 'page', label: dict.app.menuGroups.site, links: pageLinks },
-          signedIn
-            ? { key: 'app', label: dict.app.menuGroups.app, links: appLinks(dict, null).map((link) => ({ ...link, onSelect: prepare })) }
-            : { key: 'app', label: dict.app.menuGroups.app, links: publicLinks(dict, 'home').filter((link) => link.key !== 'home') },
-          accountGroup(dict, signedIn, 'home'),
-        ]}
-        end={(
-          <>
-            <SessionEntry />
-            {signedIn
-              ? <Button href={listen} onClick={prepare}>{texts.open}</Button>
-              : <Button href={routeHash({ name: 'signUp' })}>{dict.app.signUp}</Button>}
-          </>
-        )} />
+      <PublicBar place="home" homeSection={current} onHomeSection={goTo} onBrand={() => { goTo(null); }} onOpenApp={prepare} />
 
       <div className="bn-home__page">
         <section className="bn-home__hero">
           <div className="bn-home__intro">
             <h1 ref={heading} tabIndex={-1} className="bn-home__title display">{texts.title}</h1>
             <p className="bn-home__lede">{texts.lede}</p>
-            <div className="bn-home__actions">
-              {enter}
-              {!signedIn && <Button variant="secondary" icon="book" href={routeHash({ name: 'album' })}>{texts.guide}</Button>}
-            </div>
-            {!signedIn && (
-              <p className="bn-home__note">
-                <a className="bn-home__link" href={routeHash({ name: 'signIn' })}>{dict.app.signIn}</a>
-              </p>
-            )}
+            <div className="bn-home__actions">{enter}</div>
             {signedIn && needsDownload && model.available && (
               <p className="bn-home__note">{texts.firstDownload(formatBytes(downloadBytes(model.available), locale))}</p>
             )}
@@ -159,6 +142,21 @@ export default function HomePage(): React.JSX.Element {
                 <p className="bn-home__muted">{texts.album.cardText}</p>
               </BookCard>
             )} />
+          {/* The example album above shows the idea; the real guide of the region, public, opens from here (ADR-47). */}
+          <form className="bn-home__guide" role="search" aria-labelledby={guideSearchTitle}
+            onSubmit={(event) => { event.preventDefault(); const query = guideQuery.trim(); navigateTo(query ? { name: 'album', query } : { name: 'album' }); }}>
+            <h3 id={guideSearchTitle} className="bn-home__guide-title display">{texts.guideSearch.title}</h3>
+            <p className="bn-home__muted">{texts.guideSearch.text}</p>
+            <div className="bn-home__guide-row">
+              <label htmlFor={guideSearchInput} className="visually-hidden">{texts.guideSearch.label}</label>
+              <span className="bn-home__guide-field">
+                <Icon name="search" size="s" />
+                <input id={guideSearchInput} type="search" className="bn-home__guide-input" value={guideQuery} maxLength={GUIDE_QUERY_MAX_LENGTH}
+                  placeholder={texts.guideSearch.placeholder} autoComplete="off" spellCheck={false} onChange={(event) => { setGuideQuery(event.target.value); }} />
+              </span>
+              <Button type="submit" variant="secondary" icon="book">{texts.guideSearch.action}</Button>
+            </div>
+          </form>
         </section>
 
         <section ref={how} className="bn-home__section" aria-labelledby="bn-home-how">

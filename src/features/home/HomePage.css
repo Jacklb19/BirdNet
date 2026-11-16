@@ -42,15 +42,6 @@
   gap: var(--space-3);
 }
 
-.bn-home__link {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--touch-min);
-  color: inherit;
-  text-underline-offset: var(--space-1);
-  font-weight: var(--font-weight-semibold);
-}
-
 .bn-home__note,
 .bn-home__muted {
   color: var(--color-text-secondary);
@@ -115,6 +106,63 @@
   display: grid;
   gap: var(--space-4);
   scroll-margin-top: calc(var(--topbar-height) + var(--space-6));
+}
+
+/* The way from the example album into the real guide: a field-notebook strip under the book. */
+.bn-home__guide {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-surface);
+}
+
+.bn-home__guide-title {
+  margin: 0;
+  font-size: var(--text-title);
+  line-height: var(--leading-title);
+}
+
+.bn-home__guide .bn-home__muted {
+  margin: 0;
+  max-width: var(--reading-measure);
+}
+
+.bn-home__guide-row {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.bn-home__guide-field {
+  display: flex;
+  min-width: 0;
+  min-height: var(--control-height);
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-4);
+  border: var(--border-width-strong) solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-secondary);
+}
+
+.bn-home__guide-field:focus-within {
+  outline: var(--focus-width) solid var(--color-brand);
+  outline-offset: var(--focus-offset);
+}
+
+.bn-home__guide-input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.bn-home__guide-input:focus {
+  outline: none;
 }
 
 .bn-home__steps {
@@ -194,6 +242,10 @@
 }
 
 @media (min-width: 40rem) {
+  .bn-home__guide-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
   .bn-home__steps {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -231,12 +283,5 @@
 
   .bn-home__privacy {
     padding: var(--space-8);
-  }
-}
-
-/* Phones: the bar keeps the way into the app; signing in is in the menu beside it. */
-@media not all and (min-width: 40rem) {
-  .bn-home .bn-session__signin {
-    display: none;
   }
 }

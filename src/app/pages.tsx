@@ -39,7 +39,8 @@ export function RoutePage({ route }: { readonly route: Exclude<Route, { name: 'h
     case 'listen': return <ListenPage />;
     case 'log': return <LogPage />;
     case 'detection': return <DetectionPage id={route.id} />;
-    case 'album': return <AlbumPage />;
+    // Keyed by the search, so the home page's search opens the guide already searching for it.
+    case 'album': return <AlbumPage key={route.query ?? ''} initialQuery={route.query ?? ''} />;
     case 'species': return <SpeciesPage species={route.species} />;
     // Keyed by the species filter, so following another card's map link starts from that species.
     case 'map': return <MapPage key={route.species ?? ''} species={route.species ?? null} />;

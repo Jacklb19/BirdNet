@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { FIELD_LIMITS, isUuid } from '../config/contract';
+import { HOME_SECTIONS, type HomeSection } from '../features/home/home.config';
+import { GUIDE_QUERY_MAX_LENGTH } from '../features/species/species.config';
 
 export type Route =
-  | { name: 'listen' } | { name: 'log' } | { name: 'album' } | { name: 'detection'; id: string }
+  | { name: 'listen' } | { name: 'log' } | { name: 'album'; query?: string } | { name: 'detection'; id: string }
   | { name: 'map'; species?: string } | { name: 'sites' } | { name: 'site'; id: string }
-  | { name: 'species'; species: string } | { name: 'account' } | { name: 'settings' } | { name: 'home' }
+  | { name: 'species'; species: string } | { name: 'account' } | { name: 'settings' } | { name: 'home'; section?: HomeSection }
   | { name: 'walks' } | { name: 'walk'; id: string } | { name: 'signIn' } | { name: 'signUp' } | { name: 'notFound' }
   | { name: 'journal' } | { name: 'outing'; id: string } | { name: 'observations'; id?: string } | { name: 'collections'; id?: string } | { name: 'wishlist' } | { name: 'importAudio' } | { name: 'assistant' };
 
@@ -25,6 +27,19 @@ const GUIDE_PATH = 'guide';
 const LEGACY_ALBUM_SEGMENT = 'album';
 /** Query parameter of the map that opens it filtered to one species (`#/map?species=…`). */
 const MAP_SPECIES_PARAM = 'species';
+/** Query parameter of the home page that scrolls to one of its sections (`#/home?section=how`). */
+const HOME_SECTION_PARAM = 'section';
+/** Query parameter of the guide that opens it already searching (`#/guide?q=…`), as the home page's search does. */
+const GUIDE_QUERY_PARAM = 'q';
+
+function homeSectionFrom(value: string | null): HomeSection | null {
+  return HOME_SECTIONS.find((section) => section === value) ?? null;
+}
+
+function guideQueryFrom(value: string | null): string | null {
+  const query = value?.trim() ?? '';
+  return query && query.length <= GUIDE_QUERY_MAX_LENGTH ? query : null;
+}
 
 /** A scientific name read from the address: decoded, trimmed and within the API's species limit, or null. */
 function speciesFrom(encoded: string | null | undefined): string | null {
@@ -46,7 +61,10 @@ export function parseRoute(hash: string): Route {
     case 'wishlist': return { name: 'wishlist' };
     case 'import': return { name: 'importAudio' };
     case 'assistant': return { name: 'assistant' };
-    case GUIDE_PATH: return { name: 'album' };
+    case GUIDE_PATH: {
+      const search = guideQueryFrom(new URLSearchParams(query).get(GUIDE_QUERY_PARAM));
+      return search ? { name: 'album', query: search } : { name: 'album' };
+    }
     case 'log':
       if (id === LEGACY_ALBUM_SEGMENT) return { name: 'album' };
       return isUuid(id) ? { name: 'detection', id } : { name: 'log' };
@@ -66,7 +84,10 @@ export function parseRoute(hash: string): Route {
     case 'signin': return { name: 'signIn' };
     case 'signup': return { name: 'signUp' };
     // The bare address is the home page (ADR-27). "welcome" was the first-run screen until S6; old links land here too.
-    case '': case 'home': case 'welcome': return { name: 'home' };
+    case '': case 'home': case 'welcome': {
+      const section = homeSectionFrom(new URLSearchParams(query).get(HOME_SECTION_PARAM));
+      return section ? { name: 'home', section } : { name: 'home' };
+    }
     // A mistyped or outdated address says so, instead of opening a screen the person did not ask for (audit U6).
     default: return { name: 'notFound' };
   }
@@ -78,7 +99,8 @@ export function routeHash(route: Route): string {
     case 'outing': return `#/journal/${route.id}`;
     case 'observations': case 'collections': return `#/${route.name}${route.id ? `/${route.id}` : ''}`;
     case 'detection': return `#/log/${route.id}`;
-    case 'album': return `#/${GUIDE_PATH}`;
+    case 'album': return route.query ? `#/${GUIDE_PATH}?${new URLSearchParams({ [GUIDE_QUERY_PARAM]: route.query }).toString()}` : `#/${GUIDE_PATH}`;
+    case 'home': return route.section ? `#/home?${new URLSearchParams({ [HOME_SECTION_PARAM]: route.section }).toString()}` : '#/home';
     case 'site': return `#/sites/${route.id}`;
     case 'walk': return `#/walks/${route.id}`;
     case 'species': return `#/species/${encodeURIComponent(route.species)}`;

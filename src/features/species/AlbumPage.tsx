@@ -57,12 +57,12 @@ function SelectedCard({ slot, name, now }: { readonly slot: AlbumSlot; readonly 
  * (phone and account together) and, faded, the likely birds of the area still to find. The open book shows the
  * card of the chosen bird on its right page; on a phone a sticker opens the bird's own screen.
  */
-export default function AlbumPage(): React.JSX.Element {
+export default function AlbumPage({ initialQuery = '' }: { readonly initialQuery?: string }): React.JSX.Element {
   // The guide is open to everyone (ADR-45); the album in it is the signed-in person's.
-  return useAccountContext().identity ? <OwnAlbum /> : <PublicGuide />;
+  return useAccountContext().identity ? <OwnAlbum initialQuery={initialQuery} /> : <PublicGuide initialQuery={initialQuery} />;
 }
 
-function OwnAlbum(): React.JSX.Element {
+function OwnAlbum({ initialQuery }: { readonly initialQuery: string }): React.JSX.Element {
   const { dict, locale } = useI18n();
   const texts = dict.species.album;
   const names = useSpeciesNames();
@@ -71,7 +71,7 @@ function OwnAlbum(): React.JSX.Element {
   const { records, readAt } = useLogRecords();
   const cloud = useOwnSpecies();
   const { sites, active } = useSites();
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery);
   const [scope, setScope] = useState<AlbumScope>('all');
   const [page, setPage] = useState(1);
   const [chosen, setChosen] = useState<string | null>(null);

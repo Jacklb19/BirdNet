@@ -227,6 +227,11 @@
   /* Paper grain over the whole page (an SVG noise tile; opacity is the texture's only setting) */
   --texture-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .3 0 0 0 0 .35 0 0 0 0 .3 0 0 0 .1 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
   --texture-grain-opacity: 0.55;
+  /*
+   * Field-notebook motif under the content (ADR-47): a feather and a few sound waves drawn in faint brand ink. The
+   * stroke opacity is baked into the tile, low enough to stay under every text contrast pair checked for the paper.
+   */
+  --texture-motif: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Cg fill='none' stroke='%230B6E4E' stroke-opacity='.09' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M44 226C78 172 120 132 182 98'/%3E%3Cpath d='M62 200C58 170 88 136 126 120C150 110 166 104 182 98M62 200C96 202 130 180 150 150C162 132 172 114 182 98'/%3E%3Cpath d='M82 176l16-22M102 158l16-20M122 140l16-18M86 184l22-8M108 166l22-9M128 148l20-9'/%3E%3Cpath d='M196 250q9-22 18 0t18 0t18 0t18 0M214 276q6-12 12 0t12 0t12 0'/%3E%3Cpath d='M236 60c10-14 26-18 40-10M226 76c16-22 44-28 64-14'/%3E%3C/g%3E%3Ccircle cx='38' cy='62' r='2.5' fill='%230B6E4E' fill-opacity='.12'/%3E%3Ccircle cx='270' cy='176' r='2' fill='%230B6E4E' fill-opacity='.12'/%3E%3C/svg%3E");
 
   /* Chorus clock — lengths in SVG user units of its 260 × 260 viewBox */
   --chorus-size: 17rem;
@@ -356,4 +361,5 @@
   --scene-water: #1C3442;
   --scene-road: #2A3B35;
   --texture-grain-opacity: 0.25;
+  --texture-motif: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Cg fill='none' stroke='%235CD39C' stroke-opacity='.07' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M44 226C78 172 120 132 182 98'/%3E%3Cpath d='M62 200C58 170 88 136 126 120C150 110 166 104 182 98M62 200C96 202 130 180 150 150C162 132 172 114 182 98'/%3E%3Cpath d='M82 176l16-22M102 158l16-20M122 140l16-18M86 184l22-8M108 166l22-9M128 148l20-9'/%3E%3Cpath d='M196 250q9-22 18 0t18 0t18 0t18 0M214 276q6-12 12 0t12 0t12 0'/%3E%3Cpath d='M236 60c10-14 26-18 40-10M226 76c16-22 44-28 64-14'/%3E%3C/g%3E%3Ccircle cx='38' cy='62' r='2.5' fill='%235CD39C' fill-opacity='.1'/%3E%3Ccircle cx='270' cy='176' r='2' fill='%235CD39C' fill-opacity='.1'/%3E%3C/svg%3E");
 }

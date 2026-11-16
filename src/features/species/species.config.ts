@@ -21,6 +21,9 @@ export const BOOK_SEEN_RATIO = 0.35;
 /** Rings drawn on the spine of the album. */
 export const ALBUM_BOOK_RINGS = 5;
 
+/** Longest search the guide takes from its address or from the home page: a bird's name, not a paragraph. */
+export const GUIDE_QUERY_MAX_LENGTH = 80;
+
 /** Latest records listed on a species card. */
 export const SPECIES_RECENT_RECORDS = 8;
 
