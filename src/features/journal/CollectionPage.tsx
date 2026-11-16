@@ -7,7 +7,8 @@ import { Page } from '../../shared/ui/Page';
 import { PageHeader } from '../../shared/ui/PageHeader';
 import { useLogRecords } from '../log/useLogRecords';
 import { commonName, useSpeciesNames } from '../species/speciesNames';
-import { JOURNAL_NAME_LIMIT, JOURNAL_NOTE_LIMIT, JOURNAL_PAGE_SIZE } from './journal.config';
+import { LIST_PAGE_SIZE } from '../../config/lists';
+import { JOURNAL_NAME_LIMIT, JOURNAL_NOTE_LIMIT } from './journal.config';
 import { journalMessages } from './i18n';
 import { EntityStatus, JournalNotices, type JournalState } from './JournalParts';
 import { deleteEntity, saveEntity, setRelation } from './journalStore';
@@ -42,7 +43,7 @@ function CollectionForm({ row, state }: { readonly row: EntityRecord<'collection
  */
 function AddRecords({ row, state }: { readonly row: EntityRecord<'collection'>; readonly state: JournalState }): React.JSX.Element {
   const { locale } = useI18n(); const t = journalMessages[locale]; const names = useSpeciesNames(); const records = useLogRecords().everything;
-  const [search, setSearch] = useState(''); const [limit, setLimit] = useState(JOURNAL_PAGE_SIZE);
+  const [search, setSearch] = useState(''); const [limit, setLimit] = useState(LIST_PAGE_SIZE);
   const searchId = useId();
   const when = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' });
   const members = useMemo(() => new Set(state.relations.filter((entry) => entry.kind === 'collectionItem' && entry.parent === row.id && entry.present).map((entry) => `${entry.recordKind}:${entry.recordId}`)), [state.relations, row.id]);
@@ -56,7 +57,7 @@ function AddRecords({ row, state }: { readonly row: EntityRecord<'collection'>; 
       <summary className="bn-journal__summary"><Icon name="plus" size="s" /><span>{t.addRecords}</span></summary>
       <div className="bn-journal__form">
         <label htmlFor={searchId}>{t.chooseSpecies}</label>
-        <input id={searchId} type="search" value={search} autoComplete="off" onChange={(event) => { setSearch(event.target.value); setLimit(JOURNAL_PAGE_SIZE); }} />
+        <input id={searchId} type="search" value={search} autoComplete="off" onChange={(event) => { setSearch(event.target.value); setLimit(LIST_PAGE_SIZE); }} />
         {candidates.length === 0 ? <p className="bn-journal__muted">{t.noCandidates}</p> : (
           <ul className="bn-journal__rows">
             {candidates.slice(0, limit).map((entry) => {
@@ -71,7 +72,7 @@ function AddRecords({ row, state }: { readonly row: EntityRecord<'collection'>; 
             })}
           </ul>
         )}
-        {candidates.length > limit && <Button variant="secondary" onClick={() => { setLimit((value) => value + JOURNAL_PAGE_SIZE); }}>{t.showMore}</Button>}
+        {candidates.length > limit && <Button variant="secondary" onClick={() => { setLimit((value) => value + LIST_PAGE_SIZE); }}>{t.showMore}</Button>}
       </div>
     </details>
   );

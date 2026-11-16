@@ -6,7 +6,7 @@ export const commonMessages = defineMessages({
     status: { confirmed: 'Muy probable', provisional: 'Por verificar', verified: 'Confirmada por una persona', corrected: 'Corregida por una persona', discarded: 'Descartada' },
     periods: { week: 'Semana', month: 'Mes', year: 'Año', all: 'Todo' },
     confidence: 'Confianza',
-    actions: { retry: 'Reintentar', cancel: 'Cancelar', save: 'Guardar', close: 'Cerrar', back: 'Atrás' },
+    actions: { retry: 'Reintentar', cancel: 'Cancelar', save: 'Guardar', close: 'Cerrar', back: 'Atrás', showMore: 'Mostrar más' },
     errors: {
       network: 'No hubo respuesta del servidor. Revisa la conexión e inténtalo de nuevo.',
       offline: 'Sin conexión. Lo que registres se guarda en el teléfono.',
@@ -50,7 +50,7 @@ export const commonMessages = defineMessages({
     status: { confirmed: 'Very likely', provisional: 'To verify', verified: 'Confirmed by a person', corrected: 'Corrected by a person', discarded: 'Discarded' },
     periods: { week: 'Week', month: 'Month', year: 'Year', all: 'All' },
     confidence: 'Confidence',
-    actions: { retry: 'Try again', cancel: 'Cancel', save: 'Save', close: 'Close', back: 'Back' },
+    actions: { retry: 'Try again', cancel: 'Cancel', save: 'Save', close: 'Close', back: 'Back', showMore: 'Show more' },
     errors: {
       network: 'The server did not answer. Check the connection and try again.',
       offline: 'Offline. What you record is kept on this phone.',

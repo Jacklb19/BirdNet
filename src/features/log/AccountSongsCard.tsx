@@ -7,7 +7,7 @@ import { Icon } from '../../shared/ui/Icon';
 import { useAccountContext } from '../account/accountContext';
 import { useAccountSongs } from '../map/useAccountSongs';
 import { commonName, useSpeciesNames } from '../species/speciesNames';
-import { LOG_PAGE_SIZE } from './log.config';
+import { LIST_PAGE_SIZE } from '../../config/lists';
 import { formatConfidence, formatDayTime } from './logFormat';
 import './AccountSongsCard.css';
 
@@ -29,7 +29,7 @@ export function AccountSongsCard({ local, online, now }: AccountSongsCardProps):
   const names = useSpeciesNames();
   const { session } = useAccountContext();
   const songs = useAccountSongs(session?.access_token ?? null, session?.user.id ?? null, online);
-  const [limit, setLimit] = useState(LOG_PAGE_SIZE);
+  const [limit, setLimit] = useState(LIST_PAGE_SIZE);
   const titleId = useId();
   const missing = useMemo(() => songs.data.filter((song) => !local.has(song.id)), [songs.data, local]);
   if (missing.length === 0) return <AccountDataNotice resource={songs} />;
@@ -56,7 +56,7 @@ export function AccountSongsCard({ local, online, now }: AccountSongsCardProps):
         ))}
       </ul>
       {missing.length > limit && (
-        <Button variant="quiet" onClick={() => { setLimit((shown) => shown + LOG_PAGE_SIZE); }}>{texts.more}</Button>
+        <Button variant="quiet" onClick={() => { setLimit((shown) => shown + LIST_PAGE_SIZE); }}>{texts.more}</Button>
       )}
     </section>
   );

@@ -5,7 +5,8 @@ import { Button } from '../../shared/ui/Button';
 import { EmptyState } from '../../shared/ui/EmptyState';
 import { Icon } from '../../shared/ui/Icon';
 import { journalMessages } from './i18n';
-import { JOURNAL_NAME_LIMIT, JOURNAL_NOTE_LIMIT, JOURNAL_PAGE_SIZE } from './journal.config';
+import { LIST_PAGE_SIZE } from '../../config/lists';
+import { JOURNAL_NAME_LIMIT, JOURNAL_NOTE_LIMIT } from './journal.config';
 import { JournalNotices } from './JournalParts';
 import { saveEntity } from './journalStore';
 import type { EntityRecord } from './types';
@@ -20,7 +21,7 @@ export function CollectionsPart(): React.JSX.Element {
   const t = journalMessages[locale];
   const state = useJournal();
   const [name, setName] = useState(''); const [note, setNote] = useState('');
-  const [limit, setLimit] = useState(JOURNAL_PAGE_SIZE);
+  const [limit, setLimit] = useState(LIST_PAGE_SIZE);
   const rows = state.entities.filter((entry): entry is EntityRecord<'collection'> => entry.kind === 'collection' && (!entry.deleted || entry.conflict))
     .sort((a, b) => a.data.name.localeCompare(b.data.name, locale));
   return (
@@ -56,7 +57,7 @@ export function CollectionsPart(): React.JSX.Element {
           ))}
         </ul>
       )}
-      {rows.length > limit && <Button variant="secondary" block onClick={() => { setLimit((value) => value + JOURNAL_PAGE_SIZE); }}>{t.showMore}</Button>}
+      {rows.length > limit && <Button variant="secondary" block onClick={() => { setLimit((value) => value + LIST_PAGE_SIZE); }}>{t.showMore}</Button>}
     </div>
   );
 }

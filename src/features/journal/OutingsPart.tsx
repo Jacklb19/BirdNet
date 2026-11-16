@@ -10,7 +10,8 @@ import { formatDayTime } from '../log/logFormat';
 import { useWalkList } from '../walk/useWalks';
 import { WalkItem } from '../walk/WalkItem';
 import { journalMessages } from './i18n';
-import { JOURNAL_NAME_LIMIT, JOURNAL_NOTE_LIMIT, JOURNAL_PAGE_SIZE } from './journal.config';
+import { LIST_PAGE_SIZE } from '../../config/lists';
+import { JOURNAL_NAME_LIMIT, JOURNAL_NOTE_LIMIT } from './journal.config';
 import { JournalNotices } from './JournalParts';
 import { saveEntity } from './journalStore';
 import { outingList } from './outingList';
@@ -74,7 +75,7 @@ export function OutingsPart({ kind }: { readonly kind: OutingFilter }): React.JS
   const t = journalMessages[locale];
   const state = useJournal();
   const walks = useWalkList();
-  const [limit, setLimit] = useState(JOURNAL_PAGE_SIZE);
+  const [limit, setLimit] = useState(LIST_PAGE_SIZE);
   const now = new Date();
   const outings = useMemo(() => state.entities.filter((row): row is EntityRecord<'outing'> => row.kind === 'outing' && (!row.deleted || row.conflict)), [state.entities]);
   const items = useMemo(() => outingList(outings, walks.walks ?? [], kind), [outings, walks.walks, kind]);
@@ -105,8 +106,8 @@ export function OutingsPart({ kind }: { readonly kind: OutingFilter }): React.JS
       )}
       {more && (
         <Button variant="secondary" block aria-busy={walks.loadingMore} onClick={() => {
-          setLimit((value) => value + JOURNAL_PAGE_SIZE);
-          if (walks.hasMore && items.length <= limit + JOURNAL_PAGE_SIZE) walks.loadMore();
+          setLimit((value) => value + LIST_PAGE_SIZE);
+          if (walks.hasMore && items.length <= limit + LIST_PAGE_SIZE) walks.loadMore();
         }}>{walks.loadingMore ? dict.common.loading : t.showMore}</Button>
       )}
     </div>

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { API_PROXY_PREFIX, E2E_SUPABASE, OFFLINE_CHECK_BUNDLE } from '../build.config.mjs';
+import { LIST_PAGE_SIZE } from '../src/config/lists';
 import { journalMessages } from '../src/features/journal/i18n';
 import { assistantMessages } from '../src/features/assistant/i18n';
 import { buildHasAccounts } from './builds';
@@ -77,9 +78,10 @@ test.describe('private journal API integration', () => {
       await page.getByRole('searchbox').fill('Colibri coruscans');
       // Matching records are listed a page at a time, each with its own "Add" button (ADR-47).
       const candidates = page.locator('[data-record^="observation:"]'); const oldest = observations[0] ?? '';
-      await expect(candidates).toHaveCount(20);
+      await expect(candidates).toHaveCount(LIST_PAGE_SIZE);
       await expect(page.locator(`[data-record="observation:${oldest}"]`)).toHaveCount(0);
-      await page.getByRole('button', { name: t.showMore, exact: true }).first().click();
+      // The 21st match is reached by showing more until it appears, never cut off for good.
+      while (await page.locator(`[data-record="observation:${oldest}"]`).count() === 0) await page.getByRole('button', { name: t.showMore, exact: true }).first().click();
       await page.locator(`[data-record="observation:${oldest}"]`).click();
       await expect(page.locator(`a[href="#/observations/${oldest}"]`).first()).toBeVisible();
       // This describe blocks service workers; flush the real outbox explicitly, as in its other integration cases.

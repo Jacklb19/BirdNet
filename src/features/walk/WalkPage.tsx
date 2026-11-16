@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { navigateTo, routeHash } from '../../app/routes';
+import { LIST_PAGE_SIZE } from '../../config/lists';
 import { formatCount, formatDistance, formatNumber, useI18n } from '../../i18n';
 import { formatClock } from '../../shared/time';
 import { Button } from '../../shared/ui/Button';
@@ -67,6 +68,7 @@ export default function WalkPage({ id }: { readonly id: string }): React.JSX.Ele
   const online = useOnline();
   const token = session?.access_token ?? null;
   const [reload, setReload] = useState(0);
+  const [shownSpecies, setShownSpecies] = useState(LIST_PAGE_SIZE);
   const detail = useWalkDetail(id, reload);
   const [renaming, setRenaming] = useState(false);
   const [gpx, setGpx] = useState<Task>({ kind: 'idle' });
@@ -169,7 +171,7 @@ export default function WalkPage({ id }: { readonly id: string }): React.JSX.Ele
           ? <p className="bn-walk-page__hint">{t.heardNone}</p>
           : (
             <ul className="bn-walk-page__species">
-              {walk.species.map((entry) => (
+              {walk.species.slice(0, shownSpecies).map((entry) => (
                 <li key={entry.species}>
                   <SpeciesRow scientificName={entry.species} name={commonName(names, entry.species, locale)} photo="round" tone="brand"
                     status={formatCount(t.songs, entry.songs, locale)} detail={t.best(formatConfidence(entry.bestConfidence, locale))}
@@ -178,6 +180,9 @@ export default function WalkPage({ id }: { readonly id: string }): React.JSX.Ele
               ))}
             </ul>
           )}
+        {walk.species.length > shownSpecies && (
+          <Button variant="secondary" block onClick={() => { setShownSpecies((value) => value + LIST_PAGE_SIZE); }}>{dict.common.actions.showMore}</Button>
+        )}
         {/* A permanent caveat, so it is not live. */}
         <Notice tone="caution">{dict.common.absenceCaveat}</Notice>
       </section>

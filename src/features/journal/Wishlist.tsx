@@ -6,7 +6,7 @@ import { SpeciesRow } from '../../shared/ui/SpeciesRow';
 import { routeHash } from '../../app/routes';
 import { commonName, useSpeciesNames } from '../species/speciesNames';
 import { journalMessages } from './i18n';
-import { JOURNAL_PAGE_SIZE } from './journal.config';
+import { LIST_PAGE_SIZE } from '../../config/lists';
 import { JournalNotices, SpeciesField } from './JournalParts';
 import { setRelation } from './journalStore';
 import { useJournal } from './useJournal';
@@ -28,7 +28,7 @@ export function WishButton({ species }: { readonly species: string }): React.JSX
  */
 export function WishlistPart(): React.JSX.Element {
   const { locale } = useI18n(); const t = journalMessages[locale]; const state = useJournal(); const names = useSpeciesNames(); const [species, setSpecies] = useState('');
-  const [limit, setLimit] = useState(JOURNAL_PAGE_SIZE);
+  const [limit, setLimit] = useState(LIST_PAGE_SIZE);
   const rows = state.relations.filter((row) => row.kind === 'wish' && row.present)
     .sort((a, b) => commonName(names, a.recordId, locale).localeCompare(commonName(names, b.recordId, locale), locale));
   return (
@@ -56,7 +56,7 @@ export function WishlistPart(): React.JSX.Element {
           ))}
         </ul>
       )}
-      {rows.length > limit && <Button variant="secondary" block onClick={() => { setLimit((value) => value + JOURNAL_PAGE_SIZE); }}>{t.showMore}</Button>}
+      {rows.length > limit && <Button variant="secondary" block onClick={() => { setLimit((value) => value + LIST_PAGE_SIZE); }}>{t.showMore}</Button>}
     </div>
   );
 }

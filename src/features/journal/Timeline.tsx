@@ -10,7 +10,7 @@ import { AccountRecordingButton } from '../recordings/AccountRecordingButton';
 import { useLocalRecording } from '../recordings/useRecordings';
 import { commonName, useSpeciesNames } from '../species/speciesNames';
 import { journalMessages } from './i18n';
-import { JOURNAL_PAGE_SIZE } from './journal.config';
+import { LIST_PAGE_SIZE } from '../../config/lists';
 import type { JournalState } from './JournalParts';
 import { loadRemoteEvents } from './journalSync';
 import type { TimelineEvent } from './types';
@@ -33,7 +33,7 @@ function EventCard({ event, online, onRemove, busy }: { readonly event: Timeline
 /** A collection's records can be taken out of it here; removing one keeps the record itself (ADR-46). */
 export function Timeline({ kind, id, state, onRemove }: { readonly kind: 'outing' | 'collection'; readonly id: string; readonly state: JournalState; readonly onRemove?: (event: TimelineEvent) => void }): React.JSX.Element {
   const t = journalMessages[useI18n().locale]; const records = useLogRecords().everything; const [remote, setRemote] = useState<TimelineEvent[]>([]); const [failed, setFailed] = useState(false); const [attempt, setAttempt] = useState(0);
-  const [limit, setLimit] = useState(JOURNAL_PAGE_SIZE);
+  const [limit, setLimit] = useState(LIST_PAGE_SIZE);
   const parent = state.entities.find((row) => row.kind === kind && row.id === id);
   const version = parent && !parent.deleted ? parent.version : null;
   useEffect(() => {
@@ -64,6 +64,6 @@ export function Timeline({ kind, id, state, onRemove }: { readonly kind: 'outing
   }, [remote, state.relations, state.entities, records, kind, id]);
   return <section className="bn-journal"><h2>{t.timeline}</h2><p>{t.approximate}</p>{failed && <Notice tone="error">{t.error}</Notice>}
     <Button variant="quiet" onClick={() => { setAttempt((value) => value + 1); }}>{t.retry}</Button>
-    <ol className="bn-journal__list bn-journal__timeline">{events.slice(0, limit).map((event) => <EventCard key={`${event.kind}:${event.id}`} event={event} online={state.online} onRemove={onRemove} busy={state.busy} />)}</ol>{!events.length && <p>{t.empty}</p>}{events.length > limit && <Button variant="secondary" onClick={() => { setLimit((value) => value + JOURNAL_PAGE_SIZE); }}>{t.showMore}</Button>}
+    <ol className="bn-journal__list bn-journal__timeline">{events.slice(0, limit).map((event) => <EventCard key={`${event.kind}:${event.id}`} event={event} online={state.online} onRemove={onRemove} busy={state.busy} />)}</ol>{!events.length && <p>{t.empty}</p>}{events.length > limit && <Button variant="secondary" onClick={() => { setLimit((value) => value + LIST_PAGE_SIZE); }}>{t.showMore}</Button>}
   </section>;
 }

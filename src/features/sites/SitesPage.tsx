@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react';
 import { routeHash } from '../../app/routes';
+import { LIST_PAGE_SIZE } from '../../config/lists';
 import { useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
 import { EmptyState } from '../../shared/ui/EmptyState';
@@ -27,6 +28,7 @@ export default function SitesPage(): React.JSX.Element {
   const [checked, setChecked] = useState(false);
   const [selecting, setSelecting] = useState(false);
   const [selectFailed, setSelectFailed] = useState(false);
+  const [shown, setShown] = useState(LIST_PAGE_SIZE);
   const uid = useId();
   const ids = { form: `${uid}-form`, why: `${uid}-why`, newButton: `${uid}-new` };
 
@@ -103,12 +105,17 @@ export default function SitesPage(): React.JSX.Element {
           <EmptyState icon="offline" title={t.offlineEmptyTitle}><p>{t.offlineEmptyText}</p></EmptyState>
         )
       ) : (
-        <ul className="bn-sites__list">
-          {sites.map((site) => (
-            <SiteCard key={site.id} site={site} isActive={active?.id === site.id} online={online}
-              busy={selecting} onSelect={choose} />
-          ))}
-        </ul>
+        <>
+          <ul className="bn-sites__list">
+            {sites.slice(0, shown).map((site) => (
+              <SiteCard key={site.id} site={site} isActive={active?.id === site.id} online={online}
+                busy={selecting} onSelect={choose} />
+            ))}
+          </ul>
+          {sites.length > shown && (
+            <Button variant="secondary" block onClick={() => { setShown((value) => value + LIST_PAGE_SIZE); }}>{dict.common.actions.showMore}</Button>
+          )}
+        </>
       )}
     </Page>
   );

@@ -6,7 +6,7 @@ import { EmptyState } from '../../shared/ui/EmptyState';
 import { SpeciesRow } from '../../shared/ui/SpeciesRow';
 import { commonName, useSpeciesNames } from '../species/speciesNames';
 import { journalMessages } from './i18n';
-import { JOURNAL_PAGE_SIZE } from './journal.config';
+import { LIST_PAGE_SIZE } from '../../config/lists';
 import { JournalNotices } from './JournalParts';
 import type { EntityRecord } from './types';
 import { useJournal } from './useJournal';
@@ -21,7 +21,7 @@ export function ObservationsPart(): React.JSX.Element {
   const t = journalMessages[locale];
   const names = useSpeciesNames();
   const state = useJournal();
-  const [limit, setLimit] = useState(JOURNAL_PAGE_SIZE);
+  const [limit, setLimit] = useState(LIST_PAGE_SIZE);
   const rows = state.entities
     .filter((entry): entry is EntityRecord<'observation'> => entry.kind === 'observation' && (!entry.deleted || entry.conflict))
     .sort((a, b) => b.data.observed_at.localeCompare(a.data.observed_at) || a.id.localeCompare(b.id));
@@ -47,7 +47,7 @@ export function ObservationsPart(): React.JSX.Element {
           ))}
         </ul>
       )}
-      {rows.length > limit && <Button variant="secondary" block onClick={() => { setLimit((value) => value + JOURNAL_PAGE_SIZE); }}>{t.showMore}</Button>}
+      {rows.length > limit && <Button variant="secondary" block onClick={() => { setLimit((value) => value + LIST_PAGE_SIZE); }}>{t.showMore}</Button>}
     </div>
   );
 }

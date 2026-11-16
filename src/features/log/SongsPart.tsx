@@ -15,7 +15,7 @@ import { useWalkData } from '../walk/useWalkData';
 import { AccountSongsCard } from './AccountSongsCard';
 import { AssignSiteCard } from './AssignSiteCard';
 import { ExportAllCard } from './ExportAllCard';
-import { LOG_PAGE_SIZE } from './log.config';
+import { LIST_PAGE_SIZE } from '../../config/lists';
 import { LogDay } from './LogDay';
 import { LogFilters } from './LogFilters';
 import { groupByDay, matchesFilter, syncCounts, todaySummary, type LogFilter } from './logRecords';
@@ -36,7 +36,7 @@ interface ListState {
   readonly limit: number;
 }
 
-const FRESH: Omit<ListState, 'owner'> = { filter: 'all', query: '', site: ALL_SITES, limit: LOG_PAGE_SIZE };
+const FRESH: Omit<ListState, 'owner'> = { filter: 'all', query: '', site: ALL_SITES, limit: LIST_PAGE_SIZE };
 /**
  * The list's filters while the tab is open (ADR-47): opening a record and coming back finds the same search, filter
  * and length, so the reading position can be restored. Kept in memory only, and only for the account that set it.
@@ -72,7 +72,7 @@ export function SongsPart(): React.JSX.Element {
   const searching = query.trim() !== '' || site !== ALL_SITES;
   const localIds = useMemo(() => new Set((everything ?? []).map((record) => record.id)), [everything]);
 
-  const restart = (): void => { setLimit(LOG_PAGE_SIZE); };
+  const restart = (): void => { setLimit(LIST_PAGE_SIZE); };
 
   let today: string | undefined;
   if (records?.length) {
@@ -133,7 +133,7 @@ export function SongsPart(): React.JSX.Element {
             ? groups.map((group) => <LogDay key={group.day.getTime()} group={group} names={names} now={readAt} />)
             : <p className="bn-log__status">{searching ? dict.log.search.empty : dict.log.filters.empty[filter]}</p>}
           {visible.length > limit && (
-            <Button variant="secondary" block onClick={() => { setLimit((current) => current + LOG_PAGE_SIZE); }}>{dict.log.showMore}</Button>
+            <Button variant="secondary" block onClick={() => { setLimit((current) => current + LIST_PAGE_SIZE); }}>{dict.log.showMore}</Button>
           )}
         </>
       )}

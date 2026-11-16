@@ -1,13 +1,6 @@
 /** Tunable behavior of the log screens. */
 
 /**
- * Rows rendered before "show more". A morning of listening can produce hundreds of detections; rendering them all
- * at once means hundreds of photo lookups and a long first paint on a phone, while a page this size still covers
- * a typical day.
- */
-export const LOG_PAGE_SIZE = 50;
-
-/**
  * Times of the log use the 24-hour clock, as field notes do: dawn and dusk choruses read without "a. m./p. m.",
  * and the time column stays narrow enough on a 360 px phone for the species name to keep its width.
  */
