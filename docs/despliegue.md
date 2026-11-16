@@ -115,3 +115,8 @@ El workflow de navegador fija la API `b9f627c` y selecciona cuenta, beta sin «r
 - Web: `npm ci`, `npm run dev` (Vite reenvía `/api` a `API_PROXY_TARGET`, por defecto `http://127.0.0.1:8000`). En desarrollo no hay Service Worker: el modelo se carga directamente al empezar a escuchar.
 - API: ver el README del repositorio de la API (`uvicorn birdnet_api.app:app --port 8000`).
 - Verificación: `npm run lint`, `npm run typecheck`, `npm run test`, `npm run build`.
+
+
+### Mejoras de experiencia (ADR-47), 16 de noviembre de 2026
+
+R1, R2 y R3 aprobadas por el dueño; el cierre se conserva en dev, sin publicación de estas mejoras todavía. El workflow web fija la API a `ac5f738a175ed2395ebcf426a1044ded0b7bdea4` para comprobar el contexto acotado, el consentimiento assistant-text-v2 y la comparación de periodos. Al publicar, debe llegar primero esta API y después la web: la aceptación v1 no autoriza enviar el nuevo contexto. No hacen falta migraciones, dependencias ni variables de entorno nuevas. Los modelos acústicos, los permisos de audio y mapa y los servicios remotos conservan su configuración.

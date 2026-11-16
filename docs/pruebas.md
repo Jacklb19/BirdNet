@@ -2,6 +2,17 @@
 
 Lo que las pruebas automáticas no pueden comprobar: un teléfono real, un micrófono real, cuentas reales y una hora caminando. Cada prueba dice qué hacer, qué debe pasar y qué anotar. Al terminar, registrar los resultados en la última sección sin incluir contraseñas, tokens ni datos personales.
 
+## Asistente y navegación de experiencia (ADR-47)
+
+1. Con sesión, abrir Asistente y consultar «Mis registros de esta semana» → «¿Y ayer?» → «Solo los provisionales» → «Abre el primero». Verificar confianza y estado, filtros aplicados, detalle correcto y regreso con el hilo conservado. Las consultas reconocidas no deben enviar texto al proveedor ni gastar su cuota. Si no hay resultados, no debe afirmarse que no había aves.
+2. Comparar esta semana con la pasada. Contrastar los recuentos con la Bitácora: los cantos descartados no cuentan y las observaciones visuales se muestran aparte. Si se corta la lista de especies exclusivas, el aviso debe distinguirla de los totales completos.
+3. Con una aceptación antigua del aviso, escribir una pregunta que requiera interpretación: debe pedir permiso nuevo antes de enviar. Probar una explicación pública y una pregunta sobre una especie. La explicación tiene fuentes; el hilo no muestra nombre del modelo ni tokens. Las consultas claras de lectura se ejecutan directamente; una referencia ambigua pide aclaración.
+4. Cancelar una petición, iniciar una nueva consulta y retirar el permiso, también desde otra pestaña. No deben aparecer respuestas tardías ni conservarse el contexto después de retirarlo. Salir de Asistente, cerrar sesión y entrar de nuevo: el hilo anterior debe haberse borrado.
+5. Comprobar Registros, Salidas, Colecciones y otras listas largas: inicialmente hasta diez elementos, con los siguientes accesibles mediante «Mostrar más». En el asistente, cada página añade cinco resultados. Volver de un detalle debe mantener el recorrido y los filtros que correspondan.
+6. En un teléfono real, abrir el teclado, escribir varias líneas, desplegar un filtro y consultar mensajes anteriores mientras llega una respuesta. El campo y sus controles deben seguir accesibles; la llegada de una respuesta no debe quitar la posición de lectura. Repetir a 360 y 1280 px, es/en y claro/oscuro, y recorrer los controles con teclado. La simulación de altura reducida en escritorio no sustituye el teclado real de Android/iOS.
+
+Las cuentas, el correo y el proveedor reales siguen siendo comprobaciones independientes. Una prueba con Auth o respuestas sustituidas no demuestra el funcionamiento de Supabase o Gemini reales.
+
 ## Beta: diario y asistentes
 
 Complementa las pruebas existentes; requiere aplicar la migración beta y publicar primero la API (`docs/despliegue.md`). Las verificaciones automáticas locales se describen en `beta-validacion.md`.

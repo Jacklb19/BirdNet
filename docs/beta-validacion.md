@@ -31,3 +31,21 @@ Teléfonos Android/iOS, Safari y sus códecs, micrófono/GPS físicos, batería,
 API `b9f627c` y web `dc46ff8` publicadas. El dueño confirmó ambas migraciones de noviembre. CI final API [43800452229](https://github.com/Jacklb19/Bird_Back/actions/runs/43800452229): 353 pruebas; CI web [43800994885](https://github.com/Jacklb19/BirdNet/actions/runs/43800994885): verificación web y 30 E2E. Son los resultados registrados al publicar, separados de la evidencia local anterior. La API corrigió el empaquetado de dependencias en Vercel y el workflow web fija esa revisión desplegable.
 
 La auditoría local del 15–16 de noviembre repitió 664 unitarias, 353 API/PostGIS y 42 E2E. Su minuto simulado dio 36 ventanas analizadas, dos descartadas y una tarea de 62 ms: los checks verdes no acreditan RNF-02/03. Las correcciones posteriores se comprueban por separado; estos números se conservan como evidencia histórica. A14 sigue aplazado y las pruebas reales enumeradas arriba siguen pendientes.
+
+
+## Mejoras de experiencia — 16 de noviembre de 2026 (ADR-47, locales)
+
+R1 y R2 ya estaban aprobadas y en commits locales de dev. R3 queda preparada para revisión: conversación en memoria por cuenta, plan activo editable, consultas locales o interpretación con consentimiento nuevo assistant-text-v2, tutor público accesible desde el mismo campo y comparación determinista de dos periodos. Listas con diez elementos iniciales y «Mostrar más»; el asistente pagina de cinco en cinco.
+
+Verificación de este cierre:
+- Web: lint y tipos correctos; 700 pruebas en 100 archivos y cobertura de 77,31 % de sentencias / 72,83 % de ramas / 73,40 % de funciones / 80,58 % de líneas. Tras el último ajuste de reconocimiento local, 61 pruebas del asistente correctas.
+- API: Ruff, mypy (43 archivos), compileall y 364 pruebas con PostGIS local correctos. Se conserva el aviso de deprecación de Starlette/httpx.
+- Builds normal y E2E correctas; se conserva el aviso de tamaño de MapLibre. Suite completa en Edge: 43/43. Después de los ajustes finales de presentación y documentación, las diez E2E beta pertinentes volvieron a pasar: 10/10.
+- Nueve combinaciones visuales del asistente: 360/1280 px con es/en y claro/oscuro, y 768 px en es/claro; sin desbordes ni errores de JavaScript. Se corrigieron la compresión de los nombres en las tarjetas y un desborde de 12 px que aparecía en inglés a 360 px con resultados. Ejemplos plegables y campo inicial visible.
+- Comprobados por separado en navegador: paginación 5→10→11 del asistente, listas 10→11, abrir un resultado y volver conservando el hilo, permiso antes del tutor público, una sola petición de explicación sin adjuntar el plan privado, retirada del permiso desde otra pestaña, filtros por teclado y campo accesible en una vista de 360×420. Esta última simula espacio reducido; no acredita un teclado físico de teléfono.
+
+La interpretación y el tutor se sustituyeron en las comprobaciones de navegador; SQL, RLS, consultas, versiones y vínculos usaron la API y PostGIS locales. No se enviaron preguntas reales a Gemini ni se alteraron cuentas remotas. La revisión con cuenta ficticia es exclusivamente local y no crea la cuenta de exposición.
+
+El minuto simulado de escucha de la suite completa registró 35 ventanas analizadas, 3 descartadas, mediana 139 ms, p90 197 ms y máximo 292 ms. Se observaron tareas largas de 147 y 295 ms en el equipo durante otras validaciones concurrentes. No se declara cumplido RNF-03 ni rendimiento/batería de teléfono por este resultado.
+
+Continúan pendientes Gemini/cuotas reales, cuentas/correo/MFA reales, Android/iOS/Safari, micrófono/GPS, reproducción de clips de cuenta y campo/batería. El dueño aprobó R3 y sus commits el 16 de noviembre de 2026. El workflow web fija la API a `ac5f738a175ed2395ebcf426a1044ded0b7bdea4`, con el contrato de ADR-47. La publicación sigue pendiente; la API debe publicarse antes que la web. No hay migraciones, dependencias ni cambios remotos nuevos.

@@ -11,7 +11,7 @@ import { storeSession, testSession, testUser, type TestSession } from './session
 test.skip(!buildHasAccounts, 'Build the account fixture first.');
 const bridge = readFileSync(OFFLINE_CHECK_BUNDLE, 'utf8');
 const t = journalMessages.es; const a = assistantMessages.es;
-const consentVersion = 'assistant-text-v1';
+const consentVersion = 'assistant-text-v2';
 async function signedIn(page: Page): Promise<TestSession> {
   const session = await testSession(page); const user = testUser(session);
   await page.route(`${E2E_SUPABASE.url}/auth/v1/**`, (route) => route.fulfill({ json: route.request().url().endsWith('/factors') ? { totp: [], phone: [], all: [] } : user }));
@@ -110,22 +110,36 @@ test.describe('private journal API integration', () => {
     const response = await (await page.request.get(`${API_PROXY_PREFIX}/v1/observations/${id}`, { headers: bearer(session) })).json() as Record<string, unknown>;
     expect(response).toMatchObject({ source: 'manual', note: 'Photo observation' }); expect(response).not.toHaveProperty('photo'); expect(response).not.toHaveProperty('confidence'); expect(response).not.toHaveProperty('filename');
   });
-  test('text consent gates interpretation and a real private query waits for plan confirmation', async ({ page }) => {
+  test('local queries run directly while external follow-ups need consent and only carry the active plan', async ({ page }) => {
     const session = await signedIn(page); const id = randomUUID();
     await page.request.put(`${API_PROXY_PREFIX}/v1/collections/${id}`, { headers: bearer(session), data: { expected_version: null, name: 'Confirmed plan collection', note: 'Never attach this note' } });
     let interpretations = 0; let queries = 0;
+    const collectionsPlan = { intent: 'collections', species: null, period: { kind: 'all' }, review: 'all', compare_period: null };
     page.on('request', (request) => { if (request.url().endsWith('/assistant/query')) queries++; });
     await page.route('**/assistant/interpret', async (route) => {
-      interpretations++; expect(route.request().postDataJSON()).toMatchObject({ text: 'Mis colecciones', consent: { accepted: true, version: consentVersion } });
-      expect(Object.keys(route.request().postDataJSON() as object).sort()).toEqual(['consent', 'limit', 'locale', 'text', 'tz']);
-      await route.fulfill({ json: { status: 'ready', query: { intent: 'collections', locale: 'es', tz: 'UTC', limit: 20, before: null, after_id: null }, model: 'local-provider-double', generated_at: new Date().toISOString(), usage: { input_tokens: null, output_tokens: null, total_tokens: null } } });
+      interpretations++;
+      const body = route.request().postDataJSON() as Record<string, unknown>;
+      // The written text and the active plan's descriptors only: no row, note, name or identifier of the account.
+      expect(body).toMatchObject({ text: '¿Cuál tiene notas?', consent: { accepted: true, version: consentVersion }, context: collectionsPlan });
+      expect(Object.keys(body).sort()).toEqual(['consent', 'context', 'limit', 'locale', 'text', 'tz']);
+      expect(JSON.stringify(body)).not.toContain('Never attach this note');
+      expect(JSON.stringify(body)).not.toContain(id);
+      await route.fulfill({ json: { status: 'ready', query: { intent: 'collections', locale: 'es', tz: 'UTC', limit: 5, before: null, after_id: null }, plan: collectionsPlan,
+        model: 'local-provider-double', generated_at: new Date().toISOString(), usage: { input_tokens: null, output_tokens: null, total_tokens: null } } });
     });
-    await page.goto('/#/assistant'); await page.getByLabel(a.question, { exact: true }).fill('Mis colecciones');
-    await expect(page.getByRole('button', { name: a.interpret, exact: true })).toBeDisabled();
-    await page.getByLabel(a.consent, { exact: true }).check(); await page.getByRole('button', { name: a.interpret, exact: true }).click();
-    await expect(page.getByRole('heading', { name: a.review })).toBeVisible(); expect(interpretations).toBe(1); expect(queries).toBe(0);
-    await page.getByRole('button', { name: a.confirm, exact: true }).click(); await expect(page.locator(`a[href="#/collections/${id}"]`)).toBeVisible(); expect(queries).toBe(1);
-    await page.getByRole('button', { name: a.withdraw, exact: true }).click(); await expect(page.getByLabel(a.consent, { exact: true })).not.toBeChecked();
+    await page.goto('/#/assistant');
+    const composer = page.getByLabel(a.composer.label, { exact: true });
+    // Resolved on the phone: the API answers at once, nothing goes to the text provider and no consent is asked.
+    await composer.fill('Mis colecciones'); await composer.press('Enter');
+    await expect(page.locator(`a[href="#/collections/${id}"]`)).toBeVisible(); expect(queries).toBe(1); expect(interpretations).toBe(0);
+    // Not resolvable on the phone: permission first, then one provider call with the active plan, run directly.
+    await composer.fill('¿Cuál tiene notas?'); await composer.press('Enter');
+    await expect(page.getByRole('heading', { name: a.consent.title })).toBeVisible(); expect(interpretations).toBe(0);
+    await page.getByRole('button', { name: a.consent.accept, exact: true }).click();
+    await expect.poll(() => queries).toBe(2); expect(interpretations).toBe(1);
+    await page.getByText(a.privacy, { exact: true }).click();
+    await page.getByRole('button', { name: a.consent.withdraw, exact: true }).click();
+    await expect(page.getByText(a.consent.notAccepted)).toBeVisible();
   });
   for (const width of [360, 1280]) for (const locale of ['es', 'en'] as const) {
     test(`beta screens fit ${String(width)}px in ${locale}`, async ({ page }) => {

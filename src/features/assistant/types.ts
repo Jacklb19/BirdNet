@@ -1,5 +1,6 @@
 import type { Locale } from '../../i18n';
 import type { INTENTS, REASON_CODES, STATUSES, TOPICS } from './assistant.config';
+import type { ReadPlan } from './plan';
 
 export type Intent = typeof INTENTS[number];
 export type TutorTopic = typeof TOPICS[number];
@@ -18,7 +19,20 @@ export type Question =
   | (BaseQuestion & Period & Cursor & { readonly intent: 'outings' })
   | (BaseQuestion & Period & Cursor & { readonly intent: 'observations'; readonly species: string | null; readonly outing_id: string | null })
   | (BaseQuestion & Cursor & { readonly intent: 'collections' })
-  | (BaseQuestion & { readonly intent: 'wishlist'; readonly species: string | null; readonly after_species: string | null });
+  | (BaseQuestion & { readonly intent: 'wishlist'; readonly species: string | null; readonly after_species: string | null })
+  | CompareQuestion;
+
+export interface ComparedPeriod { readonly since: string; readonly until: string }
+export interface CompareQuestion {
+  readonly intent: 'compare'; readonly locale: Locale; readonly tz: string; readonly limit: number;
+  readonly species: string | null; readonly first: ComparedPeriod; readonly second: ComparedPeriod;
+}
+export interface PeriodSummary extends ComparedPeriod { readonly detections: number; readonly species: number; readonly observations: number; readonly observedSpecies: number }
+/** Two periods side by side, every figure computed by the API (ADR-47). */
+export interface CompareAnswer {
+  readonly intent: 'compare'; readonly species: string | null; readonly first: PeriodSummary; readonly second: PeriodSummary;
+  readonly onlyFirst: readonly string[]; readonly onlySecond: readonly string[]; readonly hasMore: boolean;
+}
 
 export type ResultRow =
   | { readonly kind: 'detection'; readonly id: string; readonly species: string; readonly at: string; readonly confidence: number; readonly status: Status; readonly hasRecording: boolean }
@@ -31,7 +45,8 @@ export interface QueryAnswer { readonly intent: Intent; readonly filters: Readon
 export interface Source { readonly name: string; readonly url: string | null; readonly license: string | null }
 export interface TutorAnswer { readonly topic: TutorTopic; readonly species: string | null; readonly locale: Locale; readonly paragraphs: readonly string[]; readonly sources: readonly Source[]; readonly model: string; readonly generatedAt: string; readonly usage: TokenUsage }
 export interface Measurement { readonly model: string; readonly generatedAt: string; readonly usage: TokenUsage }
-export type Interpretation = (Measurement & { readonly status: 'ready'; readonly query: Question }) |
+export type JournalAnswer = QueryAnswer | CompareAnswer;
+export type Interpretation = (Measurement & { readonly status: 'ready'; readonly query: Question; readonly plan: ReadPlan }) |
   (Measurement & { readonly status: 'clarification' | 'rejected'; readonly reasonCode: ReasonCode });
 export type TutorResponse = { readonly status: 'answered'; readonly answer: TutorAnswer } |
   (Measurement & { readonly status: 'rejected'; readonly topic: TutorTopic; readonly species: string | null; readonly locale: Locale; readonly reasonCode: ReasonCode });

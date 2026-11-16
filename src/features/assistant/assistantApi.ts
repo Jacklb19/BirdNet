@@ -1,8 +1,9 @@
 import { apiUrl, WRITING_TIMEOUT_MS } from '../../config/api';
 import type { Locale } from '../../i18n';
 import { ASSISTANT_LIMITS, ASSISTANT_ROUTES, CONSENT_VERSION } from './assistant.config';
-import { parseInterpretation, parsePolicy, parseQuestion, parseQueryAnswer, parseTutor, parseTutorResponse, record, text as validText } from './parsers';
-import type { Consent, Failure, Interpretation, Question, QueryAnswer, TextPolicy, TutorAnswer, TutorResponse, TutorTopic } from './types';
+import type { ReadPlan } from './plan';
+import { parseCompareAnswer, parseInterpretation, parsePlan, parsePolicy, parseQuestion, parseQueryAnswer, parseTutor, parseTutorResponse, record, text as validText } from './parsers';
+import type { Consent, Failure, Interpretation, JournalAnswer, Question, TextPolicy, TutorAnswer, TutorResponse, TutorTopic } from './types';
 
 export class AssistantError extends Error {
   constructor(readonly failure: Failure, readonly status: number | null = null) { super('Assistant action could not be completed.'); this.name = 'AssistantError'; }
@@ -43,14 +44,16 @@ function explicitText(value: unknown, consent: unknown): { text: string; consent
 export function fetchTextPolicy(token: string, signal: AbortSignal): Promise<TextPolicy> {
   return request(ASSISTANT_ROUTES.policy, token, signal, parsePolicy);
 }
-export function queryJournal(token: string, question: Question, signal: AbortSignal): Promise<QueryAnswer> {
-  return request(ASSISTANT_ROUTES.query, token, signal, (value) => {
-    const answer = parseQueryAnswer(value); if (answer.intent !== question.intent) throw new Error('Mismatched query response.'); return answer;
+export function queryJournal(token: string, question: Question, signal: AbortSignal): Promise<JournalAnswer> {
+  return request(ASSISTANT_ROUTES.query, token, signal, (value): JournalAnswer => {
+    const answer = question.intent === 'compare' ? parseCompareAnswer(value) : parseQueryAnswer(value);
+    if (answer.intent !== question.intent) throw new Error('Mismatched query response.'); return answer;
   }, parseQuestion(question));
 }
-export function interpretText(token: string, text: string, locale: Locale, tz: string, consent: Consent, signal: AbortSignal): Promise<Interpretation> {
+/** One provider call: the text and, for a follow-up, the active plan's descriptors only (ADR-47). */
+export function interpretText(token: string, text: string, context: ReadPlan | null, locale: Locale, tz: string, consent: Consent, signal: AbortSignal): Promise<Interpretation> {
   const input = explicitText(text, consent);
-  return request(ASSISTANT_ROUTES.interpret, token, signal, parseInterpretation, { ...input, locale, tz, limit: ASSISTANT_LIMITS.page });
+  return request(ASSISTANT_ROUTES.interpret, token, signal, parseInterpretation, { ...input, locale, tz, limit: ASSISTANT_LIMITS.page, ...(context ? { context: parsePlan(context) } : {}) });
 }
 export function publicTutor(token: string, topic: TutorTopic, species: string | null, locale: Locale, signal: AbortSignal): Promise<TutorAnswer> {
   return request(ASSISTANT_ROUTES.tutor, token, signal, (value) => {

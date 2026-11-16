@@ -1,0 +1,410 @@
+/*
+ * The assistant as one conversation (ADR-47): the thread reads top to bottom like a field notebook, and the composer
+ * stays at the bottom of the screen, over the tab bar on phones, so the question and the latest answer are never
+ * a scroll apart.
+ */
+.bn-page.bn-assistant {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.bn-assistant__privacy,
+.bn-assistant__detail {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-assistant__privacy summary,
+.bn-assistant__detail summary {
+  display: inline-flex;
+  min-height: var(--touch-min);
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-brand);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.bn-assistant__privacy[open],
+.bn-assistant__detail[open] {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.bn-assistant__privacy p,
+.bn-assistant__detail p {
+  margin: 0;
+}
+
+.bn-assistant__thread {
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+  min-height: 0;
+}
+
+.bn-assistant__message {
+  display: grid;
+  min-width: 0;
+}
+
+.bn-assistant__message--mine {
+  justify-items: end;
+}
+
+/* The person's words: a plate of brand ink on the right, as a written note in the margin. */
+.bn-assistant__mine {
+  max-width: min(85%, var(--reading-measure));
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-l) var(--radius-l) var(--radius-s) var(--radius-l);
+  background: var(--color-brand);
+  color: var(--color-on-brand);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.bn-assistant__message--theirs > * {
+  min-width: 0;
+}
+
+.bn-answer,
+.bn-assistant__tutor,
+.bn-assistant__reason,
+.bn-assistant__consent,
+.bn-assistant__welcome {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-s) var(--radius-l) var(--radius-l) var(--radius-l);
+  background: var(--color-bg-surface);
+}
+
+.bn-assistant__welcome {
+  border-radius: var(--radius-xl);
+}
+
+.bn-assistant__welcome-title {
+  margin: 0;
+  font-size: var(--text-title);
+  line-height: var(--leading-title);
+}
+
+.bn-assistant__welcome p,
+.bn-assistant__reason p,
+.bn-assistant__tutor p,
+.bn-assistant__consent p {
+  margin: 0;
+}
+
+.bn-assistant__examples summary {
+  min-height: var(--touch-min);
+  color: var(--color-brand);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.bn-assistant__examples[open] > :not(summary) {
+  margin-top: var(--space-3);
+}
+
+.bn-assistant__chips {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  gap: var(--space-2);
+  list-style: none;
+}
+
+.bn-assistant__chip {
+  min-height: var(--touch-min);
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--text-small);
+  text-align: start;
+  cursor: pointer;
+}
+
+.bn-assistant__chip:hover:not(:disabled) {
+  border-color: var(--color-brand);
+  background: var(--color-brand-soft);
+}
+
+.bn-assistant__chip:disabled {
+  cursor: not-allowed;
+  opacity: var(--state-disabled-opacity);
+}
+
+.bn-assistant__chip:focus-visible {
+  outline: var(--focus-width) solid var(--color-brand);
+  outline-offset: var(--focus-offset);
+}
+
+.bn-assistant__consent {
+  border-color: var(--color-accent);
+}
+
+.bn-assistant__consent-title {
+  margin: 0;
+  font-size: var(--text-title-s);
+  line-height: var(--leading-title-s);
+}
+
+.bn-assistant__consent .bn-button {
+  justify-self: start;
+}
+
+.bn-assistant__sources {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.bn-assistant__source-list {
+  margin: 0;
+  padding-inline-start: var(--space-5);
+  font-size: var(--text-small);
+}
+
+.bn-assistant__working {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+}
+
+/* An answer: its filters as a notebook label, the figures in the display face, then the rows. */
+.bn-answer__plan {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.bn-answer__totals {
+  margin: 0;
+  font-size: var(--text-title);
+  line-height: var(--leading-title);
+}
+
+.bn-answer__rows {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bn-answer__rows li + li {
+  border-top: var(--border-width) solid var(--color-border-subtle);
+}
+
+/* A card is narrower than a full list: keep confidence and time below the name instead of squeezing it. */
+.bn-answer .bn-species {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-3) 0;
+}
+
+.bn-answer .bn-species > :first-child {
+  grid-row: 1 / span 2;
+}
+
+.bn-answer .bn-species__meta {
+  grid-column: 2;
+  min-width: 0;
+  justify-items: start;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+
+.bn-answer__item {
+  display: grid;
+  min-height: var(--touch-min);
+  padding: var(--space-3) var(--space-1);
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.bn-answer__item:hover .bn-answer__item-title {
+  text-decoration: underline;
+}
+
+.bn-answer__item-title {
+  font-weight: var(--font-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.bn-answer__item-detail,
+.bn-answer__note {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-answer .bn-button {
+  justify-self: start;
+}
+
+.bn-answer__compare {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.bn-answer__compare th,
+.bn-answer__compare td {
+  padding: var(--space-2) var(--space-1);
+  border-bottom: var(--border-width) solid var(--color-border-subtle);
+  text-align: end;
+}
+
+.bn-answer__compare th[scope='row'] {
+  font-weight: var(--font-weight-regular);
+  text-align: start;
+}
+
+.bn-answer__compare thead th {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  font-weight: var(--font-weight-semibold);
+}
+
+.bn-answer__only {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/*
+ * The composer stays on screen, just over the tab bar, with the active query above the field: the next question is
+ * always next to the answer it follows.
+ */
+.bn-assistant__composer {
+  position: sticky;
+  z-index: var(--layer-nav);
+  bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom) + var(--space-2));
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-float);
+}
+
+.bn-active-plan {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.bn-active-plan__field {
+  min-width: 0;
+}
+
+.bn-active-plan .bn-dropdown--pill .bn-dropdown__field {
+  min-height: var(--touch-min);
+  padding: 0 var(--space-3);
+  border: var(--border-width) solid var(--color-border-subtle);
+  box-shadow: none;
+  font-size: var(--text-small);
+}
+
+.bn-active-plan__toggle {
+  display: inline-flex;
+  min-height: var(--touch-min);
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-3);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.bn-active-plan__toggle[aria-pressed='true'] {
+  border-color: var(--color-bg-inverse);
+  background: var(--color-bg-inverse);
+  color: var(--color-text-inverse);
+}
+
+.bn-active-plan__toggle--species {
+  background: var(--color-brand-soft);
+}
+
+.bn-active-plan__toggle:focus-visible {
+  outline: var(--focus-width) solid var(--color-brand);
+  outline-offset: var(--focus-offset);
+}
+
+.bn-assistant__field {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.bn-assistant__input {
+  min-width: 0;
+  min-height: var(--control-height);
+  max-height: calc(var(--leading-body) * 5 + var(--space-5));
+  flex: 1;
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--color-text-secondary);
+  border-radius: var(--radius-l);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  font: inherit;
+  resize: none;
+  field-sizing: content;
+}
+
+.bn-assistant__input:focus-visible {
+  border-color: var(--color-brand);
+  outline: var(--focus-width) solid var(--color-brand);
+  outline-offset: var(--focus-offset);
+}
+
+.bn-assistant__send {
+  display: inline-flex;
+  width: var(--control-height);
+  height: var(--control-height);
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand);
+  color: var(--color-on-brand);
+  cursor: pointer;
+}
+
+.bn-assistant__send:disabled {
+  cursor: not-allowed;
+  opacity: var(--state-disabled-opacity);
+}
+
+.bn-assistant__send:focus-visible {
+  outline: var(--focus-width) solid var(--color-brand);
+  outline-offset: var(--focus-offset);
+}
+
+.bn-assistant__hint {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+}
+
+@media (min-width: 64rem) {
+  .bn-assistant__composer {
+    bottom: var(--space-5);
+  }
+}

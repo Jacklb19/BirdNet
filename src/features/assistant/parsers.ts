@@ -1,7 +1,8 @@
 import { isUuid } from '../../config/contract';
 import type { Locale } from '../../i18n';
-import { ASSISTANT_LIMITS, INTENTS, REASON_CODES, STATUSES, TOPICS } from './assistant.config';
-import type { Intent, Interpretation, Question, QueryAnswer, ResultRow, Source, TextPolicy, TokenUsage, TutorAnswer, TutorResponse } from './types';
+import { ASSISTANT_LIMITS, INTENTS, PLAN_INTENTS, REASON_CODES, RELATIVE_PERIODS, STATUSES, TOPICS } from './assistant.config';
+import { validPlan, type PlanPeriod, type ReadPlan } from './plan';
+import type { CompareAnswer, Intent, Interpretation, PeriodSummary, Question, QueryAnswer, ResultRow, Source, TextPolicy, TokenUsage, TutorAnswer, TutorResponse } from './types';
 
 export function record(value: unknown): Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error('Invalid assistant object.');
@@ -61,15 +62,27 @@ export function parsePolicy(value: unknown): TextPolicy {
   if (body.provider !== 'Google Gemini' || body.terms_url !== 'https://aistudio.google.com/docs/terms' || body.max_text_characters !== ASSISTANT_LIMITS.text || body.max_output_tokens !== 1200) throw new Error('Unsupported assistant policy.');
   return { version: text(body.version, 80), provider: body.provider, terms_url: body.terms_url, max_text_characters: body.max_text_characters, max_output_tokens: body.max_output_tokens };
 }
+function comparedPeriod(value: unknown): { since: string; until: string } {
+  const body = exact(value, ['since', 'until']); const since = timestamp(body.since); const until = timestamp(body.until);
+  if (Date.parse(since) >= Date.parse(until)) throw new Error('Invalid period.');
+  return { since, until };
+}
+function zone(value: unknown): string { const tz = text(value, 64); new Intl.DateTimeFormat('en', { timeZone: tz }); return tz; }
 export function parseQuestion(value: unknown): Question {
-  const source = record(value); const intent = member(source.intent, INTENTS);
+  const source = record(value);
+  if (source.intent === 'compare') {
+    const body = exact(value, ['intent', 'locale', 'tz', 'limit', 'species', 'first', 'second']);
+    const limit = positive(body.limit); if (limit > ASSISTANT_LIMITS.maxPage) throw new Error('Invalid page size.');
+    return { intent: 'compare', locale: locale(body.locale), tz: zone(body.tz), limit, species: nullable(body.species, species), first: comparedPeriod(body.first), second: comparedPeriod(body.second) };
+  }
+  const intent = member(source.intent, INTENTS);
   const extras: Record<Intent, readonly string[]> = {
     detections: ['since', 'until', 'before', 'after_id', 'species', 'review'], species: ['since', 'until', 'species', 'after_species'],
     outings: ['since', 'until', 'before', 'after_id'], observations: ['since', 'until', 'before', 'after_id', 'species', 'outing_id'],
     collections: ['before', 'after_id'], wishlist: ['species', 'after_species'],
   };
   const body = exact(value, ['intent', 'locale', 'tz', 'limit', ...extras[intent]]);
-  const tz = text(body.tz, 64); new Intl.DateTimeFormat('en', { timeZone: tz });
+  const tz = zone(body.tz);
   const limit = positive(body.limit); if (limit > ASSISTANT_LIMITS.maxPage) throw new Error('Invalid page size.');
   const base = { locale: locale(body.locale), tz, limit };
   const period = ('since' in body) ? { since: nullable(body.since, timestamp), until: nullable(body.until, timestamp) } : { since: null, until: null };
@@ -94,6 +107,32 @@ function row(intent: Intent, value: unknown): ResultRow {
     case 'collections': { const b = exact(value, ['id', 'version', 'name', 'created_at', 'updated_at', 'items']); return { kind: 'collection', id: uuid(b.id), version: positive(b.version), name: text(b.name, 80), at: timestamp(b.created_at), updatedAt: timestamp(b.updated_at), items: count(b.items) }; }
     case 'wishlist': { const b = exact(value, ['species', 'created_at']); return { kind: 'wish', species: species(b.species), at: timestamp(b.created_at) }; }
   }
+}
+function summary(value: unknown): PeriodSummary {
+  const body = exact(value, ['since', 'until', 'detections', 'species', 'observations', 'observed_species']);
+  return { ...comparedPeriod({ since: body.since, until: body.until }), detections: count(body.detections), species: count(body.species), observations: count(body.observations), observedSpecies: count(body.observed_species) };
+}
+export function parseCompareAnswer(value: unknown): CompareAnswer {
+  const body = exact(value, ['intent', 'filters', 'first', 'second', 'only_first', 'only_second', 'has_more', 'usage']);
+  member(body.intent, ['compare']);
+  if (body.usage !== null || !Array.isArray(body.only_first) || !Array.isArray(body.only_second) || body.only_first.length > ASSISTANT_LIMITS.maxPage || body.only_second.length > ASSISTANT_LIMITS.maxPage) throw new Error('Invalid comparison.');
+  const filters = exact(body.filters, ['species']);
+  return { intent: 'compare', species: nullable(filters.species, species), first: summary(body.first), second: summary(body.second),
+    onlyFirst: body.only_first.map(species), onlySecond: body.only_second.map(species), hasMore: flag(body.has_more) };
+}
+function planPeriod(value: unknown): PlanPeriod {
+  const raw = record(value);
+  if (raw.kind === 'all') { exact(value, ['kind']); return { kind: 'all' }; }
+  if (raw.kind === 'relative') { const body = exact(value, ['kind', 'value']); return { kind: 'relative', value: member(body.value, RELATIVE_PERIODS) }; }
+  const body = exact(value, ['kind', 'first', 'last']); member(body.kind, ['dates']);
+  return { kind: 'dates', first: text(body.first, 10), last: text(body.last, 10) };
+}
+export function parsePlan(value: unknown): ReadPlan {
+  const body = exact(value, ['intent', 'species', 'period', 'review', 'compare_period']);
+  const result = validPlan({ intent: member(body.intent, PLAN_INTENTS), species: nullable(body.species, species), period: planPeriod(body.period),
+    review: member(body.review, ['all', 'pending']), compare_period: nullable(body.compare_period, planPeriod) });
+  if (!result) throw new Error('Invalid plan.');
+  return result;
 }
 export function parseQueryAnswer(value: unknown): QueryAnswer {
   const raw = record(value); const intent = member(raw.intent, INTENTS);
@@ -124,9 +163,10 @@ function measurement(body: Record<string, unknown>) { return { model: text(body.
 export function parseInterpretation(value: unknown): Interpretation {
   const raw = record(value);
   if (raw.status === 'ready') {
-    const body = exact(value, ['status', 'query', 'model', 'generated_at', 'usage']); const query = parseQuestion(body.query);
+    const body = exact(value, ['status', 'query', 'plan', 'model', 'generated_at', 'usage']); const query = parseQuestion(body.query); const plan = parsePlan(body.plan);
     if (('before' in query && query.before !== null) || ('after_species' in query && query.after_species !== null) || ('outing_id' in query && query.outing_id !== null)) throw new Error('Unexpected private reference or initial cursor.');
-    return { ...measurement(body), status: 'ready', query };
+    if (plan.intent !== query.intent) throw new Error('Mismatched plan.');
+    return { ...measurement(body), status: 'ready', query, plan };
   }
   const body = exact(value, ['status', 'reason_code', 'model', 'generated_at', 'usage']);
   const status = member(body.status, ['clarification', 'rejected']);

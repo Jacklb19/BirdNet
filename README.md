@@ -13,7 +13,7 @@ Aplicación web progresiva para reconocer posibles aves por su canto, revisar lo
 - Modelos en caché con SHA-256, descargas reanudables y cola persistente sin conexión, sincronizada por UUID sin duplicados.
 - Bitácora, álbum, guía, lugares y mapa. Caminatas con permiso independiente y exportación CSV/GPX. El mapa colectivo solo muestra los cantos que cada persona decide compartir.
 - **Diario de salidas, línea temporal, importación local de audio, observaciones manuales, colecciones privadas y especies de interés.** Las observaciones manuales se distinguen de las acústicas; sus fotos opcionales solo permanecen en este dispositivo.
-- **Consulta guiada o por texto del historial y tutor de cinco temas públicos.** Gemini interpreta texto autorizado en un plan que se revisa antes de consultar; los resultados privados no regresan al modelo. Nunca recibe audio ni identifica especies.
+- **Asistente para consultar el historial y explicar cinco temas públicos.** Consultas y ajustes reconocibles se interpretan en el dispositivo y se consultan en la API; cuando hace falta interpretación externa se pide consentimiento `assistant-text-v2` y solo se adjunta el plan activo. Las consultas claras de lectura se ejecutan con filtros editables; las ambiguas piden aclaración. Las comparaciones las calcula la API y los resultados privados no regresan al modelo. Nunca recibe audio ni identifica especies (ADR-47).
 
 Se necesita cuenta: sin sesión son públicas la portada, la privacidad y la guía. Con una sesión previamente iniciada, la escucha y los datos locales siguen disponibles sin red. Interfaz es/en, temas claro/oscuro y modo bolsillo donde el navegador permite mantener la pantalla encendida.
 
