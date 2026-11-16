@@ -57,7 +57,7 @@ export class InferenceService {
   private byDefaultWithTwo = false;
   private generation = 0;
   private activeWindowIndex: number | null = null;
-  private released: Promise<void> = Promise.resolve();
+  private readonly releases = new Map<Worker, Promise<void>>();
   private readonly queue = new LatestWindowQueue<InferRequest>(
     (request) => {
       this.activeWindowIndex = request.windowIndex;
@@ -154,7 +154,9 @@ export class InferenceService {
 
       const currentWorker = this.worker;
       let release = (): void => undefined;
-      this.released = new Promise<void>((resolve) => { release = resolve; });
+      this.releases.set(currentWorker, new Promise<void>((resolve) => {
+        release = () => { this.releases.delete(currentWorker); resolve(); };
+      }));
       this.worker.onmessage = (event: MessageEvent<InferenceWorkerMessage>) => {
         if (event.data.type === INFERENCE_WORKER_MESSAGES.disposed) { currentWorker.terminate(); release(); return; }
         if (generation !== this.generation) return;
@@ -219,7 +221,7 @@ export class InferenceService {
     this.activeWindowIndex = null;
     if (this.worker) {
       this.worker.postMessage(DISPOSE_REQUEST);
-      // The worker acknowledges disposal after its active persistence transaction completes.
+      // Acknowledgement follows the active detection and its queued clips; disposeAndWait bounds a stalled worker.
       this.worker = null;
     }
     this.setStatus('idle');
@@ -230,16 +232,16 @@ export class InferenceService {
 
   /** Account deletion waits until the old worker can no longer write to the stores being cleaned. */
   public async disposeAndWait(): Promise<void> {
-    const worker = this.worker;
-    const released = this.released;
     this.dispose();
-    if (!worker) return;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    try {
-      await Promise.race([released, new Promise<void>((resolve) => {
-        timer = setTimeout(() => { worker.terminate(); resolve(); }, WORKER_STOP_TIMEOUT_MS);
-      })]);
-    } finally { clearTimeout(timer); }
+    // An earlier error may already have called dispose(); those workers can still be storing their last clips.
+    await Promise.all([...this.releases].map(async ([worker, released]) => {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        await Promise.race([released, new Promise<void>((resolve) => {
+          timer = setTimeout(() => { worker.terminate(); this.releases.delete(worker); resolve(); }, WORKER_STOP_TIMEOUT_MS);
+        })]);
+      } finally { clearTimeout(timer); }
+    }));
   }
 
   private handleWorkerMessage(msg: InferenceWorkerOutbound): void {

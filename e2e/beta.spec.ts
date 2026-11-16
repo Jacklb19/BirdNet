@@ -129,7 +129,10 @@ test('the real browser decoder and ONNX model import offline without inventing a
   const result = await page.evaluate(({ samples, owner }) => window.offlineChecks.importReferenceFile(samples, owner, false, null), { samples, owner: session.userId });
   expect(result.windows).toBe(1); expect(result.species.map((row) => row.scientificName)).toContain('Turdus fuscater'); expect(result.outingId).toBeNull();
   expect(await page.evaluate(async (owner) => (await window.offlineChecks.readJournal(owner)).entities.length, session.userId)).toBe(0);
+  const saved = await page.evaluate(({ samples, owner }) => window.offlineChecks.importReferenceFile(samples, owner, true, null), { samples, owner: session.userId });
+  expect(saved).toMatchObject({ windows: 1, cancelled: false });
+  expect(await page.evaluate(async () => (await window.offlineChecks.listRecordings()).length)).toBeGreaterThan(0);
   const cancelled = await page.evaluate(({ samples, owner }) => window.offlineChecks.importReferenceFile([...samples, ...samples], owner, true, 1), { samples, owner: session.userId });
   expect(cancelled).toMatchObject({ windows: 1, cancelled: true });
-  expect(await page.evaluate(async (owner) => (await window.offlineChecks.readJournal(owner)).entities[0], session.userId)).toMatchObject({ importState: 'cancelled', data: { started_at: '2025-03-04T10:06:00Z', ended_at: '2025-03-04T10:06:03.000Z' } });
+  expect(await page.evaluate(async ({ owner, id }) => (await window.offlineChecks.readJournal(owner)).entities.find((row) => row.id === id), { owner: session.userId, id: cancelled.outingId })).toMatchObject({ importState: 'cancelled', data: { started_at: '2025-03-04T10:06:00Z', ended_at: '2025-03-04T10:06:03.000Z' } });
 });

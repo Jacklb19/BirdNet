@@ -45,6 +45,11 @@ export function keepSongClips(records: readonly StoredDetection[], samples: Floa
   pending = pending.then(() => keep(records, samples)).catch(() => undefined);
 }
 
+/** Disposal must finish queued encoding and storage before the parent terminates this worker. */
+export function finishSongClips(): Promise<void> {
+  return pending;
+}
+
 /** Forgets the songs in progress; the next detection of every species starts a new one. */
 export function forgetSongs(): void {
   songs.clear();

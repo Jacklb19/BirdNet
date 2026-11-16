@@ -12,7 +12,7 @@ import { poolWindows, type PoolingRule, type WindowScores } from './windowPoolin
 import { resampleBandLimited } from '../audio/dsp/bandLimitedResample';
 import { getSettings, persistDetections } from '../offline/queueStore';
 import { recordingLocation } from '../offline/queuePolicy';
-import { forgetSongs, keepSongClips } from '../recordings/songClips';
+import { finishSongClips, forgetSongs, keepSongClips } from '../recordings/songClips';
 import { applyRegionMask, birdnetWeek, countLikely, GEO_INPUT_FEATURES, geoInput, regionMask } from './geoFilter';
 import {
   INFERENCE_ERROR_REASONS, INFERENCE_WORKER_MESSAGES,
@@ -249,6 +249,7 @@ export async function handleWorkerRequest(message: InferenceWorkerInbound): Prom
       const released = model;
       model = null;
       recent = null;
+      await finishSongClips();
       forgetSongs();
       if (released) await release(released.members);
       break;

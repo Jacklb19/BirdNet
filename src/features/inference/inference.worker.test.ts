@@ -7,11 +7,11 @@ import { AUDIO_CONSTANTS } from '../audio/dsp/audio.constants';
 const runtime = vi.hoisted(() => ({
   create: vi.fn(), run: vi.fn(), release: vi.fn(), disposeInput: vi.fn(), disposeOutput: vi.fn(),
 }));
-const persistence = vi.hoisted(() => ({ save: vi.fn(), keepClips: vi.fn() }));
+const persistence = vi.hoisted(() => ({ save: vi.fn(), keepClips: vi.fn(), finishClips: vi.fn() }));
 /** Called with the length of every tensor the worker builds. */
 const tensors = vi.hoisted(() => ({ created: vi.fn() }));
 vi.mock('../offline/queueStore', () => ({ persistDetections: persistence.save }));
-vi.mock('../recordings/songClips', () => ({ keepSongClips: persistence.keepClips, forgetSongs: vi.fn() }));
+vi.mock('../recordings/songClips', () => ({ keepSongClips: persistence.keepClips, finishSongClips: persistence.finishClips, forgetSongs: vi.fn() }));
 vi.mock('onnxruntime-web/wasm', () => ({
   env: { wasm: {} },
   InferenceSession: { create: runtime.create },
@@ -38,6 +38,7 @@ describe('inference worker protocol', () => {
     vi.resetModules();
     vi.clearAllMocks();
     persistence.save.mockResolvedValue([]);
+    persistence.finishClips.mockResolvedValue(undefined);
     vi.stubGlobal('self', { location: { href: 'http://localhost:5173/' }, postMessage, onmessage: null });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true, text: () => Promise.resolve('Turdus fuscater_Great Thrush\nZonotrichia capensis_Rufous-collared Sparrow'),
@@ -51,6 +52,20 @@ describe('inference worker protocol', () => {
   });
 
   afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('finishes queued clips before releasing the model and completing disposal', async () => {
+    await handle(loadRequest);
+    let finish = (): void => undefined;
+    persistence.finishClips.mockReturnValue(new Promise<void>((resolve) => { finish = resolve; }));
+    let disposed = false;
+    const closing = handle({ type: 'DISPOSE' }).then(() => { disposed = true; });
+    await Promise.resolve();
+    expect(disposed).toBe(false);
+    expect(runtime.release).not.toHaveBeenCalled();
+    finish();
+    await closing;
+    expect(runtime.release).toHaveBeenCalled();
+  });
 
   it('decides with the window before: a doubtful call must be heard twice, a sure one stands, a gap starts over', async () => {
     await handle(loadRequest);

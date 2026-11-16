@@ -329,6 +329,20 @@ describe('InferenceService', () => {
     expect(mockWorkerInstance.terminate).toHaveBeenCalled();
   });
 
+  it('waits for pending persistence even when an earlier failure already requested disposal', async () => {
+    const service = new InferenceService();
+    await service.loadModel();
+    service.dispose();
+    let finished = false;
+    const closing = service.disposeAndWait().then(() => { finished = true; });
+    await Promise.resolve();
+    expect(finished).toBe(false);
+    mockWorkerInstance.simulateMessage({ type: 'DISPOSED' });
+    await closing;
+    expect(finished).toBe(true);
+    expect(mockWorkerInstance.terminate).toHaveBeenCalled();
+  });
+
   it('keeps only the latest pending inference and includes queue time in latency', async () => {
     const onWindowDropped = vi.fn();
     const onInferenceResult = vi.fn();
