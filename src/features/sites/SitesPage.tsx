@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from 'react';
+import { routeHash } from '../../app/routes';
 import { useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
 import { EmptyState } from '../../shared/ui/EmptyState';
@@ -55,7 +56,8 @@ export default function SitesPage(): React.JSX.Element {
   };
 
   const header = (
-    <PageHeader title={t.title} actions={(
+    // Places belong to the map (ADR-47): the way back is always to it.
+    <PageHeader title={t.title} back={{ href: routeHash({ name: 'map' }), label: dict.map.title }} actions={(
       <Button id={ids.newButton} variant="quiet" icon="plus" className="bn-sites__new" disabled={!canEdit}
         aria-expanded={formOpen && canEdit} aria-controls={formOpen && canEdit ? ids.form : undefined}
         aria-describedby={canEdit ? undefined : ids.why} aria-label={t.newSiteTitle} onClick={formOpen ? closeForm : openForm}>

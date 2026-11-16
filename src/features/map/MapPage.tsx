@@ -31,6 +31,7 @@ import { useAccountSongs } from './useAccountSongs';
 import { useAccountWalkPaths } from './useAccountWalkPaths';
 import { useLocate } from './useLocate';
 import { useMapResult } from './useMapResult';
+import { SheetLayoutContext } from './sheetLayout';
 import { WalkPanel } from './WalkPanel';
 import './MapPage.css';
 
@@ -75,6 +76,8 @@ function MapScreen({ initialSpecies }: { readonly initialSpecies: string | null 
   const [species, setSpecies] = useState<string | null>(initialSpecies);
   const [period, setPeriod] = useState<Period>(DEFAULT_PERIOD);
   const [listExpanded, setListExpanded] = useState(false);
+  const [sheetCollapsed, setSheetCollapsed] = useState(false);
+  const sheetLayout = useMemo(() => ({ collapsed: sheetCollapsed, setCollapsed: setSheetCollapsed }), [sheetCollapsed]);
   const [scope, setScope] = useState<MapScope>('mine');
   const [territoriesOn, setTerritoriesOn] = useState(true);
   // The camera follows a walk until the person drags the map; the locate button takes it back.
@@ -156,6 +159,12 @@ function MapScreen({ initialSpecies }: { readonly initialSpecies: string | null 
   const retryLoad = useCallback((): void => { setListExpanded(false); retry(); }, [retry]);
   const changeScope = useCallback((value: MapScope): void => { setListExpanded(false); setScope(value); }, []);
   const centre = useCallback((): void => { setFollowing(true); locate.locate(); }, [locate]);
+  // Folding or unfolding the panel changes what it covers: a still move tells the map to describe the new visible area.
+  useEffect(() => {
+    if (!map) return;
+    const request = requestAnimationFrame(() => { map.panBy([0, 0], { animate: false }); });
+    return () => { cancelAnimationFrame(request); };
+  }, [map, sheetCollapsed]);
 
   let mode: SheetMode = 'ready';
   // Without a token the account is signed in but its session is not renewed yet: offline, or about to be.
@@ -176,14 +185,14 @@ function MapScreen({ initialSpecies }: { readonly initialSpecies: string | null 
           options={MAP_SCOPES.map((value) => ({ value, label: m.scope[value] }))} />
         <span className="bn-map__tools">
           {mine && (
-            <button type="button" className="bn-map__tool" aria-pressed={territoriesOn} aria-label={m.tools.territories} title={m.tools.territories}
+            <button type="button" className="bn-map__tool bn-map__tool--labelled" aria-pressed={territoriesOn} title={m.tools.territoriesHelp}
               onClick={() => { setTerritoriesOn((value) => !value); }}>
-              <Icon name="layers" />
+              <Icon name="layers" size="s" /><span>{m.tools.territories}</span>
             </button>
           )}
-          {/* Named in words on wide screens, which have no menu to find places in (ADR-44); an icon on phones. */}
-          <a className="bn-map__tool bn-map__tool--labelled" href={routeHash({ name: 'sites' })}>
-            <Icon name="sites" /><span className="bn-map__tool-label">{m.tools.places}</span>
+          {/* Places live in the map (ADR-47): named in words, at every width. */}
+          <a className="bn-map__tool bn-map__tool--labelled" href={routeHash({ name: 'sites' })} title={m.tools.placesHelp}>
+            <Icon name="sites" size="s" /><span>{m.tools.places}</span>
           </a>
         </span>
       </div>
@@ -205,6 +214,7 @@ function MapScreen({ initialSpecies }: { readonly initialSpecies: string | null 
   );
 
   return (
+    <SheetLayoutContext value={sheetLayout}>
     <Page bleed className={`bn-map${listening && !walking ? ' bn-map--with-player' : ''}`}>
       {/* The design shows no title over the map; the heading still names the screen for assistive technology. */}
       <div className="visually-hidden"><PageHeader title={m.title} /></div>
@@ -225,6 +235,7 @@ function MapScreen({ initialSpecies }: { readonly initialSpecies: string | null 
           failure={failure} expanded={listExpanded} onExpandedChange={setListExpanded} onRetry={retryLoad} />
       )}
     </Page>
+    </SheetLayoutContext>
   );
 }
 

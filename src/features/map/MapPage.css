@@ -47,6 +47,7 @@
 /* Whose songs are shown, and the two round tools at the end of the row: territories and places. */
 .bn-map__scope {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
@@ -76,26 +77,14 @@
   box-shadow: var(--shadow-float);
 }
 
-/* Phones show the icon alone; its name stays for assistive technology. */
-@media not all and (min-width: 64rem) {
-  .bn-map__tool-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-}
-
-@media (min-width: 64rem) {
-  .bn-map__tool--labelled {
-    width: auto;
-    gap: var(--space-2);
-    padding-inline: var(--space-3) var(--space-4);
-    font-weight: var(--font-weight-semibold);
-    text-decoration: none;
-  }
+/* Each tool says what it does in a word, on phones too (ADR-47): nobody has to guess what an icon means. */
+.bn-map__tool--labelled {
+  width: auto;
+  gap: var(--space-2);
+  padding-inline: var(--space-3) var(--space-4);
+  font-size: var(--text-small);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
 }
 
 .bn-map__tool[aria-pressed='true'] {
@@ -116,6 +105,15 @@
 .bn-map .maplibregl-ctrl-bottom-left,
 .bn-map .maplibregl-ctrl-bottom-right {
   bottom: var(--map-sheet-height);
+}
+
+/* Folded, the sheet keeps only its title and summary, and the controls come down with it (ADR-47). */
+.bn-page.bn-map {
+  --map-sheet-height-collapsed: calc(var(--touch-min) + var(--leading-small) + var(--space-5) + var(--space-3) + var(--space-1));
+}
+
+.bn-map:has(.bn-map-sheet--collapsed) :is(.maplibregl-ctrl-bottom-left, .maplibregl-ctrl-bottom-right) {
+  bottom: var(--map-sheet-height-collapsed);
 }
 
 /*

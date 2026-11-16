@@ -18,6 +18,62 @@
   height: var(--map-sheet-height-expanded);
 }
 
+/* Folded to its title and summary: the map behind it shows almost whole (ADR-47). */
+.bn-map-sheet--collapsed {
+  height: var(--map-sheet-height-collapsed);
+}
+
+.bn-map-sheet__body[hidden] {
+  display: none;
+}
+
+/* Folded there is nothing under the header to separate it from. */
+.bn-map-sheet--collapsed .bn-map-sheet__header {
+  border-bottom: 0;
+}
+
+/* While the handle is held the sheet follows the finger, without easing. */
+.bn-map-sheet--dragging {
+  transition: none;
+}
+
+.bn-map-sheet__grabber {
+  touch-action: none;
+  cursor: grab;
+}
+
+/* Phones move the sheet with its handle; the button is for wide screens, which have no handle. */
+.bn-map-sheet__fold {
+  display: none;
+  min-height: var(--touch-min);
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-1);
+  margin-inline-start: auto;
+  padding: 0 var(--space-3);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.bn-map-sheet__fold .bn-icon {
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.bn-map-sheet__fold[aria-expanded='false'] .bn-icon {
+  transform: rotate(180deg);
+}
+
+.bn-map-sheet__fold:focus-visible {
+  outline: var(--focus-width) solid var(--color-brand);
+  outline-offset: var(--focus-offset);
+}
+
 /* A full-width touch target whose visible part is the small handle at the top edge. */
 .bn-map-sheet__grabber {
   display: flex;
@@ -54,7 +110,7 @@
 
 .bn-map-sheet__heading {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
 }
@@ -106,7 +162,8 @@
 /* Wide screens: a floating panel on the right, as tall as its content and never taller than the map. */
 @media (min-width: 64rem) {
   .bn-map-sheet,
-  .bn-map-sheet--expanded {
+  .bn-map-sheet--expanded,
+  .bn-map-sheet--collapsed {
     inset: var(--map-top) var(--map-gutter) auto auto;
     width: var(--map-panel-width);
     height: auto;
@@ -119,8 +176,14 @@
     display: none;
   }
 
-  .bn-map-sheet__header {
-    padding-inline: var(--space-5);
+  .bn-map-sheet__fold {
+    display: inline-flex;
+  }
+
+  /* The grabber is hidden here, so the header keeps its own top space even when one follows it in the markup. */
+  .bn-map-sheet__header,
+  .bn-map-sheet__grabber + .bn-map-sheet__header {
+    padding: var(--space-5) var(--space-5) var(--space-3);
   }
 
   .bn-map-sheet__body {

@@ -15,13 +15,14 @@ export const mapMessages = defineMessages({
       toggleAttribution: 'Mostrar u ocultar los créditos del mapa',
       mapFeedback: 'Sugerir una corrección del mapa base',
       locate: 'Centrar en mi ubicación aproximada',
+      locateShort: 'Mi ubicación',
     },
     locateError: {
       denied: 'El navegador no permite usar tu ubicación. Puedes autorizarlo en sus ajustes.',
       unavailable: 'No se pudo obtener tu ubicación. Inténtalo de nuevo en un momento.',
     },
     scope: { label: 'Cantos que muestra el mapa', mine: 'Mi mapa', everyone: 'De todos' },
-    tools: { territories: 'Mostrar los territorios', places: 'Tus lugares' },
+    tools: { territories: 'Territorios', territoriesHelp: 'Muestra u oculta las zonas que ya recorriste escuchando', places: 'Lugares', placesHelp: 'Tus lugares guardados: crea, renombra o abre uno' },
     walk: {
       title: 'Mi mapa',
       liveTitle: 'Caminata en curso',
@@ -62,7 +63,12 @@ export const mapMessages = defineMessages({
     },
     sheet: {
       title: 'En esta zona',
-      expand: 'Ampliar la lista',
+      handle: {
+        collapsed: 'Mostrar el panel. Desliza hacia arriba o usa la flecha arriba',
+        normal: 'Mover el panel: hacia arriba lo amplías, hacia abajo lo guardas',
+        expanded: 'Reducir el panel. Desliza hacia abajo o usa la flecha abajo',
+      },
+      fold: 'Ocultar', unfold: 'Mostrar',
       totals: (songs: string, species: string) => `${songs} · ${species}`,
       songs: { one: (count: string) => `${count} canto`, other: (count: string) => `${count} cantos` },
       species: { one: (count: string) => `${count} especie`, other: (count: string) => `${count} especies` },
@@ -104,13 +110,14 @@ export const mapMessages = defineMessages({
       toggleAttribution: 'Show or hide map credits',
       mapFeedback: 'Suggest a basemap correction',
       locate: 'Centre on my approximate location',
+      locateShort: 'My location',
     },
     locateError: {
       denied: 'The browser does not allow using your location. You can allow it in its settings.',
       unavailable: 'Your location could not be found. Try again in a moment.',
     },
     scope: { label: 'Songs the map shows', mine: 'My map', everyone: 'Everyone’s' },
-    tools: { territories: 'Show territories', places: 'Your places' },
+    tools: { territories: 'Territories', territoriesHelp: 'Shows or hides the areas you have already walked while listening', places: 'Places', placesHelp: 'Your saved places: create, rename or open one' },
     walk: {
       title: 'My map',
       liveTitle: 'Walk in progress',
@@ -151,7 +158,12 @@ export const mapMessages = defineMessages({
     },
     sheet: {
       title: 'In this area',
-      expand: 'Enlarge the list',
+      handle: {
+        collapsed: 'Show the panel. Swipe up or use the up arrow',
+        normal: 'Move the panel: up to enlarge it, down to put it away',
+        expanded: 'Shrink the panel. Swipe down or use the down arrow',
+      },
+      fold: 'Hide', unfold: 'Show',
       totals: (songs: string, species: string) => `${songs} · ${species}`,
       songs: { one: (count: string) => `${count} song`, other: (count: string) => `${count} songs` },
       species: { one: (count: string) => `${count} species`, other: (count: string) => `${count} species` },

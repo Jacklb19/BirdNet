@@ -8,8 +8,8 @@ import { Icon } from '../../shared/ui/Icon';
 import { Page } from '../../shared/ui/Page';
 import { Segmented } from '../../shared/ui/Segmented';
 import { useAccountContext } from '../account/accountContext';
-import { WishButton } from '../journal/WishlistPage';
-import { AccountRecordingButton } from '../recordings/AccountRecordingButton';
+import { WishButton } from '../journal/Wishlist';
+import { OwnRecordings, type OwnRecording } from './OwnRecordings';
 import { useLocalRecordingUsage } from '../recordings/useRecordings';
 import { formatConfidence, formatDayTime, formatTime } from '../log/logFormat';
 import { useLogRecords } from '../log/useLogRecords';
@@ -142,19 +142,24 @@ export default function SpeciesPage({ species }: { readonly species: string }): 
     ...(facts.lastAt !== null ? [{ label: texts.notes.last, value: formatDayTime(facts.lastAt, readAt, locale) }] : []),
   ] : [];
 
-  // Every record links to its detail (recording, state, review); cloud-only ones open it from the account (ADR-44) and
-  // also keep a button to play the recording the account keeps, if any.
+  // Every record links to its detail (recording, state, review); cloud-only ones open it from the account (ADR-44).
   const recent = [
     ...local.map((record) => ({
       id: record.id, at: record.recordedAt, confidence: record.confidence, status: record.status,
-      href: routeHash({ name: 'detection', id: record.id }), playable: false,
+      href: routeHash({ name: 'detection', id: record.id }),
       extra: clips?.ids.has(record.id) ? texts.recent.withRecording : null,
     })),
     ...(cloud?.recent ?? []).filter((item) => !local.some((record) => record.id === item.id)).map((item) => ({
       id: item.id, at: Date.parse(item.recordedAt), confidence: item.confidence, status: item.status,
-      href: routeHash({ name: 'detection', id: item.id }), playable: item.hasRecording, extra: texts.recent.cloudOnly,
+      href: routeHash({ name: 'detection', id: item.id }), extra: texts.recent.cloudOnly,
     })),
   ].sort((a, b) => b.at - a.at).slice(0, SPECIES_RECENT_RECORDS);
+  // The clips that exist (ADR-47): those kept on this phone, then those only the account keeps, newest first.
+  const ownRecordings = useMemo<OwnRecording[]>(() => [
+    ...local.filter((record) => clips?.ids.has(record.id)).map((record) => ({ id: record.id, at: record.recordedAt, source: 'phone' as const })),
+    ...(token ? (cloud?.recent ?? []).filter((item) => item.hasRecording && !clips?.ids.has(item.id) && !local.some((record) => record.id === item.id))
+      .map((item) => ({ id: item.id, at: Date.parse(item.recordedAt), source: 'account' as const })) : []),
+  ].sort((a, b) => b.at - a.at).slice(0, SPECIES_RECENT_RECORDS), [local, clips, cloud, token]);
 
   return (
     <Page className="bn-species-page">
@@ -269,20 +274,12 @@ export default function SpeciesPage({ species }: { readonly species: string }): 
                           <span className={`bn-species-page__status bn-species-page__status--${item.status}`}>{dict.common.status[item.status]}</span>
                         </>
                       );
-                      if (!item.playable) return <li key={item.id}><a className="bn-species-page__record" href={item.href}>{body}</a></li>;
-                      return (
-                        <li key={item.id} className="bn-species-page__playable">
-                          {token && (
-                            <AccountRecordingButton detectionId={item.id} token={token}
-                              labels={{ play: texts.recent.playRecording, stop: texts.recent.stopRecording, failed: texts.recent.recordingFailed }} />
-                          )}
-                          <a className="bn-species-page__record" href={item.href}>{body}</a>
-                        </li>
-                      );
+                      return <li key={item.id}><a className="bn-species-page__record" href={item.href}>{body}</a></li>;
                     })}
                   </ul>
                 </section>
               )}
+              <OwnRecordings recordings={ownRecordings} token={token} now={readAt} />
             </div>
           )}
 

@@ -79,6 +79,8 @@ export function parsePhotoIndex(body: unknown): ReadonlyMap<string, SpeciesPhoto
 }
 
 let photoIndex: Promise<ReadonlyMap<string, SpeciesPhoto>> | null = null;
+/** The catalogue once read, so a screen opened again draws it at once instead of showing "Loading" (ADR-47). */
+let catalog: readonly string[] | null = null;
 
 /** Loaded once per page; any failure yields an empty index and is retried on the next page load. */
 function loadPhotoIndex(): Promise<ReadonlyMap<string, SpeciesPhoto>> {
@@ -94,12 +96,18 @@ function loadPhotoIndex(): Promise<ReadonlyMap<string, SpeciesPhoto>> {
  * be read. It is the catalogue of the public guide (ADR-45): a fixed list that needs neither the model nor an account.
  */
 export function useRegionCatalog(): readonly string[] | null {
-  const [species, setSpecies] = useState<readonly string[] | null>(null);
+  const [species, setSpecies] = useState<readonly string[] | null>(catalog);
   useEffect(() => {
+    if (species) return;
     let active = true;
-    void loadPhotoIndex().then((index) => { if (active) setSpecies([...index.keys()]); });
+    void loadPhotoIndex().then((index) => {
+      const read = [...index.keys()];
+      // An empty index is a failed read, so it is never kept as the catalogue.
+      if (read.length) catalog = read;
+      if (active) setSpecies(read);
+    });
     return () => { active = false; };
-  }, []);
+  }, [species]);
   return species;
 }
 
