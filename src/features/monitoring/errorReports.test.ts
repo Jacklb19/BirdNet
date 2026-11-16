@@ -21,8 +21,8 @@ describe('error reports', () => {
       exception: { values: [{ type: 'Error', value: 'Failed on /#access_token=abc.def&refresh_token=r3fr3sh&type=recovery' }] },
     } as unknown as ErrorEvent;
     const cleaned = withoutPersonalData(event);
-    expect(cleaned.message).toBe('Bearer {token} rejected');
-    expect(cleaned.exception?.values?.[0]?.value).toBe('Failed on /#access_token={token}&refresh_token={token}&type=recovery');
+    expect(cleaned.message).toBe('[redacted]');
+    expect(cleaned.exception?.values?.[0]?.value).toBe('[redacted]');
   });
 
   it('carry no user, breadcrumbs, headers or identifiers', () => {
@@ -35,6 +35,25 @@ describe('error reports', () => {
     expect(cleaned.user).toBeUndefined();
     expect(cleaned.breadcrumbs).toBeUndefined();
     expect(cleaned.request).toEqual({ url: 'https://birdnet-nu.vercel.app/#/walks' });
-    expect(cleaned.exception?.values?.[0]?.value).toBe('Failed on /v1/walks/{id}');
+    expect(cleaned.exception?.values?.[0]?.value).toBe('[redacted]');
+  });
+
+  it('drops arbitrary private text and unknown metadata while retaining the error location', () => {
+    const privateText = 'A private note, question and person@example.invalid';
+    const cleaned = withoutPersonalData({
+      type: undefined, event_id: 'event', level: 'error', message: privateText,
+      extra: { note: privateText }, contexts: { question: { text: privateText } }, tags: { owner: privateText },
+      logentry: { message: privateText, params: [privateText] },
+      exception: { values: [{ type: 'TypeError', value: privateText, mechanism: { type: privateText },
+        stacktrace: { frames: [{ filename: 'screen.tsx', function: 'render', lineno: 12, in_app: true,
+          vars: { note: privateText }, pre_context: [privateText], context_line: privateText, post_context: [privateText] }] } }] },
+    });
+    expect(JSON.stringify(cleaned)).not.toContain(privateText);
+    expect(cleaned).toEqual({
+      type: undefined, event_id: 'event', level: 'error', message: '[redacted]',
+      exception: { values: [{ type: 'TypeError', value: '[redacted]', stacktrace: {
+        frames: [{ filename: 'screen.tsx', function: 'render', lineno: 12, in_app: true }],
+      } }] },
+    });
   });
 });
