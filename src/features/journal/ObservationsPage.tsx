@@ -1,12 +1,15 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { navigateTo, routeHash } from '../../app/routes';
 import { useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
+import { DateTimeField } from '../../shared/ui/DateTimeField';
+import { Dropdown } from '../../shared/ui/Dropdown';
+import { FilePicker } from '../../shared/ui/FilePicker';
 import { Page } from '../../shared/ui/Page';
 import { PageHeader } from '../../shared/ui/PageHeader';
 import { getSettings } from '../offline/queueStore';
 import { approximateLocation } from '../offline/queuePolicy';
-import { JOURNAL_NOTE_LIMIT, JOURNAL_PAGE_SIZE } from './journal.config';
+import { JOURNAL_NOTE_LIMIT, JOURNAL_PAGE_SIZE, OBSERVATION_PHOTO_ACCEPT } from './journal.config';
 import { journalMessages } from './i18n';
 import { EntityStatus, JournalLinks, JournalNotices, ObservationImage, SpeciesField, type JournalState } from './JournalParts';
 import { deleteEntity, deletePhoto, saveEntity, savePhoto } from './journalStore';
@@ -17,7 +20,7 @@ import { cleanNote, localDateTime } from './validation';
 import './Journal.css';
 
 function ObservationForm({ row, state }: { readonly row?: EntityRecord<'observation'>; readonly state: JournalState }): React.JSX.Element {
-  const t = journalMessages[useI18n().locale];
+  const { locale } = useI18n(); const t = journalMessages[locale]; const outingLabel = useId();
   const [species, setSpecies] = useState(row?.data.species ?? ''); const [date, setDate] = useState(localDateTime(row?.data.observed_at));
   const [note, setNote] = useState(row?.data.note ?? ''); const [individuals, setIndividuals] = useState(row?.data.individuals?.toString() ?? '');
   const [outing, setOuting] = useState(row?.data.outing_id ?? ''); const [latitude, setLatitude] = useState(row?.data.location?.latitude.toString() ?? ''); const [longitude, setLongitude] = useState(row?.data.location?.longitude.toString() ?? '');
@@ -33,13 +36,15 @@ function ObservationForm({ row, state }: { readonly row?: EntityRecord<'observat
     navigateTo({ name: 'observations', id });
   }); }}>
     <h2>{row ? t.edit : t.newObservation}</h2><p>{t.manual}</p><SpeciesField value={species} onChange={setSpecies} />
-    <label>{t.observedAt}<input type="datetime-local" required value={date} onChange={(event) => { setDate(event.target.value); }} /></label>
+    <DateTimeField label={t.observedAt} required value={date} onChange={setDate} max={new Date()} />
     <label>{t.individuals}<input type="number" min={1} max={999} step={1} value={individuals} onChange={(event) => { setIndividuals(event.target.value); }} /></label>
-    <label>{t.outing}<select value={outing} onChange={(event) => { setOuting(event.target.value); }}><option value="">{t.none}</option>{state.entities.filter((entry) => entry.kind === 'outing' && !entry.deleted).map((entry) => entry.kind === 'outing' && <option key={entry.id} value={entry.id}>{entry.data.title ?? new Date(entry.data.started_at).toLocaleString()}</option>)}</select></label>
+    <div className="bn-journal__field"><span id={outingLabel}>{t.outing}</span><Dropdown labelId={outingLabel} value={outing} onChange={setOuting}
+      options={[{ value: '', label: t.none }, ...state.entities.flatMap((entry) => entry.kind === 'outing' && !entry.deleted
+        ? [{ value: entry.id, label: entry.data.title ?? new Date(entry.data.started_at).toLocaleString(locale), detail: entry.data.title ? new Date(entry.data.started_at).toLocaleString(locale) : undefined }] : [])]} /></div>
     <p className="bn-journal__muted">{t.locationHelp}</p><label>{t.latitude}<input type="number" min={-90} max={90} step="any" value={latitude} onChange={(event) => { setLatitude(event.target.value); }} /></label>
     <label>{t.longitude}<input type="number" min={-180} max={180} step="any" value={longitude} onChange={(event) => { setLongitude(event.target.value); }} /></label>
     <label>{t.note}<textarea value={note} maxLength={JOURNAL_NOTE_LIMIT} onChange={(event) => { setNote(event.target.value); }} /></label>
-    <p>{t.photoLocal}</p><label>{t.photo}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { setPhoto(event.target.files?.[0] ?? null); }} /></label>
+    <FilePicker label={t.photo} accept={OBSERVATION_PHOTO_ACCEPT} file={photo} onChange={setPhoto} icon="camera" hint={t.photoLocal} />
     {row && state.owner && <><ObservationImage owner={state.owner} id={row.id} /><Button variant="quiet" disabled={state.busy} onClick={() => { void state.run(() => deletePhoto(row.owner, row.id), false); }}>{t.removePhoto}</Button></>}
     <Button type="submit" disabled={state.busy}>{t.save}</Button>
     {row && <><Button variant="quiet" onClick={() => { setConfirm(!confirm); }}>{t.remove}</Button>{confirm && <Button variant="secondary" disabled={state.busy} onClick={() => { void state.run(async () => { await deleteEntity(row.owner, 'observation', row.id); await deletePhoto(row.owner, row.id); navigateTo({ name: 'observations' }); }); }}>{t.confirmDelete}</Button>}</>}

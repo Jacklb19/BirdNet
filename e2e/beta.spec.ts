@@ -94,7 +94,10 @@ test.describe('private journal API integration', () => {
   });
   test('a visual photo is recoded locally while only its explicit metadata reaches the API', async ({ page }) => {
     const session = await signedIn(page); await page.goto('/#/observations'); await checks(page, session);
-    await page.getByLabel(t.species, { exact: true }).fill('Turdus fuscater'); await page.getByLabel(t.note, { exact: true }).fill('Photo observation');
+    // The species is chosen from the catalogue's list, never stored as typed text (ADR-47).
+    await page.getByRole('combobox', { name: t.species, exact: true }).fill('Turdus fuscater');
+    await page.getByRole('option', { name: /Turdus fuscater/ }).click();
+    await page.getByLabel(t.note, { exact: true }).fill('Photo observation');
     const png = await page.evaluate(() => { const canvas = document.createElement('canvas'); canvas.width = 16; canvas.height = 16; canvas.getContext('2d')?.fillRect(0, 0, 16, 16); return canvas.toDataURL('image/png').split(',')[1] ?? ''; });
     await page.getByLabel(t.photo, { exact: true }).setInputFiles({ name: 'private-original.png', mimeType: 'image/png', buffer: Buffer.from(png, 'base64') });
     await page.getByRole('button', { name: t.save, exact: true }).click(); await expect(page).toHaveURL(/#\/observations\/[a-f0-9-]+$/);

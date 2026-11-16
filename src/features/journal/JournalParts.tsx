@@ -1,11 +1,11 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { routeHash } from '../../app/routes';
 import { useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
 import { Notice } from '../../shared/ui/Notice';
-import { useSpeciesNames, commonName } from '../species/speciesNames';
-import { searchSpecies } from '../review/speciesSearch';
-import { JOURNAL_CHANGED, JOURNAL_PAGE_SIZE } from './journal.config';
+import { SpeciesPicker } from '../species/SpeciesPicker';
+import { useRegionCatalog } from '../species/speciesPhotos';
+import { JOURNAL_CHANGED } from './journal.config';
 import { journalMessages } from './i18n';
 import { getPhoto } from './journalStore';
 import { resolveJournalConflict } from './journalSync';
@@ -31,17 +31,15 @@ export function EntityStatus({ row, state }: { readonly row: JournalEntity; read
     <Button variant="quiet" disabled={state.busy} onClick={() => { void state.run(() => resolveJournalConflict(row.owner, row.kind, row.id, 'local')); }}>{row.remoteDeleted ? t.copyMetadata : t.useLocal}</Button>
   </div>}>{row.data.note}</Notice> : <p className="bn-journal__muted">{row.dirty ? t.local : t.saved}</p>;
 }
+/**
+ * The species of a journal record: chosen from the catalogue by common or scientific name (ADR-47), with the birds
+ * of the region's guide first, since the bird seen is almost always one of them.
+ */
 export function SpeciesField({ value, onChange, required = true }: { readonly value: string; readonly onChange: (value: string) => void; readonly required?: boolean }): React.JSX.Element {
-  const { locale } = useI18n();
-  const t = journalMessages[locale];
-  const names = useSpeciesNames();
-  const id = useId();
-  const input = useRef<HTMLInputElement>(null);
-  useEffect(() => { input.current?.setCustomValidity(!value || (names && Object.hasOwn(names, value) && /^[A-Z][a-z]+ [a-z]+(?:-[a-z]+)?$/.test(value)) ? '' : t.chooseSpecies); }, [value, names, t.chooseSpecies]);
-  const matches = names ? searchSpecies(names, value, locale, JOURNAL_PAGE_SIZE) : [];
-  return <><label htmlFor={`${id}-input`}>{t.species}<input ref={input} id={`${id}-input`} value={value} onChange={(event) => { onChange(event.target.value); }} required={required} list={id} maxLength={200} autoComplete="off" placeholder={t.chooseSpecies} /></label>
-    <datalist id={id}>{matches.map((row) => <option key={row.scientificName} value={row.scientificName}>{commonName(names, row.scientificName, locale)}</option>)}</datalist>
-  </>;
+  const t = journalMessages[useI18n().locale];
+  const catalog = useRegionCatalog();
+  const likely = useMemo(() => new Set(catalog ?? []), [catalog]);
+  return <SpeciesPicker label={t.species} value={value} onChange={onChange} required={required} likely={likely} />;
 }
 export function ObservationImage({ owner, id }: { readonly owner: string; readonly id: string }): React.JSX.Element {
   const t = journalMessages[useI18n().locale];

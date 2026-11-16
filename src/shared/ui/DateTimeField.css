@@ -1,0 +1,203 @@
+.bn-datetime {
+  display: grid;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  gap: var(--space-1);
+  border: 0;
+}
+
+.bn-datetime__label {
+  margin-bottom: var(--space-1);
+  padding: 0;
+  font-weight: var(--font-weight-semibold);
+}
+
+.bn-datetime__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, var(--time-field-width));
+  gap: var(--space-2);
+}
+
+.bn-datetime__date {
+  min-width: 0;
+}
+
+.bn-datetime__field,
+.bn-datetime__time-input {
+  width: 100%;
+  min-height: var(--control-height);
+  border: var(--border-width) solid var(--color-text-secondary);
+  border-radius: var(--radius-m);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.bn-datetime__field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  text-align: start;
+  cursor: pointer;
+}
+
+.bn-datetime__field .bn-icon {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+
+.bn-datetime__field span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bn-datetime__field--empty {
+  color: var(--color-text-secondary);
+}
+
+.bn-datetime__time-input {
+  padding: 0 var(--space-3);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.bn-datetime__field:focus-visible,
+.bn-datetime__time-input:focus-visible {
+  border-color: var(--color-brand);
+  outline: var(--focus-width) solid var(--color-brand);
+  outline-offset: var(--focus-offset);
+}
+
+.bn-datetime__time-input[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+
+.bn-datetime__hint {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+/* The calendar: a page of the notebook with the month on top and one touch-sized cell per day. */
+.bn-calendar {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.bn-calendar__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.bn-calendar__title {
+  margin: 0;
+  font-size: var(--text-title-s);
+  line-height: var(--leading-title-s);
+}
+
+/* "noviembre de 2026" starts with a capital, without capitalizing every word as text-transform would. */
+.bn-calendar__title::first-letter {
+  text-transform: uppercase;
+}
+
+.bn-calendar__nav,
+.bn-calendar__day,
+.bn-calendar__today {
+  border: 0;
+  background: none;
+  color: var(--color-text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.bn-calendar__nav {
+  display: inline-flex;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+}
+
+.bn-calendar__nav:hover,
+.bn-calendar__day:hover:not(:disabled),
+.bn-calendar__today:hover:not(:disabled) {
+  background: var(--color-bg-sunken);
+}
+
+.bn-calendar__grid {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.bn-calendar__week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  justify-items: center;
+}
+
+.bn-calendar__weekday {
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.bn-calendar__day {
+  width: min(var(--calendar-cell), 100%);
+  aspect-ratio: 1;
+  border-radius: var(--radius-pill);
+  font-variant-numeric: tabular-nums;
+}
+
+.bn-calendar__day--outside {
+  color: var(--color-text-secondary);
+}
+
+.bn-calendar__day--today {
+  box-shadow: inset 0 0 0 var(--border-width-strong) var(--color-brand);
+}
+
+.bn-calendar__day--chosen {
+  background: var(--color-brand);
+  color: var(--color-on-brand);
+}
+
+.bn-calendar__day--chosen:hover {
+  background: var(--color-brand);
+}
+
+.bn-calendar__day:disabled,
+.bn-calendar__today:disabled {
+  cursor: not-allowed;
+  opacity: var(--state-disabled-opacity);
+}
+
+.bn-calendar__day:focus-visible,
+.bn-calendar__nav:focus-visible,
+.bn-calendar__today:focus-visible {
+  outline: var(--focus-width) solid var(--color-brand);
+  outline-offset: var(--focus-offset);
+}
+
+.bn-calendar__foot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.bn-calendar__today {
+  min-height: var(--touch-min);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  color: var(--color-brand);
+  font-weight: var(--font-weight-semibold);
+}

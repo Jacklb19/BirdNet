@@ -3,6 +3,7 @@ import { routeHash } from '../../app/routes';
 import { useIsDesktop } from '../../config/layout';
 import { formatCount, useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
+import { Dropdown } from '../../shared/ui/Dropdown';
 import { EmptyState } from '../../shared/ui/EmptyState';
 import { Icon } from '../../shared/ui/Icon';
 import { Notice } from '../../shared/ui/Notice';
@@ -106,12 +107,13 @@ export default function LogPage(): React.JSX.Element {
             </div>
             {sites.length > 0 && (
               <>
-                <label htmlFor={siteId} className="visually-hidden">{dict.log.search.site}</label>
-                <select id={siteId} className="bn-log__site" value={site} onChange={(event) => { setSite(event.target.value); restart(); }}>
-                  <option value={ALL_SITES}>{dict.log.search.allSites}</option>
-                  {sites.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
-                  <option value={NO_SITE}>{dict.log.search.noSite}</option>
-                </select>
+                <span id={siteId} className="visually-hidden">{dict.log.search.site}</span>
+                <Dropdown labelId={siteId} className="bn-log__site" icon="sites" value={site} onChange={(next) => { setSite(next); restart(); }}
+                  options={[
+                    { value: ALL_SITES, label: dict.log.search.allSites },
+                    ...sites.map((entry) => ({ value: entry.id, label: entry.name })),
+                    { value: NO_SITE, label: dict.log.search.noSite },
+                  ]} />
               </>
             )}
           </div>

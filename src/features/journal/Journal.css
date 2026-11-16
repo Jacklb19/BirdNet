@@ -3,6 +3,8 @@
 .bn-journal__links { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--journal-link-min-width)), 1fr)); }
 .bn-journal__form, .bn-journal__card { display: grid; gap: var(--space-3); padding: var(--space-5); border: var(--border-width) solid var(--color-border-subtle); border-radius: var(--radius-l); background: var(--color-bg-surface); min-width: 0; }
 .bn-journal__form label { display: grid; gap: var(--space-2); color: var(--color-text-primary); }
+.bn-journal__field { display: grid; gap: var(--space-1); min-width: 0; }
+.bn-journal__field > span:first-child { font-weight: var(--font-weight-semibold); }
 .bn-journal__form input, .bn-journal__form textarea, .bn-journal__form select { width: 100%; box-sizing: border-box; min-height: var(--touch-min); padding: var(--space-3); border: var(--border-width) solid var(--color-border-strong); border-radius: var(--radius-s); background: var(--color-bg-surface); color: var(--color-text-primary); font: inherit; }
 .bn-journal__form textarea { min-height: var(--journal-note-height); resize: vertical; }
 .bn-journal__muted { color: var(--color-text-secondary); font-size: var(--text-small); }

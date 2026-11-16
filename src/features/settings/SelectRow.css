@@ -20,38 +20,6 @@
   flex: 1;
 }
 
-.bn-settings-select__control {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-
-/* The native picker keeps its keyboard and screen-reader behavior; only its box is restyled to read as a row value. */
-.bn-settings-select__input {
-  min-height: var(--touch-min);
-  padding: 0 calc(var(--icon-size-s) + var(--space-2)) 0 var(--space-2);
-  border: 0;
-  border-radius: var(--radius-s);
-  background: transparent;
-  color: var(--color-text-secondary);
-  text-align: end;
-  cursor: pointer;
-  appearance: none;
-}
-
-.bn-settings-select__input:disabled {
-  cursor: not-allowed;
-  opacity: var(--state-disabled-opacity);
-}
-
-.bn-settings-select__chevron {
-  position: absolute;
-  right: 0;
-  display: inline-flex;
-  color: var(--color-text-secondary);
-  pointer-events: none;
-}
-
 .bn-settings-select__description {
   color: var(--color-text-secondary);
   font-size: var(--text-small);

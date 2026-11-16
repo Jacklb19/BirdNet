@@ -1,0 +1,88 @@
+.bn-file-picker {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-2);
+}
+
+.bn-file-picker__label {
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Drawn like the secondary button; the hidden input before it carries the focus, so its ring shows here. */
+.bn-file-picker__button {
+  display: inline-flex;
+  min-height: var(--control-height);
+  align-items: center;
+  justify-content: center;
+  justify-self: start;
+  gap: var(--space-2);
+  padding: 0 var(--space-5);
+  border: var(--border-width-strong) dashed var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.bn-file-picker__button:hover {
+  background: var(--color-bg-sunken);
+}
+
+.bn-file-picker__input:focus-visible + :is(.bn-file-picker__button, .bn-file-picker__chosen) {
+  outline: var(--focus-width) solid var(--color-brand);
+  outline-offset: var(--focus-offset);
+}
+
+.bn-file-picker__chosen {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-m);
+  background: var(--color-brand-soft);
+}
+
+.bn-file-picker__chosen > .bn-icon {
+  color: var(--color-brand);
+}
+
+.bn-file-picker__name {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.bn-file-picker__size,
+.bn-file-picker__hint {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+}
+
+.bn-file-picker__hint {
+  margin: 0;
+}
+
+.bn-file-picker__action {
+  display: inline-flex;
+  min-height: var(--touch-min);
+  align-items: center;
+  padding: 0 var(--space-2);
+  border: 0;
+  background: none;
+  color: var(--color-brand);
+  font: inherit;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+[aria-disabled='true'].bn-file-picker__button,
+[aria-disabled='true'].bn-file-picker__action,
+.bn-file-picker__action:disabled {
+  cursor: not-allowed;
+  opacity: var(--state-disabled-opacity);
+}

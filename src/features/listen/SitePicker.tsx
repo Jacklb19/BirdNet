@@ -1,6 +1,7 @@
-import { useId, useRef, useState, type ChangeEvent } from 'react';
+import { useId, useRef, useState } from 'react';
 import { routeHash } from '../../app/routes';
 import { useI18n } from '../../i18n';
+import { Dropdown } from '../../shared/ui/Dropdown';
 import { Icon } from '../../shared/ui/Icon';
 import type { CachedSite } from '../offline/types';
 import './SitePicker.css';
@@ -16,8 +17,8 @@ export interface SitePickerProps {
 }
 
 /**
- * The place new detections count for: the nearest saved one by default (ADR-25), or one chosen by hand. A native
- * select keeps the platform's accessible picker; with no places yet, the control leads to Places, where one is created.
+ * The place new detections count for: the nearest saved one by default (ADR-25), or one chosen by hand from
+ * Trino's own list (ADR-47); with no places yet, the control leads to Places, where one is created.
  */
 export function SitePicker({ sites, ready, activeId, onSelect }: SitePickerProps): React.JSX.Element {
   const { dict } = useI18n();
@@ -39,8 +40,7 @@ export function SitePicker({ sites, ready, activeId, onSelect }: SitePickerProps
     );
   }
 
-  const choose = (event: ChangeEvent<HTMLSelectElement>): void => {
-    const siteId = event.target.value;
+  const choose = (siteId: string): void => {
     // Only the latest choice reports back, so a slow earlier save cannot flag a later successful one.
     const request = ++latestRequest.current;
     void onSelect(siteId === '' ? null : siteId).then((saved) => {
@@ -50,15 +50,9 @@ export function SitePicker({ sites, ready, activeId, onSelect }: SitePickerProps
 
   return (
     <div className="bn-listen-site-field">
-      <div className="bn-listen-site">
-        <span className="bn-listen-site__pin"><Icon name="sites" size="s" /></span>
-        <label className="visually-hidden" htmlFor={id}>{t.label}</label>
-        <select id={id} className="bn-listen-site__select" value={activeId ?? ''} onChange={choose}>
-          <option value="">{t.nearest}</option>
-          {sites.map((site) => <option key={site.id} value={site.id}>{site.name}</option>)}
-        </select>
-        <span className="bn-listen-site__chevron"><Icon name="down" size="s" /></span>
-      </div>
+      <span id={id} className="visually-hidden">{t.label}</span>
+      <Dropdown variant="pill" icon="sites" className="bn-listen-site-picker" labelId={id} value={activeId ?? ''} onChange={choose}
+        options={[{ value: '', label: t.nearest }, ...sites.map((site) => ({ value: site.id, label: site.name }))]} />
       {failed && <p className="bn-listen-site__error" role="alert">{t.error}</p>}
     </div>
   );

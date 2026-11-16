@@ -2,6 +2,7 @@ import { useId, useState } from 'react';
 import { routeHash } from '../../app/routes';
 import { formatCount, useI18n } from '../../i18n';
 import { Button } from '../../shared/ui/Button';
+import { Dropdown } from '../../shared/ui/Dropdown';
 import { Icon } from '../../shared/ui/Icon';
 import { Notice } from '../../shared/ui/Notice';
 import { scheduleSynchronization } from '../offline/offlineClient';
@@ -50,10 +51,9 @@ export function AssignSiteCard({ count, sites, activeSiteId }: AssignSiteCardPro
         <p className="bn-log-assign__text">{texts.text}</p>
         {sites.length > 0 ? (
           <div className="bn-log-assign__controls">
-            <label htmlFor={selectId} className="visually-hidden">{texts.select}</label>
-            <select id={selectId} className="bn-log-assign__select" value={siteId} onChange={(event) => { setSiteId(event.target.value); }}>
-              {sites.map((site) => <option key={site.id} value={site.id}>{site.name}</option>)}
-            </select>
+            <span id={selectId} className="visually-hidden">{texts.select}</span>
+            <Dropdown labelId={selectId} className="bn-log-assign__select" icon="sites" value={siteId} onChange={setSiteId}
+              options={sites.map((site) => ({ value: site.id, label: site.name }))} />
             <Button aria-disabled={working || !siteId} aria-busy={working} onClick={() => { void assign(); }}>{texts.action}</Button>
           </div>
         ) : (

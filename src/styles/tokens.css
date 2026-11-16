@@ -167,6 +167,16 @@
   --journal-note-height: 8rem;
   --journal-link-min-width: 9rem;
   --journal-photo-max-height: 24rem;
+  /* A list or calendar opened from a field never grows past these, and scrolls inside instead */
+  --popover-max-height: 20rem;
+  --popover-max-width: 24rem;
+  --calendar-cell: 2.75rem;
+  --calendar-max-height: 28rem;
+  --calendar-max-width: 22rem;
+  --time-field-width: 7rem;
+  /* Stickers of the way in: one row beside the sign-in form, two larger rows beside the longer forms */
+  --entrance-sticker-compact: 6rem;
+  --entrance-sticker-roomy: 8.5rem;
   --icon-size: 1.5rem;
   --icon-size-s: 1.125rem;
   --icon-stroke: 1.75;
@@ -269,6 +279,8 @@
   --layer-nav: 20;
   --layer-player: 30;
   --layer-sheet: 40;
+  /* Lists and calendars that open from a field: above sheets, under pocket mode */
+  --layer-popover: 45;
   --layer-pocket: 50;
 
   /* Map — MapLibre paints its canvas in CSS pixels and reads these with getComputedStyle, so they stay in px */
