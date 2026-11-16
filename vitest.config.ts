@@ -24,7 +24,7 @@ export default defineConfig({
         statements: COVERAGE_MIN_PERCENT,
       },
       /*
-       * Unit tests cover the domain logic: algorithms, policies, parsers and API contracts (AGENTS.md). Screens are not
+       * Unit tests cover the domain logic: algorithms, policies, parsers and API contracts. Screens are not
        * unit-tested by design, and code that only binds to a browser API is exercised by the e2e suite in a real
        * browser (IndexedDB stores, service worker, workers, MapLibre layers, WebCodecs), so neither counts here.
        */

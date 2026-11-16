@@ -1,4 +1,4 @@
-name: Integración Continua
+name: Continuous integration
 
 on:
   push:
@@ -12,34 +12,33 @@ concurrency:
 
 jobs:
   verify:
-    name: Verificación (Tipos, Lint, Pruebas y Build)
+    name: Types, lint, tests and build
     runs-on: ubuntu-latest
 
     steps:
-      - name: Descargar código fuente
+      - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Configurar Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
 
-      - name: Instalar dependencias
+      - name: Install dependencies
         run: npm ci
 
-      - name: Verificación de tipos estáticos
+      - name: Check types
         run: npm run typecheck
 
-      - name: Análisis estático (Lint)
+      - name: Lint
         run: npm run lint
 
-      - name: Pruebas unitarias y cobertura
+      - name: Unit tests and coverage
         run: npm run test:coverage
 
-      # scripts/prepare-offline.mjs falla si falta algún recurso del shell sin conexión (index.html incluido),
-      # así que un build correcto ya verifica el artefacto.
-      - name: Construcción de la aplicación
+      # prepare-offline.mjs rejects missing shell resources, including index.html, so building verifies the artifact.
+      - name: Build the application
         run: npm run build
 
   account-e2e:

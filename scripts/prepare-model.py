@@ -1,7 +1,7 @@
 """
-Fase 1: Validación Técnica Previa de BirdNET v2.4 (ADR-01, ADR-05, RF-03, RF-05, RNF-01, RNF-05, RNF-09)
-Descarga el modelo ONNX de referencia (tphakala), valida la taxonomía, audios de prueba de xeno-canto,
-evalúa el filtro regional de Bogotá, cuantiza a INT8 / FP16 y genera el reporte comparativo.
+Phase 1: BirdNET v2.4 technical validation (ADR-01, ADR-05, RF-03, RF-05, RNF-01, RNF-05, RNF-09).
+Download the reference ONNX model (tphakala), validate taxonomy and xeno-canto test recordings,
+evaluate the regional filter, compare quantized variants and generate the comparison report.
 
 Run from the repository root with `npm run model:prepare`.
 """
@@ -138,15 +138,15 @@ def download_file(url: str, dest: Path, expected_sha256: str | None = None) -> P
         if expected_sha256:
             h = hashlib.sha256(dest.read_bytes()).hexdigest()
             if h == expected_sha256:
-                print(f"[OK] {dest.name} ya existe y el hash SHA-256 coincide.")
+                print(f"[OK] {dest.name} already exists and its SHA-256 matches.")
                 return dest
             else:
-                print(f"[WARN] {dest.name} hash no coincide, redescargando...")
+                print(f"[WARN] {dest.name} hash does not match; downloading again...")
         else:
-            print(f"[OK] {dest.name} ya existe.")
+            print(f"[OK] {dest.name} already exists.")
             return dest
 
-    print(f"Descargando {url} -> {dest.name} ...")
+    print(f"Downloading {url} -> {dest.name} ...")
     headers = {"User-Agent": HTTP_USER_AGENT}
     r = requests.get(url, stream=True, headers=headers, timeout=HTTP_TIMEOUT_S)
     r.raise_for_status()
@@ -157,10 +157,10 @@ def download_file(url: str, dest: Path, expected_sha256: str | None = None) -> P
 
     if expected_sha256:
         h = hashlib.sha256(dest.read_bytes()).hexdigest()
-        assert h == expected_sha256, f"Hash mismatch para {dest.name}: {h} vs {expected_sha256}"
-        print(f"[OK] {dest.name} descargado y verificado SHA-256 ({h[:SHA256_PREVIEW_CHARS]}...).")
+        assert h == expected_sha256, f"Hash mismatch for {dest.name}: {h} vs {expected_sha256}"
+        print(f"[OK] {dest.name} downloaded and SHA-256 verified ({h[:SHA256_PREVIEW_CHARS]}...).")
     else:
-        print(f"[OK] {dest.name} descargado.")
+        print(f"[OK] {dest.name} downloaded.")
     return dest
 
 
@@ -169,25 +169,25 @@ def main():
         directory.mkdir(parents=True, exist_ok=True)
 
     print("================================================================")
-    print(" FASE 1: VALIDACIÓN TÉCNICA PREVIA - BIRDNET v2.4")
+    print(" PHASE 1: TECHNICAL VALIDATION - BIRDNET v2.4")
     print("================================================================")
 
-    # 1. Descarga labels.txt
+    # 1. Download labels.txt
     labels_path = PUBLIC_MODELS / LABELS_FILE
     download_file(LABELS_URL, labels_path)
     with open(labels_path, "r", encoding="utf-8") as f:
         labels = [line.strip() for line in f if line.strip()]
-    print(f"Total de clases cargadas en {LABELS_FILE}: {len(labels)}")
-    assert len(labels) == NUM_CLASSES, f"Se esperaban {NUM_CLASSES} clases, pero hay {len(labels)}"
+    print(f"Classes loaded from {LABELS_FILE}: {len(labels)}")
+    assert len(labels) == NUM_CLASSES, f"Expected {NUM_CLASSES} classes, got {len(labels)}"
 
-    # 2. Descarga modelo de referencia FP32
+    # 2. Download the FP32 reference model
     fp32_model_path = TMP_DIR / MODEL_FP32_NAME
     download_file(MODEL_FP32_URL, fp32_model_path, MODEL_FP32_SHA256)
     fp32_size_mb = size_mb(fp32_model_path)
-    print(f"Modelo FP32 descargado: {fp32_size_mb:.2f} MB")
+    print(f"FP32 model downloaded: {fp32_size_mb:.2f} MB")
 
-    # 3. Descarga y preparación del conjunto de evaluación
-    print("\n--- Preparando audios de evaluación de xeno-canto ---")
+    # 3. Download and prepare the evaluation set
+    print("\n--- Preparing xeno-canto evaluation recordings ---")
     metadata_records = []
     evaluation_windows = []
 
@@ -199,10 +199,10 @@ def main():
             data, sr = sf.read(str(mp3_temp))
             if len(data.shape) > 1:
                 data = data.mean(axis=1) # mono
-            # Resample a SAMPLE_RATE si difiere
+            # Resample to SAMPLE_RATE when needed
             if sr != SAMPLE_RATE:
                 from scipy.signal import resample_poly
-                # Calcular gcd para resample_poly
+                # Compute the ratio for resample_poly
                 from math import gcd
                 g = gcd(sr, SAMPLE_RATE)
                 up = SAMPLE_RATE // g
@@ -214,13 +214,13 @@ def main():
             data = normalize_peak(data)
 
             sf.write(str(wav_path), data, SAMPLE_RATE, subtype=TEST_AUDIO_SUBTYPE)
-            print(f"[OK] Audio procesado y guardado a {SAMPLE_RATE} Hz: {wav_path.name} ({len(data)/SAMPLE_RATE:.1f} s)")
+            print(f"[OK] Audio processed and saved at {SAMPLE_RATE} Hz: {wav_path.name} ({len(data)/SAMPLE_RATE:.1f} s)")
 
-        # Cargar audio a SAMPLE_RATE
+        # Load audio at SAMPLE_RATE
         data, sr = sf.read(str(wav_path))
-        assert sr == SAMPLE_RATE, f"Sample rate debe ser {SAMPLE_RATE}, es {sr}"
+        assert sr == SAMPLE_RATE, f"Sample rate must be {SAMPLE_RATE}, got {sr}"
 
-        # Extraer la ventana de WINDOW_SECONDS (WINDOW_SAMPLES muestras) en el offset óptimo de vocalización
+        # Extract WINDOW_SAMPLES at the annotated vocalization offset
         best_offset = int(item.get("target_offset_sec", 0.0) * SAMPLE_RATE)
         chunk = data[best_offset : best_offset + WINDOW_SAMPLES]
         if len(chunk) < WINDOW_SAMPLES:
@@ -250,32 +250,32 @@ def main():
             "best_window_offset_sec": round(best_offset / SAMPLE_RATE, OFFSET_DECIMALS)
         })
 
-    # Guardar metadata.json en public/test-audio/
+    # Save metadata.json in public/test-audio/
     metadata_json_path = TEST_AUDIO_DIR / TEST_AUDIO_METADATA_FILE
     with open(metadata_json_path, "w", encoding="utf-8") as f:
         json.dump(metadata_records, f, indent=2, ensure_ascii=False)
-    print(f"[OK] {metadata_json_path.name} escrito con los {len(metadata_records)} audios de evaluación.")
+    print(f"[OK] {metadata_json_path.name} written with {len(metadata_records)} evaluation recordings.")
 
-    # 4. Evaluación del modelo FP32 de referencia
-    print("\n--- Evaluando modelo FP32 de referencia ---")
+    # 4. Evaluate the FP32 reference model
+    print("\n--- Evaluating the FP32 reference model ---")
     sess_fp32 = ort.InferenceSession(str(fp32_model_path), providers=ONNX_PROVIDERS)
     input_name = sess_fp32.get_inputs()[0].name
     output_name = sess_fp32.get_outputs()[0].name
-    print(f"Entrada ONNX: '{input_name}', forma: {sess_fp32.get_inputs()[0].shape}")
-    print(f"Salida ONNX: '{output_name}', forma: {sess_fp32.get_outputs()[0].shape}")
+    print(f"ONNX input: '{input_name}', shape: {sess_fp32.get_inputs()[0].shape}")
+    print(f"ONNX output: '{output_name}', shape: {sess_fp32.get_outputs()[0].shape}")
 
     fp32_results = []
     latencies_fp32 = []
 
     for item in evaluation_windows:
         inp = item["window"].reshape(1, WINDOW_SAMPLES)
-        # Inferencia y medición de latencia
+        # Run inference and measure latency
         t0 = time.perf_counter()
         out = sess_fp32.run([output_name], {input_name: inp})[0][0]
         t1 = time.perf_counter()
         latencies_fp32.append((t1 - t0) * 1000)
 
-        # Sigmoide para obtener probabilidades
+        # Convert logits to probabilities
         probs = 1.0 / (1.0 + np.exp(-out))
         top1_idx = int(np.argmax(probs))
         top1_label = labels[top1_idx]
@@ -289,58 +289,58 @@ def main():
             "confidence": float(top1_prob),
             "correct": correct
         })
-        print(f"[{'CORRECTO' if correct else 'FALLO'}] {item['id']} ({item['expected_sci']}): top-1 = {top1_label} (conf: {top1_prob:.4f})")
+        print(f"[{'CORRECT' if correct else 'FAILED'}] {item['id']} ({item['expected_sci']}): top-1 = {top1_label} (conf: {top1_prob:.4f})")
 
     all_fp32_correct = all(r["correct"] for r in fp32_results)
     acc_fp32 = sum(r["correct"] for r in fp32_results) / len(fp32_results)
     avg_lat_fp32 = np.mean(latencies_fp32)
-    print(f"FP32 Top-1 Exactitud: {sum(r['correct'] for r in fp32_results)}/{len(fp32_results)} ({100*acc_fp32:.1f}%)")
-    print(f"FP32 Latencia media CPU: {avg_lat_fp32:.1f} ms")
-    assert all_fp32_correct, "El modelo FP32 no acertó el 100% de los audios de prueba de referencia. Verificar audios."
+    print(f"FP32 Top-1 accuracy: {sum(r['correct'] for r in fp32_results)}/{len(fp32_results)} ({100*acc_fp32:.1f}%)")
+    print(f"FP32 Mean CPU latency: {avg_lat_fp32:.1f} ms")
+    assert all_fp32_correct, "The FP32 model did not classify every reference recording correctly. Check the recordings."
 
-    # 5. Filtro regional
+    # 5. Regional filter
     region, latitude, longitude = REGION["name"], REGION["latitude"], REGION["longitude"]
-    print(f"\n--- Evaluando filtro regional de {region} (lat {latitude:.4f}, lon {longitude:.4f}) ---")
+    print(f"\n--- Evaluating regional filter for {region} (lat {latitude:.4f}, lon {longitude:.4f}) ---")
     import birdnet
     geomodel = birdnet.load(GEO_MODEL_TYPE, GEO_MODEL_VERSION, GEO_MODEL_BACKEND)
     geo_all = geomodel.predict(latitude, longitude, min_confidence=GEO_MIN_CONFIDENCE).to_structured_array()
     geo_week = geomodel.predict(latitude, longitude, week=GEO_WEEK, min_confidence=GEO_MIN_CONFIDENCE).to_structured_array()
-    print(f"Especies en {region} (todas las semanas, umbral {GEO_MIN_CONFIDENCE}): {len(geo_all)}")
-    print(f"Especies en {region} (semana {GEO_WEEK}, umbral {GEO_MIN_CONFIDENCE}): {len(geo_week)}")
+    print(f"Species in {region} (all weeks, threshold {GEO_MIN_CONFIDENCE}): {len(geo_all)}")
+    print(f"Species in {region} (week {GEO_WEEK}, threshold {GEO_MIN_CONFIDENCE}): {len(geo_week)}")
 
-    # Análisis de poda de la capa de salida en el grafo ONNX
-    print("\n--- Análisis de poda de capa de salida vs máscara por software ---")
+    # Analyze output-layer pruning in the ONNX graph
+    print("\n--- Output-layer pruning versus software masking ---")
     onnx_model = onnx.load(str(fp32_model_path))
-    # Buscar el tensor de pesos de la capa final
+    # Find the final-layer weight tensor
     final_weights = None
     for init in onnx_model.graph.initializer:
         if NUM_CLASSES in init.dims:
             final_weights = init
-            print(f"Capa final encontrada: '{init.name}', dimensiones: {init.dims}, elementos: {np.prod(init.dims)}")
+            print(f"Final layer found: '{init.name}', dimensions: {init.dims}, elements: {np.prod(init.dims)}")
 
     if final_weights:
         elem_count = np.prod(final_weights.dims)
         weight_bytes = elem_count * FLOAT32_BYTES
         weight_mb = weight_bytes / BYTES_PER_MB
-        print(f"Peso de la capa densa final ({NUM_CLASSES} clases): {weight_mb:.2f} MB")
+        print(f"Final dense layer size ({NUM_CLASSES} classes): {weight_mb:.2f} MB")
 
-        # Si se podara a las K especies de la región:
+        # Estimate pruning to the region's K species:
         k = len(geo_all)
         other_dim = elem_count // NUM_CLASSES
         pruned_bytes = other_dim * k * FLOAT32_BYTES
         pruned_mb = pruned_bytes / BYTES_PER_MB
         savings_mb = weight_mb - pruned_mb
-        print(f"Peso podado a {k} clases: {pruned_mb:.2f} MB (Ahorro potencial: {savings_mb:.2f} MB)")
+        print(f"Size pruned to {k} classes: {pruned_mb:.2f} MB (Potential savings: {savings_mb:.2f} MB)")
         total_pruned_model_size_mb = fp32_size_mb - savings_mb
-        print(f"Tamaño estimado de modelo podado: {total_pruned_model_size_mb:.2f} MB")
+        print(f"Estimated pruned model size: {total_pruned_model_size_mb:.2f} MB")
 
-    # 6. Cuantización
-    print("\n--- Generando y evaluando variantes cuantizadas ---")
+    # 6. Quantization
+    print("\n--- Generating and evaluating quantized variants ---")
     from onnxruntime.quantization import quantize_dynamic, QuantType
 
     # A) Dynamic INT8 Quantization
     int8_model_path = TMP_DIR / MODEL_DYNAMIC_INT8_NAME
-    print(f"Generando modelo cuantizado INT8: {int8_model_path.name} ...")
+    print(f"Generating INT8 model: {int8_model_path.name} ...")
     quantize_dynamic(
         model_input=str(fp32_model_path),
         model_output=str(int8_model_path),
@@ -349,7 +349,7 @@ def main():
         reduce_range=False
     )
     int8_size_mb = size_mb(int8_model_path)
-    print(f"Tamaño INT8: {int8_size_mb:.2f} MB")
+    print(f"INT8 size: {int8_size_mb:.2f} MB")
 
     sess_int8 = ort.InferenceSession(str(int8_model_path), providers=ONNX_PROVIDERS)
     int8_results = []
@@ -378,10 +378,10 @@ def main():
 
     acc_int8 = sum(r["correct"] for r in int8_results) / len(int8_results)
     avg_lat_int8 = np.mean(latencies_int8)
-    print(f"INT8 Top-1 Exactitud: {sum(r['correct'] for r in int8_results)}/{len(int8_results)} ({100*acc_int8:.1f}%)")
-    print(f"INT8 Latencia media CPU: {avg_lat_int8:.1f} ms")
+    print(f"INT8 Top-1 accuracy: {sum(r['correct'] for r in int8_results)}/{len(int8_results)} ({100*acc_int8:.1f}%)")
+    print(f"INT8 Mean CPU latency: {avg_lat_int8:.1f} ms")
 
-    # B) Variante oficial optimizada para ARM (tphakala)
+    # B) Official ARM-optimized variant (tphakala)
     arm_int8_path = TMP_DIR / MODEL_ARM_INT8_NAME
     download_file(MODEL_ARM_INT8_URL, arm_int8_path, MODEL_ARM_INT8_SHA256)
     arm_int8_size_mb = size_mb(arm_int8_path)
@@ -412,22 +412,22 @@ def main():
 
     acc_arm = sum(r["correct"] for r in arm_results) / len(arm_results)
     avg_lat_arm = np.mean(latencies_arm)
-    print(f"ARM-INT8 Top-1 Exactitud: {sum(r['correct'] for r in arm_results)}/{len(arm_results)} ({100*acc_arm:.1f}%)")
-    print(f"ARM-INT8 Latencia media CPU: {avg_lat_arm:.1f} ms")
+    print(f"ARM-INT8 Top-1 accuracy: {sum(r['correct'] for r in arm_results)}/{len(arm_results)} ({100*acc_arm:.1f}%)")
+    print(f"ARM-INT8 Mean CPU latency: {avg_lat_arm:.1f} ms")
 
-    # Resumen comparativo
+    # Comparison summary
     print("\n================================================================")
-    print(" TABLA COMPARATIVA DE VALIDACIÓN (FASE 1)")
+    print(" VALIDATION COMPARISON (PHASE 1)")
     print("================================================================")
-    print(f"{'Variante':<25} | {'Tamaño (MB)':<12} | {'Top-1 Acc':<10} | {'Latencia CPU (ms)':<18}")
+    print(f"{'Variant':<25} | {'Size (MB)':<12} | {'Top-1 Acc':<10} | {'CPU latency (ms)':<18}")
     print("-" * 72)
     print(f"{'FP32 (dfttrunc)':<25} | {fp32_size_mb:<12.2f} | {f'{100*acc_fp32:.0f}%':<10} | {avg_lat_fp32:<18.1f}")
     print(f"{'ORT Dynamic INT8':<25} | {int8_size_mb:<12.2f} | {f'{100*acc_int8:.0f}%':<10} | {avg_lat_int8:<18.1f}")
     print(f"{'ARM-Optimized INT8':<25} | {arm_int8_size_mb:<12.2f} | {f'{100*acc_arm:.0f}%':<10} | {avg_lat_arm:<18.1f}")
     print("================================================================")
 
-    # Copiar la variante seleccionada a public/models/
-    # Según los resultados de precisión, elegimos la variante que mantiene 100% de precisión y menor peso
+    # Copy the selected variant to public/models/
+    # Select the smallest variant that classifies every reference example correctly
     chosen_model_path = arm_int8_path if acc_arm == 1.0 else (int8_model_path if acc_int8 == 1.0 else fp32_model_path)
     target_onnx = PUBLIC_MODELS / MODEL_FILE
     with open(chosen_model_path, "rb") as src, open(target_onnx, "wb") as dst:
@@ -435,12 +435,12 @@ def main():
 
     chosen_sha256 = hashlib.sha256(target_onnx.read_bytes()).hexdigest()
     chosen_size_bytes = target_onnx.stat().st_size
-    print(f"\nVariante elegida para despliegue: {chosen_model_path.name}")
-    print(f"Copiada a: {target_onnx.relative_to(BASE_DIR)}")
-    print(f"Tamaño: {chosen_size_bytes / BYTES_PER_MB:.2f} MB")
+    print(f"\nVariant selected for deployment: {chosen_model_path.name}")
+    print(f"Copied to: {target_onnx.relative_to(BASE_DIR)}")
+    print(f"Size: {chosen_size_bytes / BYTES_PER_MB:.2f} MB")
     print(f"SHA-256: {chosen_sha256}")
 
-    # Escribir manifest.json en public/models/ (ADR-05); updated_at is the day it was generated.
+    # Write manifest.json in public/models/ (ADR-05); updated_at records its generation day.
     manifest = {
         "model_id": MODEL_ID,
         "variant": chosen_model_path.name,
@@ -457,7 +457,7 @@ def main():
     manifest_path = PUBLIC_MODELS / MANIFEST_FILE
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)
-    print(f"[OK] {manifest_path.name} escrito.")
+    print(f"[OK] {manifest_path.name} written.")
 
 if __name__ == "__main__":
     main()
