@@ -33,6 +33,7 @@ import { useLocate } from './useLocate';
 import { useMapResult } from './useMapResult';
 import { SheetLayoutContext } from './sheetLayout';
 import { WalkPanel } from './WalkPanel';
+import { detectionCount } from './mapEncounters';
 import './MapPage.css';
 
 /** Probed once per page load: each probe creates a WebGL context, and browsers cap how many may exist at a time. */
@@ -82,15 +83,18 @@ function MapScreen({ initialSpecies }: { readonly initialSpecies: string | null 
   const [territoriesOn, setTerritoriesOn] = useState(true);
   // The camera follows a walk until the person drags the map; the locate button takes it back.
   const [following, setFollowing] = useState(true);
+  const releaseFollowing = useCallback(() => { setFollowing(false); }, []);
   const framed = useRef(false);
   const sheetRef = useRef<HTMLElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
 
   // The panel floats over the map (bottom sheet on phones, right panel on wide screens); what it covers is left
   // out of "In this area" and of the centring.
   const covered = useCallback((): CoveredEdges => {
     const sheet = sheetRef.current;
     if (!map || !sheet) return NOTHING_COVERED;
-    return coveredEdges(map.getContainer().getBoundingClientRect(), sheet.getBoundingClientRect(), isDesktop ? 'right' : 'bottom');
+    return coveredEdges(map.getContainer().getBoundingClientRect(), sheet.getBoundingClientRect(), isDesktop ? 'right' : 'bottom',
+      overlayRef.current?.getBoundingClientRect());
   }, [isDesktop, map]);
 
   const focusOffset = useCallback((): [number, number] => {
@@ -105,18 +109,21 @@ function MapScreen({ initialSpecies }: { readonly initialSpecies: string | null 
   const locate = useLocate(map, focusOffset);
   const shown = enabled ? result : null;
 
-  const view = useMemo(
-    () => ownMap(own.pins ?? [], own.walks, { species, walking: walk.walking }, accountWalks.data, accountSongs.data),
-    [own.pins, own.walks, species, walk.walking, accountWalks.data, accountSongs.data],
+  const ownView = useMemo(
+    () => ownMap(own.pins ?? [], own.walks, { species: null, walking: walk.walking }, accountWalks.data, accountSongs.data),
+    [own.pins, own.walks, walk.walking, accountWalks.data, accountSongs.data],
   );
-  // Walks and distance count every path drawn, those of the account too; songs are the ones this phone holds.
+  const view = useMemo(() => species === null || walk.walking ? ownView : { ...ownView,
+    result: { ...ownView.result, detections: ownView.result.detections.filter((row) => row.species === species) } }, [ownView, species, walk.walking]);
+  // Header totals include account records and remain independent of the selected species.
   const totals = useMemo(() => {
     const onPhone = new Set(own.walks.map((stored) => stored.id));
-    return walkTotals([...own.walks, ...accountWalks.data.filter((path) => !onPhone.has(path.id))], own.pins ?? []);
-  }, [own.walks, own.pins, accountWalks.data]);
+    return { ...walkTotals([...own.walks, ...accountWalks.data.filter((path) => !onPhone.has(path.id))], own.pins ?? []),
+      songs: ownView.result.detections.reduce((count, row) => count + detectionCount(row), 0), species: ownView.speciesOptions.length };
+  }, [own.walks, own.pins, accountWalks.data, ownView]);
   const overlayData = useMemo<WalkOverlay>(() => (mine ? {
     tracks: walk.walking ? [...view.tracks, walk.track] : view.tracks,
-    territories: territoriesOn ? territories(view.result.detections, TERRITORY_HEX_METERS) : [],
+    territories: territoriesOn ? territories(view.result.detections, TERRITORY_HEX_METERS, detectionCount) : [],
   } : NO_WALK_OVERLAY), [mine, view, walk.walking, walk.track, territoriesOn]);
 
   // Opens on what the person has covered, once: after that the camera is theirs.
@@ -127,17 +134,18 @@ function MapScreen({ initialSpecies }: { readonly initialSpecies: string | null 
     framed.current = true;
     const hidden = covered();
     map.fitBounds(extent, {
-      padding: { top: MAP_OWN_FIT.paddingPx, left: MAP_OWN_FIT.paddingPx, right: hidden.right + MAP_OWN_FIT.paddingPx, bottom: hidden.bottom + MAP_OWN_FIT.paddingPx },
+      padding: { top: hidden.top + MAP_OWN_FIT.paddingPx, left: MAP_OWN_FIT.paddingPx, right: hidden.right + MAP_OWN_FIT.paddingPx, bottom: hidden.bottom + MAP_OWN_FIT.paddingPx },
       maxZoom: MAP_OWN_FIT.maxZoom, animate: false,
     });
   }, [map, mine, walk.walking, own.pins, view, covered]);
 
   useEffect(() => {
     if (!map) return;
-    const release = (): void => { setFollowing(false); };
-    map.on('dragstart', release);
-    return () => { map.off('dragstart', release); };
-  }, [map]);
+    map.on('dragstart', releaseFollowing);
+    // Inspecting an encounter or cluster must not compete with the next GPS update.
+    map.on('click', releaseFollowing);
+    return () => { map.off('dragstart', releaseFollowing); map.off('click', releaseFollowing); };
+  }, [map, releaseFollowing]);
 
   useEffect(() => {
     if (!map || !mine || !following || !walk.position) return;
@@ -179,7 +187,7 @@ function MapScreen({ initialSpecies }: { readonly initialSpecies: string | null 
   if (listExpanded && !listed) setListExpanded(false);
 
   const overlay = (
-    <div className="bn-map__overlay">
+    <div ref={overlayRef} className="bn-map__overlay">
       <div className="bn-map__scope">
         <Segmented variant="chips" label={m.scope.label} value={scope} onChange={changeScope}
           options={MAP_SCOPES.map((value) => ({ value, label: m.scope[value] }))} />
@@ -218,7 +226,7 @@ function MapScreen({ initialSpecies }: { readonly initialSpecies: string | null 
     <Page bleed className={`bn-map${listening && !walking ? ' bn-map--with-player' : ''}`}>
       {/* The design shows no title over the map; the heading still names the screen for assistive technology. */}
       <div className="visually-hidden"><PageHeader title={m.title} /></div>
-      <MapView result={mine ? view.result : shown} onReady={setMap} focusOffset={focusOffset} overlay={overlay} walk={overlayData}
+      <MapView result={mine ? view.result : shown} onReady={setMap} focusOffset={focusOffset} covered={covered} onInspect={releaseFollowing} overlay={overlay} walk={overlayData}
         position={mine && walk.walking ? walk.position : null}
         control={locate.supported ? <LocateButton busy={locate.busy} onLocate={centre} /> : null} />
       {mine ? (

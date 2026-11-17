@@ -34,6 +34,19 @@ describe('summarizeArea', () => {
   });
 
   it('returns an empty list for an area without detections', () => {
-    expect(summarizeArea([])).toEqual({ detections: 0, species: [] });
+    expect(summarizeArea([])).toEqual({ detections: 0, encounters: 0, species: [] });
+  });
+
+  it('separates repeated detections from encounter totals and keeps every review', () => {
+    const rows = [0, 1, 2, 3, 4].map((minute) => detection(String(minute), 'Turdus fuscater', `2026-10-05T06:0${String(minute)}:00Z`, minute === 2 ? 'provisional' : 'verified'));
+    const summary = summarizeArea([...rows, ...rows.slice(0, 1)]);
+    expect(summary).toMatchObject({ detections: 5, encounters: 1 });
+    expect(summary.species[0]).toMatchObject({ detections: 5, encounters: 1, provisional: 1 });
+    expect(summary.species[0]?.recent).toHaveLength(5);
+  });
+
+  it('does not estimate encounters or invent reviews from an incomplete account summary', () => {
+    const row = { ...detection('summary', 'Turdus fuscater', '2026-10-05T06:00:00Z', 'provisional'), summary_count: 12 };
+    expect(summarizeArea([row])).toMatchObject({ detections: 12, encounters: null, species: [{ provisional: 0, encounters: null }] });
   });
 });

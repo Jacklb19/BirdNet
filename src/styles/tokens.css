@@ -212,6 +212,8 @@
   --album-cell: 9rem;
   --swatch-height: 6.5rem;
   --map-photo-marker: 2.75rem;
+  --map-popup-max-height: 45dvh;
+  --map-popup-layer: 3;
 
   --annotation-dot: 0.375rem;
 
@@ -289,9 +291,9 @@
   --layer-pocket: 50;
 
   /* Map — MapLibre paints its canvas in CSS pixels and reads these with getComputedStyle, so they stay in px */
-  --map-cluster-radius-s: 16px;
-  --map-cluster-radius-m: 21px;
-  --map-cluster-radius-l: 27px;
+  --map-cluster-radius-s: 26px;
+  --map-cluster-radius-m: 30px;
+  --map-cluster-radius-l: 34px;
   --map-point-radius: 8px;
   --map-marker-stroke-width: 2px;
   --map-label-size: 13px;

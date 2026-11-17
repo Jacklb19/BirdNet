@@ -3,6 +3,7 @@ import { DETECTION_STATUSES } from '../../config/contract';
 import { intlTag, type Locale } from '../../i18n';
 import { toFeatureCollection, type MapResult } from './mapData';
 import { MAP_CLUSTER, MAP_LABEL_FONT, MAP_LAYERS, MAP_SOURCE_ID, MAP_TOKENS, STATUS_COLOR_TOKEN } from './map.config';
+import { mapMessages } from './i18n';
 
 /** MapLibre paints on a canvas, so colors and sizes are read from the active theme's design tokens. */
 export function token(name: string): string {
@@ -59,7 +60,7 @@ export function addDetectionLayers(map: MapLibreMap, result: MapResult | null, l
     id: MAP_LAYERS.clusterCount, type: 'symbol', source: MAP_SOURCE_ID, filter: ['has', 'point_count'],
     // Counts in the language's digits and separators, as everywhere else; MapLibre's own abbreviation is English ("1.2k").
     layout: {
-      'text-field': ['number-format', ['get', 'point_count'], { locale: intlTag(locale) }],
+      'text-field': ['concat', ['number-format', ['get', 'point_count'], { locale: intlTag(locale) }], '\n', mapMessages[locale].encounters.clusterUnit],
       'text-font': [...MAP_LABEL_FONT], 'text-size': cluster.labelSize,
     },
     paint: { 'text-color': cluster.label },

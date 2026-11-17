@@ -33,4 +33,10 @@ describe('own map', () => {
     expect(view.result.detections.map((row) => row.id)).toEqual(['p1', 'old']);
     expect(view.speciesOptions).toEqual(['Pheucticus ludovicianus', 'Turdus fuscater']);
   });
+
+  it('marks archived places as summaries, keeping their count without inventing a confirmed review', () => {
+    const account: AccountWalkPath = { id: ACCOUNT_WALK, startedAt: 0, track: [], places: [place('Turdus fuscater', 4.7, 0.99)] };
+    const view = ownMap([], [], { species: null, walking: false }, [account]);
+    expect(view.result.detections[0]).toMatchObject({ summary_count: 2, status: 'provisional' });
+  });
 });

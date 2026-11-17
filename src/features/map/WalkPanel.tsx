@@ -30,6 +30,7 @@ import { MapSpeciesRow } from './MapSpeciesRow';
 import { MAP_CLOCK_TICK_MS } from './map.config';
 import { SheetShell } from './SheetShell';
 import './WalkPanel.css';
+import { EncounterNote } from './EncounterNote';
 
 export interface WalkPanelProps {
   readonly ref?: Ref<HTMLElement>;
@@ -93,6 +94,10 @@ export function WalkPanel({ ref, result, totals, territoriesShown, loadError, ac
   const elapsed = useElapsed(walk.startedAt);
   const [startFailed, setStartFailed] = useState(false);
   const summary = useMemo(() => (result ? summarizeArea(result.detections) : null), [result]);
+  const liveSummary = useMemo(() => {
+    const startedAt = walk.startedAt;
+    return result && startedAt !== null ? summarizeArea(result.detections.filter((row) => Date.parse(row.recorded_at) >= startedAt)) : null;
+  }, [result, walk.startedAt]);
   const distance = formatMeters(APPROX_CELL_METERS, locale);
   const blocker = startBlocker(model.state);
   const listed = !walk.walking && summary !== null && summary.detections > 0;
@@ -118,9 +123,14 @@ export function WalkPanel({ ref, result, totals, territoriesShown, loadError, ac
           <div><dt className="label">{t.stats.species}</dt><dd className="display">{formatNumber(session.species.length, locale)}</dd></div>
         </dl>
         <WalkNow />
+        {liveSummary && <p className="bn-map-sheet__note">
+          {liveSummary.encounters === null ? dict.map.encounters.unknown : formatCount(dict.map.encounters.count, liveSummary.encounters, locale)}
+          {' · '}{formatCount(dict.map.sheet.songs, liveSummary.detections, locale)}
+        </p>}
         <Button variant="secondary" block onClick={() => { void walk.stop(); }}>{t.stop}</Button>
         {walk.keepsScreenOn && <Button variant="quiet" block onClick={enterPocketMode}>{dict.listen.pocket.enter}</Button>}
         <p className="bn-map-sheet__note">{walk.keepsScreenOn ? t.screenOn : t.screenManual}</p>
+        <EncounterNote />
       </SheetShell>
     );
   }
@@ -144,7 +154,7 @@ export function WalkPanel({ ref, result, totals, territoriesShown, loadError, ac
           <Button variant="accent" icon="walk" block disabled={blocker !== null} onClick={begin}>
             {blocker ? dict.listen.record[blocker] : t.start}
           </Button>
-          <p className="bn-map-sheet__note">{t.how(distance)}</p>
+          {!listed && <p className="bn-map-sheet__note">{t.how(distance)}</p>}
         </div>
       )}
       {startFailed && <Notice tone="error" live>{t.startFailed}</Notice>}
@@ -152,6 +162,8 @@ export function WalkPanel({ ref, result, totals, territoriesShown, loadError, ac
       {session.sessionError !== null && showsSessionError(session.sessionError, model.state) && <SessionErrorNotice error={session.sessionError} />}
       {listed && (
         <>
+          <p className="bn-map-sheet__note">{summary.encounters === null ? dict.map.encounters.unknown : formatCount(dict.map.encounters.count, summary.encounters, locale)}
+            {' · '}{formatCount(dict.map.sheet.songs, summary.detections, locale)}</p>
           <h3 className="label bn-walk-heading">{t.heard}</h3>
           <ul className="bn-map-sheet__list">
             {summary.species.map((entry) => (
@@ -166,6 +178,7 @@ export function WalkPanel({ ref, result, totals, territoriesShown, loadError, ac
       {territoriesShown && totals.songs > 0 && (
         <p className="bn-map-sheet__note bn-walk-legend"><Icon name="layers" size="s" />{t.territories}</p>
       )}
+      <EncounterNote />
       <p className="bn-map-sheet__note">
         {sharing}{' '}
         <a className="bn-walk-link" href={routeHash({ name: 'settings' })} onClick={() => { requestSettingsSection('permissions'); }}>{t.sharing.change}</a>

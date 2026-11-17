@@ -7,13 +7,16 @@ import { config } from '../../config/env';
 import type { DetectionStatus } from '../../config/contract';
 import type { ResolvedTheme } from '../../theme';
 
+/** Display grouping, not a species' range or evidence of individual identity (ADR-48). */
+export const MAP_ENCOUNTERS = Object.freeze({ radiusMeters: 60, maxGapMs: 5 * 60_000 });
+
 /** Basemap style for each resolved theme; switching themes swaps the whole style. */
 export const MAP_STYLE_URLS: Readonly<Record<ResolvedTheme, string>> = Object.freeze({
   light: config.map.styleLightUrl,
   dark: config.map.styleDarkUrl,
 });
 
-/** GeoJSON source holding the detections of the visible area. */
+/** GeoJSON source holding encounters and protected/incomplete area summaries. */
 export const MAP_SOURCE_ID = 'detections';
 
 /** Layer ids, referenced by the layer setup and by the click and hover handlers. */

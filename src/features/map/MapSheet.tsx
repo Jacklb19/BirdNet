@@ -10,6 +10,7 @@ import { summarizeArea } from './mapSummary';
 import { MapSpeciesRow } from './MapSpeciesRow';
 import { MAP_CLOCK_TICK_MS } from './map.config';
 import { SheetShell } from './SheetShell';
+import { EncounterNote } from './EncounterNote';
 
 /**
  * What the sheet can show, in order of precedence: a build without accounts, no session, no network, a failed
@@ -46,7 +47,7 @@ export function MapSheet({ ref, mode, result, updating, failure, expanded, onExp
   let live = '';
   if (mode === 'loading') live = dict.common.loading;
   else if (empty) live = m.empty;
-  else if (ready) live = m.totals(formatCount(m.songs, summary.detections, locale), formatCount(m.species, summary.species.length, locale));
+  else if (ready) live = `${summary.encounters === null ? dict.map.encounters.unknown : formatCount(dict.map.encounters.count, summary.encounters, locale)} · ${m.totals(formatCount(m.songs, summary.detections, locale), formatCount(m.species, summary.species.length, locale))}`;
 
   return (
     <SheetShell ref={ref} title={m.title} summary={live} busy={updating} expandable={expandable} expanded={expanded} onExpandedChange={onExpandedChange}
@@ -59,6 +60,7 @@ export function MapSheet({ ref, mode, result, updating, failure, expanded, onExp
       )}
       {ready && (
         <>
+          <EncounterNote />
           {result?.truncated && <Notice tone="caution" icon="map">{m.truncated(formatNumber(summary.detections, locale))}</Notice>}
           {empty ? <p className="bn-map-sheet__hint">{m.emptyHint}</p> : (
             <ul className="bn-map-sheet__list">

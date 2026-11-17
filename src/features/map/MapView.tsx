@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
   AttributionControl, Map as MapLibreMap, Marker, NavigationControl, Popup, setWorkerUrl,
@@ -9,18 +9,20 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import { routeHash } from '../../app/routes';
 import { config } from '../../config/env';
 import { APPROX_CELL_METERS } from '../../config/contract';
-import { formatDate, formatDistance, formatMeters, formatPercent, useI18n, type Locale, type Messages } from '../../i18n';
+import { formatCount, formatDate, formatDistance, formatMeters, formatNumber, formatPercent, useI18n, type Locale, type Messages } from '../../i18n';
 import { useTheme } from '../../theme';
 import type { ApproximateLocation } from '../offline/types';
 import { commonName, useSpeciesNames } from '../species/speciesNames';
-import { toFeatureCollection, type MapDetection, type MapResult } from './mapData';
+import { toFeatureCollection, type MapResult } from './mapData';
+import { groupEncounters, type MapEncounter } from './mapEncounters';
 import { photoMarkers, type PhotoMarkers } from './mapMarkers';
 import { addDetectionLayers, repaintDetectionLayers } from './mapLayers';
 import { popupContent } from './mapPopup';
+import { popupPlacement, type CoveredEdges } from './mapViewport';
 import { addWalkLayers, NO_WALK_OVERLAY, repaintWalkLayers, setWalkOverlay, type WalkOverlay } from './mapWalkLayers';
 import {
   MAP_CONFIDENCE_FRACTION_DIGITS, MAP_CONTROLS, MAP_INTERACTIVE_LAYERS, MAP_LAYERS, MAP_POINTER_CLASS, MAP_POPUP,
-  MAP_SOURCE_ID, MAP_STYLE_URLS,
+  MAP_SOURCE_ID, MAP_STYLE_URLS, MAP_SPECIES_RECENT_LIMIT, MAP_OWN_FIT,
 } from './map.config';
 import './MapView.css';
 
@@ -51,25 +53,37 @@ class SlotControl implements IControl {
   onRemove(): void { this.slot.remove(); }
 }
 
-function openPopup(map: MapLibreMap, row: MapDetection, text: PopupText): void {
+function encounterContent(row: MapEncounter, text: PopupText): HTMLElement {
   const { dict, locale, names } = text;
   const name = commonName(names, row.species, locale);
-  const content = popupContent({
+  const t = dict.map.encounters;
+  const recent = [...row.members].reverse().slice(0, MAP_SPECIES_RECENT_LIMIT);
+  const count = formatCount(dict.map.sheet.songs, row.detectionCount, locale);
+  const date = formatDate(new Date(row.recorded_at), locale);
+  return popupContent({
     name,
     scientificName: name === row.species ? null : row.species,
-    detail: dict.map.popup.detail(dict.common.status[row.status], formatPercent(row.confidence, locale, MAP_CONFIDENCE_FRACTION_DIGITS)),
-    recordedAt: formatDate(new Date(row.recorded_at), locale),
+    detail: row.kind === 'encounter' ? t.detail(count) : t.summaryDetail(count),
+    recordedAt: Date.parse(row.recorded_at) === Date.parse(row.lastRecordedAt) ? date : t.range(date, formatDate(new Date(row.lastRecordedAt), locale)),
     recordedAtIso: row.recorded_at,
     own: row.own ? (row.site_name ? dict.map.popup.ownAt(row.site_name) : dict.map.popup.own) : null,
     note: row.generalized_m === null
       ? dict.map.popup.approximate(formatMeters(APPROX_CELL_METERS, locale))
       : dict.map.popup.threatened(formatDistance(row.generalized_m, locale)),
+    records: recent.map((record) => ({
+      text: record.summary_count !== undefined ? t.archived(formatCount(dict.map.sheet.songs, record.summary_count, locale)) :
+        `${formatDate(new Date(record.recorded_at), locale)} · ${dict.map.popup.detail(dict.common.status[record.status], formatPercent(record.confidence, locale, MAP_CONFIDENCE_FRACTION_DIGITS))}`,
+      href: record.own && record.summary_count === undefined ? routeHash({ name: 'detection', id: record.id }) : null,
+    })),
+    more: row.members.length > recent.length ? {
+      text: dict.map.species.showing(formatNumber(recent.length, locale), formatNumber(row.members.length, locale)),
+      href: row.own ? routeHash({ name: 'log' }) : null,
+    } : null,
     card: { href: routeHash({ name: 'species', species: row.species }), label: dict.map.popup.card },
   });
-  new Popup(MAP_POPUP).setLngLat([row.longitude, row.latitude]).setDOMContent(content).addTo(map);
 }
 
-function rowOf(event: MapLayerMouseEvent, result: MapResult | null): MapDetection | undefined {
+function rowOf(event: MapLayerMouseEvent, result: { readonly detections: readonly MapEncounter[] } | null): MapEncounter | undefined {
   const id: unknown = event.features?.[0]?.properties.id;
   return result?.detections.find((item) => item.id === id);
 }
@@ -80,6 +94,8 @@ export interface MapViewProps {
   readonly onReady: (map: MapLibreMap | null) => void;
   /** Camera offset that centres a zoomed cluster in the part of the map the panel leaves visible. */
   readonly focusOffset: () => [number, number];
+  readonly covered: () => CoveredEdges;
+  readonly onInspect: () => void;
   /** Floating content over the map (filters, messages). */
   readonly overlay?: ReactNode;
   /** Extra control rendered in the corner of the zoom buttons. */
@@ -90,20 +106,24 @@ export interface MapViewProps {
   readonly position?: ApproximateLocation | null;
 }
 
-/** MapLibre canvas with clustered detections; colors and sizes follow the active theme's tokens. */
-export function MapView({ result, onReady, focusOffset, overlay, control, walk = NO_WALK_OVERLAY, position = null }: MapViewProps): React.JSX.Element {
+/** MapLibre canvas with clustered encounters and area summaries; colors and sizes follow the active theme's tokens. */
+export function MapView({ result: rawResult, onReady, focusOffset, covered, onInspect, overlay, control, walk = NO_WALK_OVERLAY, position = null }: MapViewProps): React.JSX.Element {
+  const result = useMemo(() => rawResult ? { ...rawResult, detections: groupEncounters(rawResult.detections) } : null, [rawResult]);
   const { dict, locale } = useI18n();
   const names = useSpeciesNames();
   const { resolved } = useTheme();
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markersRef = useRef<PhotoMarkers | null>(null);
+  const popupRef = useRef<{ readonly id: string; readonly popup: Popup } | null>(null);
   const resultRef = useRef(result);
   const walkRef = useRef(walk);
   const youRef = useRef<Marker | null>(null);
   const textRef = useRef<PopupText>({ dict, locale, names });
   // Map handlers are bound once per map; refs give them the latest values without recreating the map.
   const focusRef = useRef(focusOffset);
+  const coveredRef = useRef(covered);
+  const inspectRef = useRef(onInspect);
   const themeRef = useRef(resolved);
   const styleRef = useRef(MAP_STYLE_URLS[resolved]);
   // MapLibre reads its strings once; the map is created again whenever this screen opens, so a language change applies.
@@ -115,12 +135,23 @@ export function MapView({ result, onReady, focusOffset, overlay, control, walk =
     return element;
   });
 
-  useEffect(() => { textRef.current = { dict, locale, names }; }, [dict, locale, names]);
+  useEffect(() => {
+    textRef.current = { dict, locale, names };
+    const active = popupRef.current;
+    const row = active && resultRef.current?.detections.find((item) => item.id === active.id);
+    if (active && row) active.popup.setDOMContent(encounterContent(row, textRef.current));
+  }, [dict, locale, names]);
   useEffect(() => { focusRef.current = focusOffset; }, [focusOffset]);
+  useEffect(() => { coveredRef.current = covered; }, [covered]);
+  useEffect(() => { inspectRef.current = onInspect; }, [onInspect]);
 
   useEffect(() => {
     resultRef.current = result;
     void mapRef.current?.getSource<GeoJSONSource>(MAP_SOURCE_ID)?.setData(toFeatureCollection(result?.detections ?? []));
+    const active = popupRef.current;
+    const row = active && result?.detections.find((item) => item.id === active.id);
+    if (active && row) active.popup.setLngLat([row.longitude, row.latitude]).setDOMContent(encounterContent(row, textRef.current));
+    else active?.popup.remove();
     // New data re-renders the dots on the next frame; the stickers follow once the map is idle again.
     if (!result) markersRef.current?.clear();
   }, [result]);
@@ -142,6 +173,16 @@ export function MapView({ result, onReady, focusOffset, overlay, control, walk =
     map.touchZoomRotate.disableRotation();
     map.keyboard.disableRotation();
     mapRef.current = map;
+    const open = (row: MapEncounter): void => {
+      inspectRef.current();
+      popupRef.current?.popup.remove();
+      const placement = popupPlacement(map.getContainer().clientWidth, map.getContainer().clientHeight, coveredRef.current(), MAP_OWN_FIT.paddingPx);
+      const popup = new Popup({ ...MAP_POPUP, anchor: 'bottom' }).setLngLat([row.longitude, row.latitude]).setDOMContent(encounterContent(row, textRef.current)).addTo(map);
+      popup.getElement().style.setProperty('--map-popup-available-height', `${String(placement.maxHeight)}px`);
+      map.easeTo({ center: [row.longitude, row.latitude], offset: placement.offset });
+      popupRef.current = { id: row.id, popup };
+      popup.on('close', () => { if (popupRef.current?.popup === popup) popupRef.current = null; });
+    };
     map.addControl(new AttributionControl({ compact: true }), MAP_CONTROLS.attribution);
     // Bottom corners stack upwards in reverse order: the zoom buttons end up above the locate button.
     map.addControl(new SlotControl(slot), MAP_CONTROLS.navigation);
@@ -158,14 +199,15 @@ export function MapView({ result, onReady, focusOffset, overlay, control, walk =
     });
     map.on('click', MAP_LAYERS.points, (event: MapLayerMouseEvent) => {
       const row = rowOf(event, resultRef.current);
-      if (row) openPopup(map, row, textRef.current);
+      if (row) open(row);
     });
     const markers = photoMarkers(map, {
       rows: () => resultRef.current?.detections ?? [],
-      onOpen: (row) => { openPopup(map, row, textRef.current); },
+      onOpen: open,
       label: (row) => {
         const { dict: text, locale: language, names: table } = textRef.current;
-        return text.map.popup.marker(commonName(table, row.species, language), formatDate(new Date(row.recorded_at), language));
+        return text.map.popup.marker(commonName(table, row.species, language),
+          `${row.kind === 'encounter' ? text.map.encounters.single : text.map.encounters.summary} · ${formatCount(text.map.sheet.songs, row.detectionCount, language)} · ${formatDate(new Date(row.recorded_at), language)}`);
       },
     });
     markersRef.current = markers;
@@ -178,7 +220,7 @@ export function MapView({ result, onReady, focusOffset, overlay, control, walk =
     // The visible area is known as soon as the map exists, so detections load while the basemap is still on its
     // way (or if it never arrives); the layers pick up the latest result when the style loads.
     onReady(map);
-    return () => { markers.clear(); markersRef.current = null; youRef.current = null; mapRef.current = null; onReady(null); map.remove(); };
+    return () => { markers.clear(); markersRef.current = null; popupRef.current = null; youRef.current = null; mapRef.current = null; onReady(null); map.remove(); };
   }, [slot, onReady]);
 
   // The "you are here" marker of a walk: a DOM element, so it can pulse and follows the theme's tokens.

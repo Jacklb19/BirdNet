@@ -64,6 +64,12 @@ describe('mapData', () => {
     await expect(fetchMapDetections({ west: 0, south: 0, east: 1, north: 1 }, { species: null, since: null }, 't', new AbortController().signal)).rejects.toThrow();
   });
 
+  it('never accepts internal summary counts as detection metadata from the API', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ detections: [{ ...row, summary_count: 500 }], truncated: false })));
+    const result = await fetchMapDetections({ west: -75, south: 4, east: -74, north: 5 }, { species: null, since: null }, 'token', new AbortController().signal);
+    expect(result.detections).toEqual([row]);
+  });
+
   // Regression: a server error was reported as "the server did not answer, check the connection".
   it('tells an unusable answer from no answer at all', async () => {
     const failureOf = async (answer: () => Promise<Response>): Promise<MapFailure> => {

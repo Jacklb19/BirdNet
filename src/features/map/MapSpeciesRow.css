@@ -45,7 +45,9 @@
 
 .bn-map-row__meta {
   display: grid;
-  flex-shrink: 0;
+  flex: 0 1 40%;
+  min-width: 0;
+  overflow-wrap: anywhere;
   justify-items: end;
   text-align: end;
 }

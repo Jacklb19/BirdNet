@@ -1,10 +1,10 @@
 import { Marker, type Map as MapLibreMap } from 'maplibre-gl';
 import { fetchSpeciesPhoto } from '../species/speciesPhotos';
 import { MAP_LAYERS, MAP_PHOTO_MARKERS_MAX } from './map.config';
-import type { MapDetection } from './mapData';
+import type { MapEncounter } from './mapEncounters';
 
 /**
- * Photo markers (RF-12, S7): every detection drawn on its own (not in a cluster) gets a small die-cut sticker
+ * Photo markers (RF-12): every unclustered encounter or area summary gets a small die-cut sticker
  * with its species' photo on top of its colored dot. MapLibre draws the dots on the canvas; the stickers are DOM
  * markers kept in step with the dots that are actually visible, so their number stays bounded.
  */
@@ -16,18 +16,22 @@ export interface PhotoMarkers {
 
 export interface PhotoMarkerOptions {
   /** Accessible name of a sticker (species and time), in the active language. */
-  readonly label: (row: MapDetection) => string;
-  readonly onOpen: (row: MapDetection) => void;
+  readonly label: (row: MapEncounter) => string;
+  readonly onOpen: (row: MapEncounter) => void;
   /** Latest rows, read on every sync. */
-  readonly rows: () => readonly MapDetection[];
+  readonly rows: () => readonly MapEncounter[];
 }
 
-function stickerElement(row: MapDetection, options: PhotoMarkerOptions): HTMLElement {
+function stickerElement(row: MapEncounter, options: PhotoMarkerOptions): HTMLElement {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'bn-map-photo';
   button.setAttribute('aria-label', options.label(row));
-  button.addEventListener('click', (event) => { event.stopPropagation(); options.onOpen(row); });
+  button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const latest = options.rows().find((item) => item.id === row.id);
+    if (latest) options.onOpen(latest);
+  });
   // Offline or without a photo the sticker keeps its plain face; the dot underneath still marks the place.
   void fetchSpeciesPhoto(row.species).then((photo) => {
     if (!photo) return;
@@ -66,6 +70,8 @@ export function photoMarkers(map: MapLibreMap, options: PhotoMarkerOptions): Pho
       if (!markers.has(id)) {
         markers.set(id, new Marker({ element: stickerElement(row, options) }).setLngLat([row.longitude, row.latitude]).addTo(map));
       }
+      markers.get(id)?.getElement().querySelector('button')?.setAttribute('aria-label', options.label(row));
+      markers.get(id)?.setLngLat([row.longitude, row.latitude]);
     }
     for (const [id, marker] of markers) {
       if (!visible.has(id)) { marker.remove(); markers.delete(id); }

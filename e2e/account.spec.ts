@@ -16,6 +16,41 @@ test.skip(!buildHasAccounts, 'Build with `npm run build:e2e` to run the account 
 test.use({ serviceWorkers: 'block' });
 
 for (const width of [360, 1280]) {
+  test(`repeated calls appear as one encounter and retain their review links at ${String(width)}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await signIn(page);
+    await page.route('https://tiles.openfreemap.org/styles/*', (route) => route.fulfill({ json: {
+      version: 8, sources: {}, glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
+      layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#eef1e8' } }],
+    } }));
+    const rows = Array.from({ length: 5 }, (_, index) => ({
+      id: randomUUID(), species: 'Turdus fuscater', confidence: index === 2 ? 0.65 : 0.95,
+      status: index === 2 ? 'provisional' : 'confirmed', recorded_at: `2026-11-16T12:0${String(index)}:00Z`,
+      latitude: 4.679 + index * 0.0001, longitude: -74.123,
+    }));
+    await page.route(`**${API_PROXY_PREFIX}/v1/me/detections*`, (route) => route.fulfill({ json: { detections: rows, has_more: false } }));
+    await page.route(`**${API_PROXY_PREFIX}/v1/walks/paths*`, (route) => route.fulfill({ json: { walks: [], has_more: false } }));
+    await page.goto(`/${routeHash({ name: 'map' })}`);
+    await expect(page.getByText('1 encuentro · 5 detecciones', { exact: true })).toBeVisible();
+    await expect(page.locator('.bn-map-photo')).toHaveCount(1);
+    await page.locator('.bn-map-photo').click();
+    const popup = page.locator('.bn-map-popup');
+    await expect(popup.getByText('Un encuentro · 5 detecciones', { exact: true })).toBeVisible();
+    for (const row of rows) await expect(popup.locator(`a[href="${routeHash({ name: 'detection', id: row.id })}"]`)).toHaveCount(1);
+    await expect(popup.getByText(/Por verificar/)).toHaveCount(1);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.getByRole('button', { name: texts.map.controls.closePopup, exact: true }).click();
+    await page.route(`**${API_PROXY_PREFIX}/v1/detections?*`, (route) => route.fulfill({ json: {
+      detections: rows.map((row) => ({ ...row, own: false, site_name: null, generalized_m: 11000, latitude: 4.679 })), truncated: false,
+    } }));
+    await page.getByRole('radio', { name: texts.map.scope.everyone, exact: true }).click();
+    await expect(page.getByText('Encuentros sin estimar · 5 detecciones · 1 especie', { exact: true })).toBeVisible();
+    await expect(page.locator('.bn-map-photo')).toHaveCount(1);
+    await page.locator('.bn-map-photo').click();
+    await expect(popup.getByText('Resumen · 5 detecciones · encuentros sin estimar', { exact: true })).toBeVisible();
+    await expect(popup.locator('a[href^="#/log/"]')).toHaveCount(0);
+  });
+
   test(`recording settings disclose temporary upload reservations at ${String(width)}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await signIn(page);
@@ -233,11 +268,17 @@ test('songs recorded at the same instant remain reachable across account pages',
       recorded_at: recordedAt, location: { latitude: 4.679, longitude: -74.123 }, model_version: 'birdnet-v2.4:arm', shared: false })) },
   });
   expect(created.ok()).toBe(true);
-  // Force a page boundary between the tied rows while keeping the real cursor and API response.
+  // Force a page boundary between the tied rows while keeping the real cursor and source records.
+  const seen = new Set<string>();
   await page.route(/\/api\/v1\/me\/detections(?:\?|$)/, async (route) => {
     const url = new URL(route.request().url());
     url.searchParams.set('limit', '1');
-    await route.fulfill({ response: await route.fetch({ url: url.href }) });
+    const response = await route.fetch({ url: url.href });
+    const body = await response.json() as { detections: { id: string }[]; has_more: boolean };
+    for (const row of body.detections) if (ids.some((id) => id === row.id)) seen.add(row.id);
+    // Stop only after both real tied records arrive; older fixtures must not add hundreds of one-row requests.
+    if (seen.size === ids.length) body.has_more = false;
+    await route.fulfill({ response, json: body });
   });
   await page.goto(`/${routeHash({ name: 'log' })}`);
   for (const id of ids) await expect(page.locator(`a[href="${routeHash({ name: 'detection', id })}"]`)).toBeVisible();

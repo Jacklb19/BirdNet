@@ -17,6 +17,8 @@ export interface MapDetection {
    * not where it was heard. Null on every other row.
    */
   generalized_m: number | null;
+  /** Local fallback for an account walk whose individual records are unavailable. Never an API detection. */
+  summary_count?: number;
 }
 export interface MapResult { detections: MapDetection[]; truncated: boolean }
 export interface MapBounds { west: number; south: number; east: number; north: number }
@@ -64,7 +66,10 @@ function toDetection(value: unknown): MapDetection {
   const row = value as Omit<MapDetection, 'own' | 'site_name' | 'generalized_m'> & { own?: unknown; site_name?: unknown; generalized_m?: unknown };
   const own = row.own === true;
   const generalized = typeof row.generalized_m === 'number' && Number.isFinite(row.generalized_m) && row.generalized_m > 0 ? row.generalized_m : null;
-  return { ...row, own, site_name: own && typeof row.site_name === 'string' ? row.site_name : null, generalized_m: own ? null : generalized };
+  // Do not accept frontend-only summary metadata from the wire.
+  return { id: row.id, species: row.species, confidence: row.confidence, status: row.status, recorded_at: row.recorded_at,
+    latitude: row.latitude, longitude: row.longitude, own, site_name: own && typeof row.site_name === 'string' ? row.site_name : null,
+    generalized_m: own ? null : generalized };
 }
 
 /** The server answered with a body that does not follow the map contract. */

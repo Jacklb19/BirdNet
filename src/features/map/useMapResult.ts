@@ -32,7 +32,7 @@ export interface MapResultState {
 function visibleBounds(map: MapLibreMap, covered: CoveredEdges): MapBounds {
   const container = map.getContainer();
   const corner = visibleRect(container.clientWidth, container.clientHeight, covered);
-  const northWest = map.unproject([0, 0]);
+  const northWest = map.unproject([0, corner.top]);
   const southEast = map.unproject([corner.right, corner.bottom]);
   return { west: northWest.lng, north: northWest.lat, east: southEast.lng, south: southEast.lat };
 }

@@ -46,6 +46,7 @@ export function MapSpeciesRow({ summary, name, now }: MapSpeciesRowProps): React
           )}
         </span>
         <span className="bn-map-row__meta">
+          <span className="bn-map-row__count">{summary.encounters === null ? m.encounters.unknown : formatCount(m.encounters.count, summary.encounters, locale)}</span>
           <span className="bn-map-row__count">{formatCount(m.sheet.songs, summary.detections, locale)}</span>
           <time className="bn-map-row__when" dateTime={lastHeard.toISOString()}>{formatRelativeTime(lastHeard, new Date(now), locale)}</time>
         </span>
@@ -56,7 +57,9 @@ export function MapSpeciesRow({ summary, name, now }: MapSpeciesRowProps): React
           {shown.map((row) => (
             <li key={row.id} className="bn-map-row__detection">
               {/* One's own songs open their detail, where they are reviewed (ADR-44); other people's are only shown. */}
-              {row.own ? (
+              {row.summary_count !== undefined ? (
+                <span className="bn-map-row__detail">{m.encounters.archived(formatCount(m.sheet.songs, row.summary_count, locale))}</span>
+              ) : row.own ? (
                 <a className="bn-map-row__open" href={routeHash({ name: 'detection', id: row.id })}>
                   <span className={`bn-map-row__status bn-map-row__status--${row.status}`}>{dict.common.status[row.status]}</span>
                   <span className="bn-map-row__detail">
@@ -74,9 +77,10 @@ export function MapSpeciesRow({ summary, name, now }: MapSpeciesRowProps): React
             </li>
           ))}
         </ul>
-        {summary.detections > shown.length && (
-          <p className="bn-map-row__note">{m.species.showing(formatNumber(shown.length, locale), formatNumber(summary.detections, locale))}</p>
+        {summary.recent.length > shown.length && (
+          <p className="bn-map-row__note">{m.species.showing(formatNumber(shown.length, locale), formatNumber(summary.recent.length, locale))}</p>
         )}
+        {summary.recent.some((row) => row.own) && <a className="bn-map-row__card" href={routeHash({ name: 'log' })}>{dict.log.title}</a>}
         <a className="bn-map-row__card" href={routeHash({ name: 'species', species: summary.species })}>
           <Icon name="book" size="s" />{m.popup.card}
         </a>

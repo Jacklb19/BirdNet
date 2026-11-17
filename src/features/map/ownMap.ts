@@ -3,7 +3,6 @@
  * walks. Read from the phone, plus the walks that are only in their account (S11). It has no period filter: it is
  * small, and all of it is theirs.
  */
-import { CONFIDENCE_THRESHOLDS } from '../../config/contract';
 import type { StoredWalk, TrackPoint } from '../offline/types';
 import type { AccountWalkPath } from '../walk/walksApi';
 import type { Pin } from '../walk/walkPins';
@@ -32,15 +31,15 @@ function toDetection(pin: Pin): MapDetection {
 }
 
 /**
- * Where a species was heard on a walk of the account, as one of the person's songs: the best confidence of that place,
- * and the state that confidence gives on the phone. Its id cannot collide with a detection's.
+ * A place summary has a count and a maximum score, but no individual times or reviews. Keep that distinction
+ * explicit rather than inventing a detection or inferring a review from the maximum score.
  */
 function placeDetection(walk: AccountWalkPath, index: number): MapDetection | null {
   const place = walk.places[index];
   if (!place) return null;
   return {
     id: `${walk.id}:${String(index)}`, species: place.species, confidence: place.bestConfidence,
-    status: place.bestConfidence >= CONFIDENCE_THRESHOLDS.confirmedFrom ? 'confirmed' : 'provisional',
+    status: 'provisional', summary_count: place.songs,
     recorded_at: new Date(place.firstAt).toISOString(), latitude: place.latitude, longitude: place.longitude,
     own: true, site_name: null, generalized_m: null,
   };

@@ -5,7 +5,7 @@
 import type { ApproximateLocation, TrackPoint } from '../offline/types';
 
 /** Mean Earth radius (IUGG), in metres. */
-const EARTH_RADIUS_M = 6_371_008.8;
+export const EARTH_RADIUS_M = 6_371_008.8;
 /** Radius of the Web Mercator sphere (WGS 84 semi-major axis), in metres. */
 const MERCATOR_RADIUS_M = 6_378_137;
 const HEX_CORNERS = 6;
@@ -97,7 +97,7 @@ export function hexRing(cell: HexCell, size: number): [number, number][] {
 /** A song with a place: what territories are made of. */
 export interface LocatedSong { readonly species: string; readonly latitude: number; readonly longitude: number }
 
-/** One explored hexagon: whose it is (the bird heard most in it) and how much was heard there. */
+/** One listening area: its most detected species and the total detection frequency, never individual abundance. */
 export interface Territory {
   readonly cell: HexCell;
   /** Scientific name of the species with most songs here; ties go to the first in alphabetical order. */
@@ -107,13 +107,15 @@ export interface Territory {
 }
 
 /** Groups located songs into hexagons. A hexagon without songs is simply absent: nothing is known about it. */
-export function territories(songs: readonly LocatedSong[], size: number): Territory[] {
+export function territories<T extends LocatedSong>(songs: readonly T[], size: number, countOf: (song: T) => number = () => 1): Territory[] {
   const cells = new Map<string, { cell: HexCell; counts: Map<string, number> }>();
   for (const song of songs) {
+    const count = countOf(song);
+    if (!Number.isSafeInteger(count) || count <= 0) continue;
     const cell = hexOf(song, size);
     const key = hexKey(cell);
     const entry = cells.get(key) ?? { cell, counts: new Map<string, number>() };
-    entry.counts.set(song.species, (entry.counts.get(song.species) ?? 0) + 1);
+    entry.counts.set(song.species, (entry.counts.get(song.species) ?? 0) + count);
     cells.set(key, entry);
   }
   return [...cells.values()].map(({ cell, counts }) => {

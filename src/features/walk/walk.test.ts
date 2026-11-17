@@ -41,6 +41,13 @@ describe('walk path', () => {
 });
 
 describe('territories', () => {
+  it('ranks listening areas by the detection count, including archived summaries rather than their row count', () => {
+    const records = [{ ...BOGOTA, species: 'Colibri coruscans', count: 7 },
+      { ...BOGOTA, species: 'Turdus fuscater', count: 1 }, { ...BOGOTA, species: 'Turdus fuscater', count: 1 },
+      { ...BOGOTA, species: 'Unknown', count: 0 }];
+    expect(territories(records, SIZE, (record) => record.count)).toMatchObject([{ species: 'Colibri coruscans', songs: 9, speciesCount: 2 }]);
+  });
+
   it('files a location in the hexagon whose outline contains it', () => {
     const cell = hexOf(BOGOTA, SIZE);
     const ring = hexRing(cell, SIZE);
