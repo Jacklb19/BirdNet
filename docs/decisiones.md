@@ -755,3 +755,22 @@ La revisión manual del dueño en escritorio y móvil encontró que la portada y
 ### Consecuencias
 - El hilo vive en memoria durante la sesión de la pestaña, por cuenta; «Nueva consulta», cerrar sesión, cambiar de cuenta o retirar el consentimiento lo borran y cancelan el trabajo en curso.
 - Las cuotas siguen siendo las de ADR-37 y ADR-46.
+
+---
+
+## ADR-48. Encuentros acústicos en el mapa, sin conteo de individuos (2026-11-16, decisión del dueño)
+
+### Contexto
+En una caminata, varias detecciones del canto de la misma especie parecían aves distintas. El dueño aprobó agrupar la presentación por especie, zona y continuidad temporal, conservar los registros y declarar que ni la distancia ni la separación de encuentros prueban individuos diferentes. Complementa RF-10, RF-12, RF-13 y RNF-09; no cambia BirdNET ni la política de confianza.
+
+### Decisión
+- **Detección:** registro original con UUID, especie, confianza, estado, momento y celda del teléfono. No se borra ni combina en almacenamiento, sincronización, revisión o CSV. Tampoco se cuenta cada ventana como un canto biológico independiente.
+- **Encuentro acústico:** agrupación de presentación de una especie a hasta **60 m del primer registro**, con un intervalo de hasta **5 minutos desde la última detección**. Valores centralizados en `MAP_ENCOUNTERS`, aplicados tanto al mapa propio como al compartido. Son ajustes iniciales de presentación, no distancias de audición, territorios ni identificación individual validados en campo.
+- Se ordena por tiempo y UUID, se elimina solo la repetición del mismo UUID y se elige el ancla elegible más cercana. El ancla queda fija en una celda ya guardada: no se promedian coordenadas ni se permite una cadena que se extienda durante toda una caminata. Se separan especies y registros propios/ajenos. El índice espacial funciona también en el antimeridiano y los polos.
+- Cada punto abre su intervalo y las detecciones originales, con confianza y estado de cada una; las propias conservan el enlace de revisión. La lista de especies distingue encuentros y detecciones. Un agregado de estados diferentes no hereda la revisión humana del mejor registro. Los grupos de MapLibre cuentan **puntos**, con su unidad visible, no aves.
+- Las ubicaciones ajenas protegidas (ADR-41) se resumen por especie y celda publicada, sin inferir encuentros a escala fina. Los resúmenes de caminatas que carecen de tiempos/revisiones individuales conservan su cantidad conocida, se identifican como resúmenes y no generan enlaces de detección ficticios ni un veredicto a partir de la confianza máxima. Con cualquiera de estas fuentes, el total de encuentros se declara **sin estimar**.
+- La posición indica el teléfono al inicio del encuentro, nunca la ubicación calculada del ave. Los filtros, los bordes del área/periodo y los topes de carga pueden producir encuentros incompletos. La explicación de la regla está disponible sin conexión junto a ambos mapas, en español e inglés.
+- «Territorios» pasa a «Zonas de escucha»: el color representa frecuencia de detecciones por especie, no abundancia de individuos. Los resúmenes aportan su cantidad conocida, no una unidad por fila. Caminatas, portada, acceso y escucha usan la misma distinción; las exportaciones preservan su granularidad original.
+
+### Consecuencias
+Cinco detecciones cercanas y continuas de una especie pueden dibujar un encuentro con cinco registros. Dos encuentros separados pueden corresponder a la misma ave, y un encuentro puede contener varias aves: Trino no determina ni estima ese número. No hay cambios de API, esquema, dependencias, permisos, modelo o costo. La validación con micrófono, GPS y especies reales sigue siendo una comprobación de campo del dueño.

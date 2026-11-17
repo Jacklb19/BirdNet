@@ -94,6 +94,14 @@ Si el teléfono es demasiado lento para los dos modelos, la app vuelve sola al p
 
 ## 4. Resultados
 
+### Encuentros en caminata (ADR-48)
+
+- Escuchar repetidamente una especie sin desplazarse: debe aumentar el número de detecciones del encuentro, sin añadir un punto por cada detección.
+- Caminar fuera del radio de 60 m del primer registro, o volver después de una pausa de más de 5 minutos sin detecciones de esa especie: comprobar que aparece otro encuentro. Ningún texto debe afirmar que son individuos diferentes.
+- Abrir el punto y la especie en el panel: las detecciones originales deben conservar confianza, estado y acceso a la revisión de las propias. Comparar el CSV: debe conservar cada registro.
+- Probar GPS inestable, pérdida de ubicación, pantalla bloqueada y caminata sin señal en el teléfono real; comprobar que se representa la posición aproximada del teléfono y no se promete localizar el ave.
+- Ver una especie ajena amenazada y una caminata antigua sin detalle: deben mostrarse como resúmenes y declarar los encuentros sin estimar, conservando la generalización de privacidad.
+
 Copiar aquí cada resumen y cada prueba, con fecha, teléfono y quién la hizo.
 
 | Fecha | Teléfono / navegador | Prueba | Resultado | Observaciones |
