@@ -47,7 +47,7 @@ export const homeMessages = defineMessages({
       title: 'El mapa',
       text: 'Sales a caminar con Trino abierto y el mapa se va llenando detrás de ti.',
       points: {
-        pins: 'Cada ave queda en el punto donde la oíste.',
+        pins: 'Las detecciones se agrupan donde estaba tu teléfono, sin contar individuos.',
         territories: 'Cada zona que recorres toma el color del ave que más oíste en ella.',
         sharing: 'El recorrido se queda en tu teléfono, o en tu cuenta si lo eliges, y solo tú lo ves. Tú decides si tus aves aparecen en el mapa de todos, sin tu nombre.',
       } satisfies Record<HomeMapPoint, string>,
@@ -110,7 +110,7 @@ export const homeMessages = defineMessages({
       title: 'The map',
       text: 'You go for a walk with Trino open and the map fills in behind you.',
       points: {
-        pins: 'Each bird stays at the spot where you heard it.',
+        pins: 'Detections are grouped where your phone was, without counting individuals.',
         territories: 'Each area you cover takes the color of the bird you heard most in it.',
         sharing: 'The path stays on your phone, or in your account if you choose, and only you see it. You decide whether your birds appear on everyone’s map, without your name.',
       },

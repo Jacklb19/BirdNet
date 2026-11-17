@@ -162,6 +162,7 @@ export default function WalkPage({ id }: { readonly id: string }): React.JSX.Ele
           <div><dt className="label">{t.stats.species}</dt><dd className="display">{formatNumber(walk.species.length, locale)}</dd></div>
           <div><dt className="label">{t.stats.songs}</dt><dd className="display">{formatNumber(walk.songs, locale)}</dd></div>
         </dl>
+        <p className="bn-walk-page__hint">{t.countCaveat}</p>
         <Button variant="secondary" icon="map" href={routeHash({ name: 'map' })}>{t.openMap}</Button>
       </section>
 

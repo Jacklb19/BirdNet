@@ -161,7 +161,7 @@ export const accountMessages = defineMessages({
     },
     share: {
       title: '¿Compartir tus cantos en el mapa de todos?',
-      text: (distance: string) => `Otras personas verán tus aves en el mapa, sin tu nombre, a unos ${distance} de donde las oíste. Si escuchas en tu casa, ese punto también se verá. Puedes cambiarlo cuando quieras en Ajustes.`,
+      text: (distance: string) => `Otras personas verán tus detecciones agrupadas en el mapa, sin tu nombre, con la posición del teléfono a unos ${distance}. Si escuchas en tu casa, ese punto también se verá. Puedes cambiarlo cuando quieras en Ajustes.`,
       accept: 'Compartir',
       decline: 'Solo para mí',
     },
@@ -400,7 +400,7 @@ export const accountMessages = defineMessages({
     },
     share: {
       title: 'Share your songs on everyone’s map?',
-      text: (distance: string) => `Other people will see your birds on the map, without your name, about ${distance} from where you heard them. If you listen at home, that spot shows too. You can change it any time in Settings.`,
+      text: (distance: string) => `Other people will see your grouped detections on the map, without your name, with the phone position to about ${distance}. If you listen at home, that spot shows too. You can change it any time in Settings.`,
       accept: 'Share',
       decline: 'Only for me',
     },

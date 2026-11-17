@@ -46,6 +46,7 @@ export function WalkDoneCard({ id, onDismiss }: { readonly id: string; readonly 
         </div>
         <Button variant="quiet" onClick={onDismiss}>{t.done.dismiss}</Button>
       </div>
+      <p className="bn-map-sheet__note">{t.countCaveat}</p>
       {walk.track.length > 0 && <WalkSketch track={walk.track} marks={walk.places} label={t.sketchLabel(formatDistance(walk.meters, locale))} />}
       {walk.species.length > 0 && (
         <ul className="bn-walk-done__birds" aria-label={t.heardTitle}>

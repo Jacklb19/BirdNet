@@ -121,7 +121,7 @@ export const listenMessages = defineMessages({
     },
     walk: {
       title: 'Sal a caminar',
-      text: (distance: string) => `En modo caminata el mapa dibuja tu recorrido y deja cada ave donde la oíste, a unos ${distance}.`,
+      text: (distance: string) => `En modo caminata el mapa dibuja tu recorrido y agrupa detecciones por especie, zona y tiempo. Marca la posición del teléfono, a unos ${distance}, sin contar aves individuales.`,
       start: 'Empezar caminata',
       failed: 'No se pudo activar la ubicación en este teléfono. Actívala en Ajustes e inténtalo de nuevo.',
     },
@@ -273,7 +273,7 @@ export const listenMessages = defineMessages({
     },
     walk: {
       title: 'Go for a walk',
-      text: (distance: string) => `In walk mode the map draws your path and leaves each bird where you heard it, within about ${distance}.`,
+      text: (distance: string) => `In walk mode the map draws your path and groups detections by species, area and time. It marks the phone position, within about ${distance}, without counting individual birds.`,
       start: 'Start a walk',
       failed: 'Location could not be turned on for this phone. Turn it on in Settings and try again.',
     },
